@@ -30,8 +30,8 @@ Usage:
   imposter [command]
 
 Available Commands:
-  help        Help about any command
   mock        Start live mocks of APIs
+  help        Help about any command
 ```
 
 Create and start mocks:
@@ -40,7 +40,11 @@ Create and start mocks:
 Starts a live mock of your APIs, using their Imposter configuration.
 
 Usage:
-  imposter mock [CONFIG_DIR]
+  imposter mock [CONFIG_DIR] [flags]
+
+Flags:
+  -p, --port string      Port on which to listen (default "8080")
+  -v, --version string   Imposter engine version (default "latest")
 ```
 
 Help:

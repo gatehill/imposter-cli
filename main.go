@@ -17,11 +17,12 @@ package main
 
 import (
 	"gatehill.io/imposter/cmd"
+	"gatehill.io/imposter/util"
 	"github.com/sirupsen/logrus"
 	"os"
 )
 
-const DefaultLogLevel = "info"
+const DefaultLogLevel = "debug"
 
 func main() {
 	lvl, ok := os.LookupEnv("LOG_LEVEL")
@@ -34,6 +35,7 @@ func main() {
 	}
 	// set global log level
 	logrus.SetLevel(ll)
+	util.LogLevel = lvl
 
 	cmd.Execute()
 }

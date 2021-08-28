@@ -18,6 +18,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"gatehill.io/imposter/util"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
@@ -31,12 +32,14 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 )
 
 const EngineDockerImage = "outofcoffee/imposter"
 const ContainerConfigDir = "/opt/imposter/config"
 
+var ImageTag string
 var Port string
 
 // mockCmd represents the mock command
@@ -61,6 +64,7 @@ var mockCmd = &cobra.Command{
 }
 
 func init() {
+	mockCmd.Flags().StringVarP(&ImageTag, "version", "v", "latest", "Imposter engine version")
 	mockCmd.Flags().StringVarP(&Port, "port", "p", "8080", "Port on which to listen")
 	rootCmd.AddCommand(mockCmd)
 }
@@ -74,17 +78,18 @@ func startMockEngine(configDir string, port int) {
 		panic(err)
 	}
 
-	reader, err := cli.ImagePull(ctx, "docker.io/"+EngineDockerImage, types.ImagePullOptions{})
+	imageAndTag := EngineDockerImage + ":" + ImageTag
+	logrus.Infof("checking '%v' image", ImageTag)
+	reader, err := cli.ImagePull(ctx, "docker.io/"+imageAndTag, types.ImagePullOptions{})
 	if err != nil {
 		panic(err)
 	}
 
 	var pullLogDestination io.Writer
-	if logrus.IsLevelEnabled(logrus.DebugLevel) {
+	if logrus.IsLevelEnabled(logrus.TraceLevel) {
 		pullLogDestination = os.Stdout
 	} else {
 		pullLogDestination = ioutil.Discard
-		logrus.Infof("pulling latest image")
 	}
 	_, err = io.Copy(pullLogDestination, reader)
 	if err != nil {
@@ -95,10 +100,13 @@ func startMockEngine(configDir string, port int) {
 	hostPort := fmt.Sprintf("%d", port)
 
 	resp, err := cli.ContainerCreate(ctx, &container.Config{
-		Image: EngineDockerImage,
+		Image: imageAndTag,
 		Cmd: []string{
 			"--configDir=" + ContainerConfigDir,
 			fmt.Sprintf("--listenPort=%d", port),
+		},
+		Env: []string{
+			"IMPOSTER_LOG_LEVEL=" + strings.ToUpper(util.LogLevel),
 		},
 		ExposedPorts: nat.PortSet{
 			containerPort: {},
@@ -146,7 +154,7 @@ func startMockEngine(configDir string, port int) {
 }
 
 func stopMockEngine(cli *client.Client, ctx context.Context, containerID string) {
-	logrus.Infof("\rstopping mock engine...\n")
+	logrus.Info("\rstopping mock engine...\n")
 	err := cli.ContainerStop(ctx, containerID, nil)
 	if err != nil {
 		panic(err)
@@ -160,13 +168,13 @@ func stopMockEngine(cli *client.Client, ctx context.Context, containerID string)
 		}
 	case <-statusCh:
 	}
-	logrus.Debug("mock engine stopped")
+	logrus.Trace("mock engine stopped")
 
 	err = cli.ContainerRemove(ctx, containerID, types.ContainerRemoveOptions{})
 	if err != nil {
 		logrus.Warnf("failed to remove mock engine container: %v", err)
 	}
-	logrus.Debug("mock engine container removed")
+	logrus.Trace("mock engine container removed")
 }
 
 // listen for an interrupt from the OS, then attempt engine cleanup
