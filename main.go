@@ -21,10 +21,12 @@ import (
 	"os"
 )
 
+const DefaultLogLevel = "info"
+
 func main() {
 	lvl, ok := os.LookupEnv("LOG_LEVEL")
 	if !ok {
-		lvl = "debug"
+		lvl = DefaultLogLevel
 	}
 	ll, err := logrus.ParseLevel(lvl)
 	if err != nil {
