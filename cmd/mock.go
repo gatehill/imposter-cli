@@ -27,6 +27,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/signal"
 	"strconv"
@@ -41,8 +42,8 @@ var Port string
 // mockCmd represents the mock command
 var mockCmd = &cobra.Command{
 	Use:   "mock [CONFIG_DIR]",
-	Short: "Start live mocks of API dependencies",
-	Long:  `Starts a live mock of your API dependencies, using their Imposter configuration.`,
+	Short: "Start live mocks of APIs",
+	Long:  `Starts a live mock of your APIs, using their Imposter configuration.`,
 	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
 		var configDir string
@@ -77,7 +78,15 @@ func startMockEngine(configDir string, port int) {
 	if err != nil {
 		panic(err)
 	}
-	_, err = io.Copy(os.Stdout, reader)
+
+	var pullLogDestination io.Writer
+	if logrus.IsLevelEnabled(logrus.DebugLevel) {
+		pullLogDestination = os.Stdout
+	} else {
+		pullLogDestination = ioutil.Discard
+		logrus.Infof("pulling latest image")
+	}
+	_, err = io.Copy(pullLogDestination, reader)
 	if err != nil {
 		panic(err)
 	}
@@ -120,7 +129,7 @@ func startMockEngine(configDir string, port int) {
 	}
 
 	trapExit(cli, ctx, resp.ID)
-	println("container engine started - press ctrl+c to stop")
+	logrus.Info("mock engine started - press ctrl+c to stop")
 
 	out, err := cli.ContainerLogs(ctx, resp.ID, types.ContainerLogsOptions{
 		ShowStdout: true,
@@ -147,12 +156,17 @@ func stopMockEngine(cli *client.Client, ctx context.Context, containerID string)
 	select {
 	case err := <-errCh:
 		if err != nil {
-			panic(err)
+			logrus.Warnf("failed to stop mock engine: %v", err)
 		}
 	case <-statusCh:
 	}
+	logrus.Debug("mock engine stopped")
 
-	println("container engine stopped")
+	err = cli.ContainerRemove(ctx, containerID, types.ContainerRemoveOptions{})
+	if err != nil {
+		logrus.Warnf("failed to remove mock engine container: %v", err)
+	}
+	logrus.Debug("mock engine container removed")
 }
 
 // listen for an interrupt from the OS, then attempt engine cleanup

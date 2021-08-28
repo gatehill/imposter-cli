@@ -31,13 +31,13 @@ Usage:
 
 Available Commands:
   help        Help about any command
-  mock        Start live mocks of API dependencies
+  mock        Start live mocks of APIs
 ```
 
 Create and start mocks:
 
 ```
-Starts a live mock of your API dependencies, using their Imposter configuration.
+Starts a live mock of your APIs, using their Imposter configuration.
 
 Usage:
   imposter mock [CONFIG_DIR]
