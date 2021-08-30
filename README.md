@@ -1,4 +1,6 @@
-# Imposter CLI
+# Imposter: A scriptable, multipurpose mock server
+
+Reliable, scriptable and extensible mock server for general REST APIs, OpenAPI (and Swagger) specifications, Salesforce and HBase APIs. 
 
 Features:
 
@@ -7,7 +9,11 @@ Features:
 * quickly set up a temporary API for your mobile/web client teams whilst the real API is being built
 * decouple your integration tests from the cloud/various back-end systems and take control of your dependencies
 
-Provide mock responses using static files or customise behaviour based on characteristics of the request. Power users can control mock responses with JavaScript or Java/Groovy script engines. Advanced users can write their own plugins in a JVM language of their choice.
+Provide mock responses using static files or customise behaviour based on characteristics of the request.
+Capture data and use response templates to provide conditional responses.
+Power users can control mock responses with JavaScript or Java/Groovy script engines.
+
+> This project is the CLI tool for the [Imposter mock engine](https://github.com/outofcoffee/imposter).
 
 ## Getting started & documentation
 
@@ -20,6 +26,8 @@ Or, use this one liner (macOS and Linux only):
 ```shell
 curl -L https://raw.githubusercontent.com/gatehill/imposter-cli/main/install/install_imposter.sh | bash -
 ```
+
+> Note: You must have [Docker](https://docs.docker.com/get-docker/) installed.
 
 ### Usage
 
@@ -67,7 +75,7 @@ The default log level is `debug`. You can override this by setting the `LOG_LEVE
 
 ## About Imposter
 
-Imposter is a reliable, scriptable and extensible mock server for general REST APIs, [OpenAPI](https://github.com/OAI/OpenAPI-Specification) (and Swagger) specifications, Salesforce and HBase APIs.
+Imposter is a reliable, scriptable and extensible mock server for general REST APIs, OpenAPI (and Swagger) specifications, Salesforce and HBase APIs.
 
 Scripting support for both JavaScript or Groovy/Java.
 

@@ -73,27 +73,27 @@ function find_os() {
 }
 
 function find_version() {
-    if [[ -z "${IMPOSTER_VERSION}" ]]; then
+    if [[ -z "${IMPOSTER_CLI_VERSION}" ]]; then
       echo "Attempting to determine latest version..."
       if [[ ! $( command -v jq ) ]]; then
         echo "Error: jq must be installed on your system in order to determine latest version."
-        echo "Either install jq or set the IMPOSTER_VERSION environment variable."
+        echo "Either install jq or set the IMPOSTER_CLI_VERSION environment variable."
         exit 1
       fi
 
-      IMPOSTER_VERSION="$( curl --fail --silent "${LATEST_RELEASE_API}" | jq -c '.tag_name' --raw-output )"
+      IMPOSTER_CLI_VERSION="$( curl --fail --silent "${LATEST_RELEASE_API}" | jq -c '.tag_name' --raw-output )"
     fi
 
-    if [[ "${IMPOSTER_VERSION:0:1}" == "v" ]]; then
-      IMPOSTER_VERSION="$( echo ${IMPOSTER_VERSION} | cut -c 2- )"
+    if [[ "${IMPOSTER_CLI_VERSION:0:1}" == "v" ]]; then
+      IMPOSTER_CLI_VERSION="$( echo ${IMPOSTER_CLI_VERSION} | cut -c 2- )"
     fi
-    echo "Using version: ${IMPOSTER_VERSION}"
+    echo "Using version: ${IMPOSTER_CLI_VERSION}"
 }
 
 find_os
 find_arch
 find_version
-DOWNLOAD_URL="${BASE_URL}/v${IMPOSTER_VERSION}/imposter_${IMPOSTER_VERSION}_${IMPOSTER_OS}_${IMPOSTER_ARCH}.tar.gz"
+DOWNLOAD_URL="${BASE_URL}/v${IMPOSTER_CLI_VERSION}/imposter_${IMPOSTER_CLI_VERSION}_${IMPOSTER_OS}_${IMPOSTER_ARCH}.tar.gz"
 
 IMPOSTER_TEMP_DIR="$( mktemp -d /tmp/imposter.XXXXXXX )"
 cd "${IMPOSTER_TEMP_DIR}"

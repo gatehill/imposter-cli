@@ -1,5 +1,9 @@
 # Installation
 
+## Prerequisites
+
+You must have [Docker](https://docs.docker.com/get-docker/) installed.
+
 ## One-liner
 
 Use this one liner (macOS and Linux only):
