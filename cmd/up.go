@@ -42,9 +42,9 @@ const ContainerConfigDir = "/opt/imposter/config"
 var ImageTag string
 var Port string
 
-// mockCmd represents the mock command
-var mockCmd = &cobra.Command{
-	Use:   "mock [CONFIG_DIR]",
+// upCmd represents the up command
+var upCmd = &cobra.Command{
+	Use:   "up [CONFIG_DIR]",
 	Short: "Start live mocks of APIs",
 	Long:  `Starts a live mock of your APIs, using their Imposter configuration.`,
 	Args:  cobra.RangeArgs(0, 1),
@@ -64,9 +64,9 @@ var mockCmd = &cobra.Command{
 }
 
 func init() {
-	mockCmd.Flags().StringVarP(&ImageTag, "version", "v", "latest", "Imposter engine version")
-	mockCmd.Flags().StringVarP(&Port, "port", "p", "8080", "Port on which to listen")
-	rootCmd.AddCommand(mockCmd)
+	upCmd.Flags().StringVarP(&ImageTag, "version", "v", "latest", "Imposter engine version")
+	upCmd.Flags().StringVarP(&Port, "port", "p", "8080", "Port on which to listen")
+	rootCmd.AddCommand(upCmd)
 }
 
 func startMockEngine(configDir string, port int) {
