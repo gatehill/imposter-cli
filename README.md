@@ -17,17 +17,26 @@ Power users can control mock responses with JavaScript or Java/Groovy script eng
 
 ## Getting started & documentation
 
+You must have [Docker](https://docs.docker.com/get-docker/) installed.
+
 ### Installation
 
 See the [Installation](./docs/install.md) instructions for your system.
+
+#### Homebrew
+
+If you have Homebrew installed:
+
+    brew tap gatehill/imposter
+    brew install imposter
+
+#### Shell script
 
 Or, use this one liner (macOS and Linux only):
 
 ```shell
 curl -L https://raw.githubusercontent.com/gatehill/imposter-cli/main/install/install_imposter.sh | bash -
 ```
-
-> Note: You must have [Docker](https://docs.docker.com/get-docker/) installed.
 
 ### Usage
 

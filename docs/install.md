@@ -1,12 +1,25 @@
 # Installation
 
+Imposter can be installed on Linux, macOS and Windows.
+
 ## Prerequisites
 
 You must have [Docker](https://docs.docker.com/get-docker/) installed.
 
-## One-liner
+## Quick start
 
-Use this one liner (macOS and Linux only):
+Use these instructions to get up and running quickly.
+
+### Homebrew
+
+If you have Homebrew installed:
+
+    brew tap gatehill/imposter
+    brew install imposter
+
+### Shell script
+
+Or, use this one liner (macOS and Linux only):
 
 ```shell
 curl -L https://raw.githubusercontent.com/gatehill/imposter-cli/main/install/install_imposter.sh | bash -
