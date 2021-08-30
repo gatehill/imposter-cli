@@ -31,7 +31,6 @@ import (
 	"io/ioutil"
 	"os"
 	"os/signal"
-	"strconv"
 	"strings"
 	"syscall"
 )
@@ -40,7 +39,7 @@ const EngineDockerImage = "outofcoffee/imposter"
 const ContainerConfigDir = "/opt/imposter/config"
 
 var ImageTag string
-var Port string
+var Port int
 
 // upCmd represents the up command
 var upCmd = &cobra.Command{
@@ -55,21 +54,17 @@ var upCmd = &cobra.Command{
 		} else {
 			configDir = args[0]
 		}
-		port, err := strconv.Atoi(Port)
-		if err != nil {
-			panic(fmt.Errorf("invalid port: %v", Port))
-		}
-		startMockEngine(configDir, port)
+		startMockEngine(configDir, Port, ImageTag)
 	},
 }
 
 func init() {
 	upCmd.Flags().StringVarP(&ImageTag, "version", "v", "latest", "Imposter engine version")
-	upCmd.Flags().StringVarP(&Port, "port", "p", "8080", "Port on which to listen")
+	upCmd.Flags().IntVarP(&Port, "port", "p", 8080, "Port on which to listen")
 	rootCmd.AddCommand(upCmd)
 }
 
-func startMockEngine(configDir string, port int) {
+func startMockEngine(configDir string, port int, imageTag string) {
 	logrus.Infof("starting mock engine on port %d", port)
 
 	ctx := context.Background()
@@ -78,23 +73,7 @@ func startMockEngine(configDir string, port int) {
 		panic(err)
 	}
 
-	imageAndTag := EngineDockerImage + ":" + ImageTag
-	logrus.Infof("checking '%v' image", ImageTag)
-	reader, err := cli.ImagePull(ctx, "docker.io/"+imageAndTag, types.ImagePullOptions{})
-	if err != nil {
-		panic(err)
-	}
-
-	var pullLogDestination io.Writer
-	if logrus.IsLevelEnabled(logrus.TraceLevel) {
-		pullLogDestination = os.Stdout
-	} else {
-		pullLogDestination = ioutil.Discard
-	}
-	_, err = io.Copy(pullLogDestination, reader)
-	if err != nil {
-		panic(err)
-	}
+	imageAndTag, err := ensureContainerImage(cli, ctx, imageTag)
 
 	containerPort := nat.Port(fmt.Sprintf("%d/tcp", port))
 	hostPort := fmt.Sprintf("%d", port)
@@ -151,6 +130,42 @@ func startMockEngine(configDir string, port int) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func ensureContainerImage(cli *client.Client, ctx context.Context, imageTag string) (imageAndTag string, e error) {
+	imageAndTag = EngineDockerImage + ":" + imageTag
+
+	var hasImage = true
+	_, _, err := cli.ImageInspectWithRaw(ctx, imageAndTag)
+	if err != nil {
+		if client.IsErrNotFound(err) {
+			hasImage = false
+		} else {
+			panic(err)
+		}
+	}
+	if hasImage {
+		logrus.Debugf("engine image '%v' already present", imageTag)
+		return imageAndTag, nil
+	}
+
+	logrus.Infof("pulling '%v' engine image", imageTag)
+	reader, err := cli.ImagePull(ctx, "docker.io/"+imageAndTag, types.ImagePullOptions{})
+	if err != nil {
+		panic(err)
+	}
+
+	var pullLogDestination io.Writer
+	if logrus.IsLevelEnabled(logrus.TraceLevel) {
+		pullLogDestination = os.Stdout
+	} else {
+		pullLogDestination = ioutil.Discard
+	}
+	_, err = io.Copy(pullLogDestination, reader)
+	if err != nil {
+		panic(err)
+	}
+	return imageAndTag, err
 }
 
 func stopMockEngine(cli *client.Client, ctx context.Context, containerID string) {
