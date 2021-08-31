@@ -38,15 +38,18 @@ import (
 const EngineDockerImage = "outofcoffee/imposter"
 const ContainerConfigDir = "/opt/imposter/config"
 
-var ImageTag string
-var Port int
+var flagImageTag string
+var flagPort int
+var flagForcePull bool
 
 // upCmd represents the up command
 var upCmd = &cobra.Command{
 	Use:   "up [CONFIG_DIR]",
 	Short: "Start live mocks of APIs",
-	Long:  `Starts a live mock of your APIs, using their Imposter configuration.`,
-	Args:  cobra.RangeArgs(0, 1),
+	Long: `Starts a live mock of your APIs, using their Imposter configuration.
+
+If CONFIG_DIR is not specified, the current working directory is used.`,
+	Args: cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
 		var configDir string
 		if len(args) == 0 {
@@ -54,17 +57,18 @@ var upCmd = &cobra.Command{
 		} else {
 			configDir = args[0]
 		}
-		startMockEngine(configDir, Port, ImageTag)
+		startMockEngine(configDir, flagPort, flagImageTag, flagForcePull)
 	},
 }
 
 func init() {
-	upCmd.Flags().StringVarP(&ImageTag, "version", "v", "latest", "Imposter engine version")
-	upCmd.Flags().IntVarP(&Port, "port", "p", 8080, "Port on which to listen")
+	upCmd.Flags().StringVarP(&flagImageTag, "version", "v", "latest", "Imposter engine version")
+	upCmd.Flags().IntVarP(&flagPort, "port", "p", 8080, "Port on which to listen")
+	upCmd.Flags().BoolVar(&flagForcePull, "pull", false, "Force engine image pull")
 	rootCmd.AddCommand(upCmd)
 }
 
-func startMockEngine(configDir string, port int, imageTag string) {
+func startMockEngine(configDir string, port int, imageTag string, forcePull bool) {
 	logrus.Infof("starting mock engine on port %d", port)
 
 	ctx := context.Background()
@@ -73,7 +77,7 @@ func startMockEngine(configDir string, port int, imageTag string) {
 		panic(err)
 	}
 
-	imageAndTag, err := ensureContainerImage(cli, ctx, imageTag)
+	imageAndTag, err := ensureContainerImage(cli, ctx, imageTag, forcePull)
 
 	containerPort := nat.Port(fmt.Sprintf("%d/tcp", port))
 	hostPort := fmt.Sprintf("%d", port)
@@ -132,23 +136,30 @@ func startMockEngine(configDir string, port int, imageTag string) {
 	}
 }
 
-func ensureContainerImage(cli *client.Client, ctx context.Context, imageTag string) (imageAndTag string, e error) {
+func ensureContainerImage(cli *client.Client, ctx context.Context, imageTag string, forcePull bool) (imageAndTag string, e error) {
 	imageAndTag = EngineDockerImage + ":" + imageTag
 
-	var hasImage = true
-	_, _, err := cli.ImageInspectWithRaw(ctx, imageAndTag)
-	if err != nil {
-		if client.IsErrNotFound(err) {
-			hasImage = false
-		} else {
-			panic(err)
+	if !forcePull {
+		var hasImage = true
+		_, _, err := cli.ImageInspectWithRaw(ctx, imageAndTag)
+		if err != nil {
+			if client.IsErrNotFound(err) {
+				hasImage = false
+			} else {
+				panic(err)
+			}
+		}
+		if hasImage {
+			logrus.Debugf("engine image '%v' already present", imageTag)
+			return imageAndTag, nil
 		}
 	}
-	if hasImage {
-		logrus.Debugf("engine image '%v' already present", imageTag)
-		return imageAndTag, nil
-	}
 
+	err := pullImage(cli, ctx, imageTag, imageAndTag)
+	return imageAndTag, err
+}
+
+func pullImage(cli *client.Client, ctx context.Context, imageTag string, imageAndTag string) error {
 	logrus.Infof("pulling '%v' engine image", imageTag)
 	reader, err := cli.ImagePull(ctx, "docker.io/"+imageAndTag, types.ImagePullOptions{})
 	if err != nil {
@@ -165,7 +176,7 @@ func ensureContainerImage(cli *client.Client, ctx context.Context, imageTag stri
 	if err != nil {
 		panic(err)
 	}
-	return imageAndTag, err
+	return err
 }
 
 func stopMockEngine(cli *client.Client, ctx context.Context, containerID string) {
