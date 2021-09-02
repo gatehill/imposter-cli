@@ -1,3 +1,8 @@
 package util
 
-var LogLevel string
+type CliConfig struct {
+	Version  string
+	LogLevel string
+}
+
+var Config CliConfig

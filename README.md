@@ -53,6 +53,7 @@ Available Commands:
   up          Start live mocks of APIs
   scaffold    Create Imposter configuration from OpenAPI specs
   help        Help about any command
+  version     Print CLI version
 ```
 
 Create and start mocks:

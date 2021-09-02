@@ -13,35 +13,23 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package main
+package cmd
 
 import (
-	"gatehill.io/imposter/cmd"
 	"gatehill.io/imposter/util"
-	"github.com/sirupsen/logrus"
-	"os"
+	"github.com/spf13/cobra"
 )
 
-const defaultLogLevel = "debug"
+// versionCmd represents the up command
+var versionCmd = &cobra.Command{
+	Use:   "version",
+	Short: "Print CLI version",
+	Long:  `Prints the version of the CLI.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		println("imposter-cli " + util.Config.Version)
+	},
+}
 
-var version string
-
-func main() {
-	lvl, ok := os.LookupEnv("LOG_LEVEL")
-	if !ok {
-		lvl = defaultLogLevel
-	}
-	ll, err := logrus.ParseLevel(lvl)
-	if err != nil {
-		ll = logrus.DebugLevel
-	}
-	// set global log level
-	logrus.SetLevel(ll)
-
-	util.Config = util.CliConfig{
-		LogLevel: lvl,
-		Version:  version,
-	}
-
-	cmd.Execute()
+func init() {
+	rootCmd.AddCommand(versionCmd)
 }

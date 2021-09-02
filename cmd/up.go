@@ -90,7 +90,7 @@ func startMockEngine(configDir string, port int, imageTag string, forcePull bool
 			fmt.Sprintf("--listenPort=%d", port),
 		},
 		Env: []string{
-			"IMPOSTER_LOG_LEVEL=" + strings.ToUpper(util.LogLevel),
+			"IMPOSTER_LOG_LEVEL=" + strings.ToUpper(util.Config.LogLevel),
 		},
 		ExposedPorts: nat.PortSet{
 			containerPort: {},
