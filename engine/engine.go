@@ -18,7 +18,6 @@ package engine
 import (
 	"context"
 	"fmt"
-	"gatehill.io/imposter/util"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
@@ -32,26 +31,33 @@ import (
 	"strings"
 )
 
+type EngineStartOptions struct {
+	Port           int
+	ImageTag       string
+	ForceImagePull bool
+	LogLevel       string
+}
+
 const engineDockerImage = "outofcoffee/imposter"
 const containerConfigDir = "/opt/imposter/config"
 
-func StartMockEngine(configDir string, port int, imageTag string, forcePull bool) (containerId string, containerLogs io.Reader) {
-	logrus.Infof("starting mock engine on port %d", port)
-	ctx, cli, err := buildCliClient()
+func StartMockEngine(configDir string, options EngineStartOptions) (containerId string) {
+	logrus.Infof("starting mock engine on port %d", options.Port)
+	ctx, cli := buildCliClient()
 
-	imageAndTag, err := ensureContainerImage(cli, ctx, imageTag, forcePull)
+	imageAndTag, err := ensureContainerImage(cli, ctx, options.ImageTag, options.ForceImagePull)
 
-	containerPort := nat.Port(fmt.Sprintf("%d/tcp", port))
-	hostPort := fmt.Sprintf("%d", port)
+	containerPort := nat.Port(fmt.Sprintf("%d/tcp", options.Port))
+	hostPort := fmt.Sprintf("%d", options.Port)
 
 	resp, err := cli.ContainerCreate(ctx, &container.Config{
 		Image: imageAndTag,
 		Cmd: []string{
 			"--configDir=" + containerConfigDir,
-			fmt.Sprintf("--listenPort=%d", port),
+			fmt.Sprintf("--listenPort=%d", options.Port),
 		},
 		Env: []string{
-			"IMPOSTER_LOG_LEVEL=" + strings.ToUpper(util.Config.LogLevel),
+			"IMPOSTER_LOG_LEVEL=" + strings.ToUpper(options.LogLevel),
 		},
 		ExposedPorts: nat.PortSet{
 			containerPort: {},
@@ -83,7 +89,7 @@ func StartMockEngine(configDir string, port int, imageTag string, forcePull bool
 
 	logrus.Info("mock engine started - press ctrl+c to stop")
 
-	containerLogs, err = cli.ContainerLogs(ctx, resp.ID, types.ContainerLogsOptions{
+	containerLogs, err := cli.ContainerLogs(ctx, resp.ID, types.ContainerLogsOptions{
 		ShowStdout: true,
 		Follow:     true,
 	})
@@ -91,16 +97,23 @@ func StartMockEngine(configDir string, port int, imageTag string, forcePull bool
 		panic(err)
 	}
 
-	return resp.ID, containerLogs
+	go func() {
+		_, err := stdcopy.StdCopy(os.Stdout, os.Stderr, containerLogs)
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	return resp.ID
 }
 
-func buildCliClient() (context.Context, *client.Client, error) {
+func buildCliClient() (context.Context, *client.Client) {
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		panic(err)
 	}
-	return ctx, cli, err
+	return ctx, cli
 }
 
 func ensureContainerImage(cli *client.Client, ctx context.Context, imageTag string, forcePull bool) (imageAndTag string, e error) {
@@ -146,23 +159,16 @@ func pullImage(cli *client.Client, ctx context.Context, imageTag string, imageAn
 	return err
 }
 
-func PipeLogsToStdoutStderr(containerLogs io.Reader) {
-	_, err := stdcopy.StdCopy(os.Stdout, os.Stderr, containerLogs)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func StopMockEngine(containerID string) {
+func StopMockEngine(containerId string) {
 	logrus.Infof("\rstopping mock engine...\n")
-	ctx, cli, err := buildCliClient()
+	ctx, cli := buildCliClient()
 
-	err = cli.ContainerRemove(ctx, containerID, types.ContainerRemoveOptions{Force: true})
+	err := cli.ContainerRemove(ctx, containerId, types.ContainerRemoveOptions{Force: true})
 	if err != nil {
 		logrus.Warnf("failed to remove mock engine container: %v", err)
 	}
 
-	statusCh, errCh := cli.ContainerWait(ctx, containerID, container.WaitConditionRemoved)
+	statusCh, errCh := cli.ContainerWait(ctx, containerId, container.WaitConditionRemoved)
 	select {
 	case err := <-errCh:
 		if err != nil {
@@ -171,4 +177,17 @@ func StopMockEngine(containerID string) {
 	case <-statusCh:
 	}
 	logrus.Trace("mock engine container removed")
+}
+
+func BlockUntilStopped(containerId string) {
+	ctx, cli := buildCliClient()
+
+	statusCh, errCh := cli.ContainerWait(ctx, containerId, container.WaitConditionNotRunning)
+	select {
+	case err := <-errCh:
+		if err != nil {
+			logrus.Warnf("failed to wait for mock engine container to stop: %v", err)
+		}
+	case <-statusCh:
+	}
 }

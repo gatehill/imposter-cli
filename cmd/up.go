@@ -17,6 +17,7 @@ package cmd
 
 import (
 	"gatehill.io/imposter/engine"
+	"gatehill.io/imposter/util"
 	"github.com/spf13/cobra"
 	"os"
 	"os/signal"
@@ -43,9 +44,14 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 		} else {
 			configDir, _ = filepath.Abs(args[0])
 		}
-		containerId, containerLogs := engine.StartMockEngine(configDir, flagPort, flagImageTag, flagForcePull)
+		containerId := engine.StartMockEngine(configDir, engine.EngineStartOptions{
+			Port:           flagPort,
+			ImageTag:       flagImageTag,
+			ForceImagePull: flagForcePull,
+			LogLevel:       util.Config.LogLevel,
+		})
 		trapExit(containerId)
-		engine.PipeLogsToStdoutStderr(containerLogs)
+		engine.BlockUntilStopped(containerId)
 	},
 }
 
