@@ -31,6 +31,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 )
@@ -55,7 +56,7 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 		if len(args) == 0 {
 			configDir, _ = os.Getwd()
 		} else {
-			configDir = args[0]
+			configDir, _ = filepath.Abs(args[0])
 		}
 		startMockEngine(configDir, flagPort, flagImageTag, flagForcePull)
 	},
