@@ -51,6 +51,7 @@ Usage:
 
 Available Commands:
   up          Start live mocks of APIs
+  scaffold    Create Imposter configuration from OpenAPI specs
   help        Help about any command
 ```
 
@@ -68,6 +69,16 @@ Flags:
   -p, --port int         Port on which to listen (default 8080)
       --pull             Force engine image pull
   -v, --version string   Imposter engine version (default "latest")
+```
+
+Scaffold Imposter configuration from OpenAPI specification files:
+```
+Creates Imposter configuration from one or more OpenAPI/Swagger specification files.
+
+If CONFIG_DIR is not specified, the current working directory is used.
+
+Usage:
+  imposter scaffold [CONFIG_DIR] [flags]
 ```
 
 Help:
