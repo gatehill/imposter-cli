@@ -18,6 +18,8 @@ Advanced users can write their own plugins in a JVM language of their choice.
 
 > This project is the CLI tool for the [Imposter mock engine](https://github.com/outofcoffee/imposter).
 
+<img src="./docs/img/imposter-scaffold.gif" alt="Screenshot of scaffold command" width="67%">
+
 ## Getting started & documentation
 
 You must have [Docker](https://docs.docker.com/get-docker/) installed.
@@ -80,6 +82,11 @@ If CONFIG_DIR is not specified, the current working directory is used.
 
 Usage:
   imposter scaffold [CONFIG_DIR] [flags]
+
+Flags:
+      --force-overwrite        Force overwrite destination file(s) if already exist
+      --generate-resources     Generate Imposter resources from OpenAPI paths (default true)
+      --script-engine string   Generate placeholder Imposter script (none|groovy|js) (default "none")
 ```
 
 Help:
