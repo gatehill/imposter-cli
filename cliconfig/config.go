@@ -1,4 +1,4 @@
-package util
+package cliconfig
 
 type CliConfig struct {
 	Version  string

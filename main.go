@@ -16,8 +16,8 @@ limitations under the License.
 package main
 
 import (
+	"gatehill.io/imposter/cliconfig"
 	"gatehill.io/imposter/cmd"
-	"gatehill.io/imposter/util"
 	"github.com/sirupsen/logrus"
 	"os"
 )
@@ -38,7 +38,7 @@ func main() {
 	// set global log level
 	logrus.SetLevel(ll)
 
-	util.Config = util.CliConfig{
+	cliconfig.Config = cliconfig.CliConfig{
 		LogLevel: lvl,
 		Version:  version,
 	}

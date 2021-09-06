@@ -16,8 +16,8 @@ limitations under the License.
 package cmd
 
 import (
+	"gatehill.io/imposter/cliconfig"
 	"gatehill.io/imposter/engine"
-	"gatehill.io/imposter/util"
 	"github.com/spf13/cobra"
 	"os"
 	"os/signal"
@@ -48,7 +48,7 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 			Port:           flagPort,
 			ImageTag:       flagImageTag,
 			ForceImagePull: flagForcePull,
-			LogLevel:       util.Config.LogLevel,
+			LogLevel:       cliconfig.Config.LogLevel,
 		})
 		trapExit(containerId)
 		engine.BlockUntilStopped(containerId)

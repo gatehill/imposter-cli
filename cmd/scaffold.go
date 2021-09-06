@@ -16,16 +16,19 @@ limitations under the License.
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
+	"gatehill.io/imposter/fileutil"
+	"gatehill.io/imposter/impostermodel"
+	"gatehill.io/imposter/openapi"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"io/ioutil"
 	"os"
 	"path/filepath"
-	"sigs.k8s.io/yaml"
-	"strings"
 )
+
+var flagForceOverwrite bool
+var flagGenerateResources bool
+var flagScriptEngine string
 
 // scaffoldCmd represents the up command
 var scaffoldCmd = &cobra.Command{
@@ -42,111 +45,75 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 		} else {
 			configDir, _ = filepath.Abs(args[0])
 		}
-		createMockConfig(configDir)
+		scriptEngine := parseScriptEngine(flagScriptEngine)
+		createMockConfig(configDir, flagGenerateResources, flagForceOverwrite, scriptEngine)
 	},
 }
 
 func init() {
+	scaffoldCmd.Flags().BoolVar(&flagForceOverwrite, "force-overwrite", false, "Force overwrite destination file(s) if already exist")
+	scaffoldCmd.Flags().BoolVar(&flagGenerateResources, "generate-resources", true, "Generate Imposter resources from OpenAPI paths")
+	scaffoldCmd.Flags().StringVar(&flagScriptEngine, "script-engine", "none", "Generate placeholder Imposter script (none|groovy|js)")
 	rootCmd.AddCommand(scaffoldCmd)
 }
 
-func createMockConfig(configDir string) {
-	openApiSpecs := discoverOpenApiSpecs(configDir)
-	logrus.Infof("found %d OpenAPI specs", len(openApiSpecs))
+func parseScriptEngine(scriptEngine string) impostermodel.ScriptEngine {
+	engine := impostermodel.ScriptEngine(scriptEngine)
+	switch engine {
+	case impostermodel.ScriptEngineNone, impostermodel.ScriptEngineGroovy, impostermodel.ScriptEngineJavaScript:
+		return engine
+	default:
+		panic(fmt.Errorf("unsupported script engine: %v", flagScriptEngine))
+	}
+}
+
+func createMockConfig(configDir string, generateResources bool, forceOverwrite bool, scriptEngine impostermodel.ScriptEngine) {
+	openApiSpecs := openapi.DiscoverOpenApiSpecs(configDir)
+	logrus.Infof("found %d OpenAPI spec(s)", len(openApiSpecs))
 
 	for _, openApiSpec := range openApiSpecs {
-		writeMockConfig(configDir, openApiSpec)
+		writeMockConfig(configDir, openApiSpec, generateResources, forceOverwrite, scriptEngine)
 	}
 }
 
-func discoverOpenApiSpecs(configDir string) []string {
-	var openApiSpecs []string
+func writeMockConfig(dir string, specFilePath string, generateResources bool, forceOverwrite bool, scriptEngine impostermodel.ScriptEngine) {
+	configFileName := fileutil.GenerateFilenameAdjacentToFile(dir, specFilePath, "-config.yaml", forceOverwrite)
+	scriptFileName := writeScriptFile(dir, specFilePath, scriptEngine, forceOverwrite)
+	config := impostermodel.GenerateConfig(specFilePath, generateResources, scriptEngine, scriptFileName)
 
-	for _, yamlFile := range append(findFilesWithExtension(configDir, ".yaml"), findFilesWithExtension(configDir, ".yml")...) {
-		jsonContent, err := loadYamlAsJson(yamlFile)
-		if err != nil {
-			logrus.Fatal(err)
-		}
-		if isOpenApiSpec(jsonContent) {
-			openApiSpecs = append(openApiSpecs, yamlFile)
-		}
-	}
-
-	for _, jsonFile := range findFilesWithExtension(configDir, ".json") {
-		jsonContent, err := ioutil.ReadFile(jsonFile)
-		if err != nil {
-			logrus.Fatal(err)
-		}
-		if isOpenApiSpec(jsonContent) {
-			openApiSpecs = append(openApiSpecs, jsonFile)
-		}
-	}
-
-	return openApiSpecs
-}
-
-func findFilesWithExtension(root, ext string) []string {
-	var filesWithExtension []string
-	infos, err := ioutil.ReadDir(root)
-	if err != nil {
-		logrus.Fatal(err)
-	}
-	for _, info := range infos {
-		if !info.IsDir() && filepath.Ext(info.Name()) == ext {
-			filesWithExtension = append(filesWithExtension, info.Name())
-		}
-	}
-	return filesWithExtension
-}
-
-func loadYamlAsJson(yamlFile string) ([]byte, error) {
-	y, err := ioutil.ReadFile(yamlFile)
-	if err != nil {
-		return nil, err
-	}
-
-	j, err := yaml.YAMLToJSON(y)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing YAML at %v: %v\n", yamlFile, err)
-	}
-	return j, nil
-}
-
-func isOpenApiSpec(jsonContent []byte) bool {
-	var spec map[string]interface{}
-	if err := json.Unmarshal(jsonContent, &spec); err != nil {
-		panic(err)
-	}
-	return spec["openapi"] != nil || spec["swagger"] != nil
-}
-
-func writeMockConfig(dir string, specFilePath string) {
-	specFileName := filepath.Base(specFilePath)
-	configFileName := fmt.Sprintf("%v-config.yaml", strings.Replace(specFileName, filepath.Ext(specFileName), "", -1))
-	configFilePath := filepath.Join(dir, configFileName)
-	if _, err := os.Stat(configFilePath); err != nil {
-		if !os.IsNotExist(err) {
-			logrus.Fatal(err)
-		}
-	} else {
-		logrus.Fatalf("config file already exists: %v - aborting", configFilePath)
-	}
-
-	configFile, err := os.Create(configFilePath)
+	configFile, err := os.Create(filepath.Join(dir, configFileName))
 	if err != nil {
 		logrus.Fatal(err)
 	}
 	defer configFile.Close()
-
-	config := fmt.Sprintf(`---
-plugin: openapi
-specFile: "%v"
-`, specFileName)
-
-	_, err = configFile.WriteString(config)
+	_, err = configFile.Write(config)
 	if err != nil {
 		logrus.Fatal(err)
 	}
 
 	logrus.Infof("wrote Imposter config: %v", configFile.Name())
+}
+
+func writeScriptFile(dir string, spec string, engine impostermodel.ScriptEngine, forceOverwrite bool) (scriptFileName string) {
+	if engine == impostermodel.ScriptEngineNone {
+		return ""
+	}
+	scriptFileName = impostermodel.BuildScriptFileName(dir, spec, engine, forceOverwrite)
+	scriptFilePath := filepath.Join(dir, scriptFileName)
+	file, err := os.Create(scriptFilePath)
+	if err != nil {
+		logrus.Fatalf("error writing script file: %v: %v", scriptFilePath, err)
+	}
+	defer file.Close()
+
+	_, err = file.WriteString(`
+// TODO add your custom logic here
+logger.debug(context.request);
+`)
+	if err != nil {
+		logrus.Fatalf("error writing script file: %v: %v", scriptFilePath, err)
+	}
+
+	logrus.Infof("wrote script file: %v", scriptFilePath)
+	return scriptFileName
 }

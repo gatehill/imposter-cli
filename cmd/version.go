@@ -16,7 +16,7 @@ limitations under the License.
 package cmd
 
 import (
-	"gatehill.io/imposter/util"
+	"gatehill.io/imposter/cliconfig"
 	"github.com/spf13/cobra"
 )
 
@@ -26,7 +26,7 @@ var versionCmd = &cobra.Command{
 	Short: "Print CLI version",
 	Long:  `Prints the version of the CLI.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		println("imposter-cli " + util.Config.Version)
+		println("imposter-cli " + cliconfig.Config.Version)
 	},
 }
 
