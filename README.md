@@ -71,6 +71,7 @@ Usage:
 Flags:
   -p, --port int         Port on which to listen (default 8080)
       --pull             Force engine image pull
+      --auto-restart     Automatically restart when config dir contents change (default true)
   -v, --version string   Imposter engine version (default "latest")
 ```
 

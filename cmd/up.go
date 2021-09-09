@@ -18,6 +18,8 @@ package cmd
 import (
 	"gatehill.io/imposter/cliconfig"
 	"gatehill.io/imposter/engine"
+	"gatehill.io/imposter/fileutil"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"os"
 	"os/signal"
@@ -28,6 +30,11 @@ import (
 var flagImageTag string
 var flagPort int
 var flagForcePull bool
+var flagRestartOnChange bool
+
+var containerId string
+var stopCh chan string
+var restartsPending int
 
 // upCmd represents the up command
 var upCmd = &cobra.Command{
@@ -38,20 +45,28 @@ var upCmd = &cobra.Command{
 If CONFIG_DIR is not specified, the current working directory is used.`,
 	Args: cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
+		trapExit()
+
 		var configDir string
 		if len(args) == 0 {
 			configDir, _ = os.Getwd()
 		} else {
 			configDir, _ = filepath.Abs(args[0])
 		}
-		containerId := engine.StartMockEngine(configDir, engine.EngineStartOptions{
-			Port:           flagPort,
-			ImageTag:       flagImageTag,
-			ForceImagePull: flagForcePull,
-			LogLevel:       cliconfig.Config.LogLevel,
-		})
-		trapExit(containerId)
-		engine.BlockUntilStopped(containerId)
+
+		var imagePullPolicy engine.ImagePullPolicy
+		if flagForcePull {
+			imagePullPolicy = engine.ImagePullAlways
+		} else {
+			imagePullPolicy = engine.ImagePullIfNotPresent
+		}
+		startOptions := engine.StartOptions{
+			Port:            flagPort,
+			ImageTag:        flagImageTag,
+			ImagePullPolicy: imagePullPolicy,
+			LogLevel:        cliconfig.Config.LogLevel,
+		}
+		startControlLoop(configDir, startOptions)
 	},
 }
 
@@ -59,16 +74,67 @@ func init() {
 	upCmd.Flags().StringVarP(&flagImageTag, "version", "v", "latest", "Imposter engine version")
 	upCmd.Flags().IntVarP(&flagPort, "port", "p", 8080, "Port on which to listen")
 	upCmd.Flags().BoolVar(&flagForcePull, "pull", false, "Force engine image pull")
+	upCmd.Flags().BoolVar(&flagRestartOnChange, "auto-restart", true, "Automatically restart when config dir contents change")
 	rootCmd.AddCommand(upCmd)
 }
 
 // listen for an interrupt from the OS, then attempt engine cleanup
-func trapExit(containerID string) {
+func trapExit() {
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-c
-		engine.StopMockEngine(containerID)
-		os.Exit(0)
+		println()
+		if len(containerId) > 0 {
+			engine.TriggerRemovalAndNotify(containerId, stopCh)
+		} else {
+			os.Exit(0)
+		}
 	}()
+}
+
+func startControlLoop(configDir string, startOptions engine.StartOptions) {
+	stopCh = make(chan string)
+	containerId = engine.StartMockEngine(configDir, startOptions)
+
+	var dirUpdated chan bool
+	if flagRestartOnChange {
+		dirUpdated = fileutil.WatchDir(configDir)
+	}
+
+control:
+	for {
+		engine.NotifyOnStop(containerId, stopCh)
+
+		select {
+		case <-dirUpdated:
+			logrus.Infof("detected change in: %v - triggering restart", configDir)
+			containerId = restart(configDir, startOptions, containerId)
+			break
+
+		case stoppedContainerId := <-stopCh:
+			// check ID to debounce events
+			if stoppedContainerId == containerId {
+				if restartsPending > 0 {
+					restartsPending--
+				} else {
+					break control
+				}
+			}
+			break
+		}
+	}
+
+	logrus.Debug("shutting down")
+}
+
+func restart(configDir string, options engine.StartOptions, existingContainerId string) (containerId string) {
+	restartsPending++
+	engine.StopMockEngine(existingContainerId)
+
+	// don't pull again
+	options.ImagePullPolicy = engine.ImagePullSkip
+
+	newContainerId := engine.StartMockEngine(configDir, options)
+	return newContainerId
 }

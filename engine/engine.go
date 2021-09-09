@@ -29,23 +29,33 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"time"
 )
 
-type EngineStartOptions struct {
-	Port           int
-	ImageTag       string
-	ForceImagePull bool
-	LogLevel       string
+type ImagePullPolicy int
+
+const (
+	ImagePullSkip         ImagePullPolicy = iota
+	ImagePullAlways                       = iota
+	ImagePullIfNotPresent                 = iota
+)
+
+type StartOptions struct {
+	Port            int
+	ImageTag        string
+	ImagePullPolicy ImagePullPolicy
+	LogLevel        string
 }
 
 const engineDockerImage = "outofcoffee/imposter"
 const containerConfigDir = "/opt/imposter/config"
+const removalTimeoutSec = 5
 
-func StartMockEngine(configDir string, options EngineStartOptions) (containerId string) {
+func StartMockEngine(configDir string, options StartOptions) (containerId string) {
 	logrus.Infof("starting mock engine on port %d", options.Port)
 	ctx, cli := buildCliClient()
 
-	imageAndTag, err := ensureContainerImage(cli, ctx, options.ImageTag, options.ForceImagePull)
+	imageAndTag, err := ensureContainerImage(cli, ctx, options.ImageTag, options.ImagePullPolicy)
 
 	containerPort := nat.Port(fmt.Sprintf("%d/tcp", options.Port))
 	hostPort := fmt.Sprintf("%d", options.Port)
@@ -116,10 +126,14 @@ func buildCliClient() (context.Context, *client.Client) {
 	return ctx, cli
 }
 
-func ensureContainerImage(cli *client.Client, ctx context.Context, imageTag string, forcePull bool) (imageAndTag string, e error) {
+func ensureContainerImage(cli *client.Client, ctx context.Context, imageTag string, imagePullPolicy ImagePullPolicy) (imageAndTag string, e error) {
 	imageAndTag = engineDockerImage + ":" + imageTag
 
-	if !forcePull {
+	if imagePullPolicy == ImagePullSkip {
+		return imageAndTag, nil
+	}
+
+	if imagePullPolicy == ImagePullIfNotPresent {
 		var hasImage = true
 		_, _, err := cli.ImageInspectWithRaw(ctx, imageAndTag)
 		if err != nil {
@@ -160,34 +174,90 @@ func pullImage(cli *client.Client, ctx context.Context, imageTag string, imageAn
 }
 
 func StopMockEngine(containerId string) {
-	logrus.Infof("\rstopping mock engine...\n")
-	ctx, cli := buildCliClient()
+	stopCh := make(chan string)
+	TriggerRemovalAndNotify(containerId, stopCh)
+	<-stopCh
+}
 
-	err := cli.ContainerRemove(ctx, containerId, types.ContainerRemoveOptions{Force: true})
-	if err != nil {
-		logrus.Warnf("failed to remove mock engine container: %v", err)
+func TriggerRemovalAndNotify(containerId string, stopCh chan string) {
+	if logrus.IsLevelEnabled(logrus.TraceLevel) {
+		logrus.Tracef("stopping mock engine container %v", containerId)
+	} else {
+		logrus.Info("stopping mock engine")
 	}
 
-	statusCh, errCh := cli.ContainerWait(ctx, containerId, container.WaitConditionRemoved)
-	select {
-	case err := <-errCh:
+	// supervisor to work-around removal race
+	go func() {
+		time.Sleep(removalTimeoutSec * time.Second)
+		logrus.Tracef("fired timeout supervisor for container %v removal", containerId)
+		stopCh <- containerId
+	}()
+
+	notifyOnRemoval(containerId, stopCh)
+}
+
+func notifyOnRemoval(containerId string, stopCh chan string) {
+	go func() {
+		ctx, cli := buildCliClient()
+
+		// check it exists
+		_, err := cli.ContainerInspect(ctx, containerId)
 		if err != nil {
-			logrus.Warnf("failed to remove mock engine container: %v", err)
+			if !client.IsErrNotFound(err) {
+				logrus.Warnf("failed to find mock engine container %v to remove: %v", containerId, err)
+			}
+			stopCh <- containerId
+			return
 		}
-	case <-statusCh:
-	}
-	logrus.Trace("mock engine container removed")
+
+		err = cli.ContainerRemove(ctx, containerId, types.ContainerRemoveOptions{Force: true})
+		if err != nil {
+			if !client.IsErrNotFound(err) {
+				logrus.Warnf("failed to remove mock engine container %v: %v", containerId, err)
+			}
+			stopCh <- containerId
+			return
+		}
+
+		statusCh, errCh := cli.ContainerWait(ctx, containerId, container.WaitConditionRemoved)
+		select {
+		case err := <-errCh:
+			if err != nil && !client.IsErrNotFound(err) {
+				logrus.Warnf("error waiting for removal of mock engine container %v: %v", containerId, err)
+			}
+			stopCh <- containerId
+			break
+		case <-statusCh:
+			logrus.Tracef("mock engine container %v removed", containerId)
+			stopCh <- containerId
+			break
+		}
+	}()
+}
+
+func NotifyOnStop(containerId string, stopCh chan string) {
+	go func() {
+		ctx, cli := buildCliClient()
+
+		statusCh, errCh := cli.ContainerWait(ctx, containerId, container.WaitConditionNotRunning)
+		select {
+		case err := <-errCh:
+			if err != nil {
+				if !client.IsErrNotFound(err) {
+					logrus.Warnf("failed to wait for mock engine container to stop: %v", err)
+				}
+			}
+			stopCh <- containerId
+			break
+		case <-statusCh:
+			stopCh <- containerId
+			break
+		}
+	}()
 }
 
 func BlockUntilStopped(containerId string) {
-	ctx, cli := buildCliClient()
-
-	statusCh, errCh := cli.ContainerWait(ctx, containerId, container.WaitConditionNotRunning)
-	select {
-	case err := <-errCh:
-		if err != nil {
-			logrus.Warnf("failed to wait for mock engine container to stop: %v", err)
-		}
-	case <-statusCh:
-	}
+	stopCh := make(chan string)
+	NotifyOnStop(containerId, stopCh)
+	<-stopCh
 }
