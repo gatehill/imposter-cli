@@ -51,9 +51,9 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 }
 
 func init() {
-	scaffoldCmd.Flags().BoolVar(&flagForceOverwrite, "force-overwrite", false, "Force overwrite destination file(s) if already exist")
+	scaffoldCmd.Flags().BoolVarP(&flagForceOverwrite, "force-overwrite", "f", false, "Force overwrite of destination file(s) if already exist")
 	scaffoldCmd.Flags().BoolVar(&flagGenerateResources, "generate-resources", true, "Generate Imposter resources from OpenAPI paths")
-	scaffoldCmd.Flags().StringVar(&flagScriptEngine, "script-engine", "none", "Generate placeholder Imposter script (none|groovy|js)")
+	scaffoldCmd.Flags().StringVarP(&flagScriptEngine, "script-engine", "s", "none", "Generate placeholder Imposter script (none|groovy|js)")
 	rootCmd.AddCommand(scaffoldCmd)
 }
 

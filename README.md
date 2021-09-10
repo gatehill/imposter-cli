@@ -85,9 +85,9 @@ Usage:
   imposter scaffold [CONFIG_DIR] [flags]
 
 Flags:
-      --force-overwrite        Force overwrite destination file(s) if already exist
+  -f  --force-overwrite        Force overwrite of destination file(s) if already exist
       --generate-resources     Generate Imposter resources from OpenAPI paths (default true)
-      --script-engine string   Generate placeholder Imposter script (none|groovy|js) (default "none")
+  -s  --script-engine string   Generate placeholder Imposter script (none|groovy|js) (default "none")
 ```
 
 Help:
