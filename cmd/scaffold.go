@@ -77,7 +77,7 @@ func createMockConfig(configDir string, generateResources bool, forceOverwrite b
 }
 
 func writeMockConfig(dir string, specFilePath string, generateResources bool, forceOverwrite bool, scriptEngine impostermodel.ScriptEngine) {
-	configFileName := fileutil.GenerateFilenameAdjacentToFile(dir, specFilePath, "-config.yaml", forceOverwrite)
+	configFileName := fileutil.GenerateFilenameAdjacentToFile(specFilePath, "-config.yaml", forceOverwrite)
 	scriptFileName := writeScriptFile(dir, specFilePath, scriptEngine, forceOverwrite)
 	config := impostermodel.GenerateConfig(specFilePath, generateResources, scriptEngine, scriptFileName)
 
@@ -98,7 +98,7 @@ func writeScriptFile(dir string, spec string, engine impostermodel.ScriptEngine,
 	if engine == impostermodel.ScriptEngineNone {
 		return ""
 	}
-	scriptFileName = impostermodel.BuildScriptFileName(dir, spec, engine, forceOverwrite)
+	scriptFileName = impostermodel.BuildScriptFileName(spec, engine, forceOverwrite)
 	scriptFilePath := filepath.Join(dir, scriptFileName)
 	file, err := os.Create(scriptFilePath)
 	if err != nil {

@@ -16,7 +16,6 @@ limitations under the License.
 package impostermodel
 
 import (
-	"fmt"
 	"gatehill.io/imposter/fileutil"
 	"gatehill.io/imposter/openapi"
 	"github.com/sirupsen/logrus"
@@ -57,7 +56,7 @@ func GenerateConfig(specFilePath string, generateResources bool, scriptEngine Sc
 	return config
 }
 
-func BuildScriptFileName(dir string, specFilePath string, scriptEngine ScriptEngine, forceOverwrite bool) string {
+func BuildScriptFileName(specFilePath string, scriptEngine ScriptEngine, forceOverwrite bool) string {
 	var scriptFileName string
 	if scriptEngine != ScriptEngineNone {
 		var scriptEngineExt string
@@ -69,9 +68,9 @@ func BuildScriptFileName(dir string, specFilePath string, scriptEngine ScriptEng
 			scriptEngineExt = ".groovy"
 			break
 		default:
-			panic(fmt.Errorf("script engine is disabled"))
+			logrus.Fatal("script engine is disabled")
 		}
-		scriptFileName = fileutil.GenerateFilenameAdjacentToFile(dir, specFilePath, scriptEngineExt, forceOverwrite)
+		scriptFileName = fileutil.GenerateFilenameAdjacentToFile(specFilePath, scriptEngineExt, forceOverwrite)
 	}
 	return scriptFileName
 }

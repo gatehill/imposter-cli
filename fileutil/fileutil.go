@@ -37,12 +37,11 @@ func FindFilesWithExtension(dir, ext string) []string {
 	return filesWithExtension
 }
 
-// GenerateFilenameAdjacentToFile creates a filename based on the filePath, first by
-// removing the extension and then adding the given suffix.
-func GenerateFilenameAdjacentToFile(dir string, sourceFilePath string, suffix string, forceOverwrite bool) string {
-	sourceFileName := filepath.Base(sourceFilePath)
-	destFileName := strings.TrimSuffix(sourceFileName, filepath.Ext(sourceFileName)) + suffix
-	destFilePath := filepath.Join(dir, destFileName)
+// GenerateFilenameAdjacentToFile creates a filename based on the sourceFilePath, first by
+// removing the extension and then adding the given suffix. Only the file name
+// part is returned, not the full path.
+func GenerateFilenameAdjacentToFile(sourceFilePath string, suffix string, forceOverwrite bool) string {
+	destFilePath := strings.TrimSuffix(sourceFilePath, filepath.Ext(sourceFilePath)) + suffix
 	if _, err := os.Stat(destFilePath); err != nil {
 		if !os.IsNotExist(err) {
 			logrus.Fatal(err)
@@ -50,5 +49,5 @@ func GenerateFilenameAdjacentToFile(dir string, sourceFilePath string, suffix st
 	} else if !forceOverwrite {
 		logrus.Fatalf("file already exists: %v - aborting", destFilePath)
 	}
-	return destFileName
+	return filepath.Base(destFilePath)
 }
