@@ -13,11 +13,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package engine
+package docker
 
 import (
 	"context"
 	"fmt"
+	"gatehill.io/imposter/engine"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
@@ -29,29 +30,40 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
-
-type ImagePullPolicy int
-
-const (
-	ImagePullSkip         ImagePullPolicy = iota
-	ImagePullAlways                       = iota
-	ImagePullIfNotPresent                 = iota
-)
-
-type StartOptions struct {
-	Port            int
-	ImageTag        string
-	ImagePullPolicy ImagePullPolicy
-	LogLevel        string
-}
 
 const engineDockerImage = "outofcoffee/imposter"
 const containerConfigDir = "/opt/imposter/config"
 const removalTimeoutSec = 5
 
-func StartMockEngine(configDir string, options StartOptions) (containerId string) {
+type DockerEngine struct {
+	configDir   string
+	options     engine.StartOptions
+	containerId string
+	stopMutex   *sync.Mutex
+	stopping    map[string]bool
+}
+
+func BuildEngine(configDir string, options engine.StartOptions) engine.MockEngine {
+	return &DockerEngine{
+		configDir: configDir,
+		options:   options,
+		stopMutex: &sync.Mutex{},
+		stopping:  make(map[string]bool),
+	}
+}
+
+func (d *DockerEngine) GetInstanceId() string {
+	return d.containerId
+}
+
+func (d *DockerEngine) Start() {
+	d.StartWithOptions(d.options)
+}
+
+func (d *DockerEngine) StartWithOptions(options engine.StartOptions) {
 	logrus.Infof("starting mock engine on port %d", options.Port)
 	ctx, cli := buildCliClient()
 
@@ -76,7 +88,7 @@ func StartMockEngine(configDir string, options StartOptions) (containerId string
 		Mounts: []mount.Mount{
 			{
 				Type:   mount.TypeBind,
-				Source: configDir,
+				Source: d.configDir,
 				Target: containerConfigDir,
 			},
 		},
@@ -114,7 +126,7 @@ func StartMockEngine(configDir string, options StartOptions) (containerId string
 		}
 	}()
 
-	return resp.ID
+	d.containerId = resp.ID
 }
 
 func buildCliClient() (context.Context, *client.Client) {
@@ -126,14 +138,14 @@ func buildCliClient() (context.Context, *client.Client) {
 	return ctx, cli
 }
 
-func ensureContainerImage(cli *client.Client, ctx context.Context, imageTag string, imagePullPolicy ImagePullPolicy) (imageAndTag string, e error) {
+func ensureContainerImage(cli *client.Client, ctx context.Context, imageTag string, imagePullPolicy engine.ImagePullPolicy) (imageAndTag string, e error) {
 	imageAndTag = engineDockerImage + ":" + imageTag
 
-	if imagePullPolicy == ImagePullSkip {
+	if imagePullPolicy == engine.ImagePullSkip {
 		return imageAndTag, nil
 	}
 
-	if imagePullPolicy == ImagePullIfNotPresent {
+	if imagePullPolicy == engine.ImagePullIfNotPresent {
 		var hasImage = true
 		_, _, err := cli.ImageInspectWithRaw(ctx, imageAndTag)
 		if err != nil {
@@ -173,30 +185,58 @@ func pullImage(cli *client.Client, ctx context.Context, imageTag string, imageAn
 	return err
 }
 
-func StopMockEngine(containerId string) {
+func (d *DockerEngine) Stop() {
 	stopCh := make(chan string)
-	TriggerRemovalAndNotify(containerId, stopCh)
+	d.TriggerRemovalAndNotify(stopCh)
 	<-stopCh
 }
 
-func TriggerRemovalAndNotify(containerId string, stopCh chan string) {
+func (d *DockerEngine) TriggerRemovalAndNotify(stopCh chan string) {
+	if len(d.containerId) == 0 {
+		logrus.Tracef("no container ID to remove")
+		stopCh <- ""
+		return
+	}
+
 	if logrus.IsLevelEnabled(logrus.TraceLevel) {
-		logrus.Tracef("stopping mock engine container %v", containerId)
+		logrus.Tracef("stopping mock engine container %v", d.containerId)
 	} else {
 		logrus.Info("stopping mock engine")
 	}
 
+	oldContainerId := d.containerId
+
+	d.pushStoppingContainer(oldContainerId)
+
 	// supervisor to work-around removal race
 	go func() {
 		time.Sleep(removalTimeoutSec * time.Second)
-		logrus.Tracef("fired timeout supervisor for container %v removal", containerId)
-		stopCh <- containerId
+		logrus.Tracef("fired timeout supervisor for container %v removal", oldContainerId)
+		d.popStoppingContainer(stopCh, oldContainerId)
 	}()
 
-	notifyOnRemoval(containerId, stopCh)
+	d.notifyOnRemoval(oldContainerId, stopCh)
 }
 
-func notifyOnRemoval(containerId string, stopCh chan string) {
+func (d *DockerEngine) pushStoppingContainer(oldContainerId string) {
+	d.stopMutex.Lock()
+	d.stopping[oldContainerId] = true
+	d.stopMutex.Unlock()
+}
+
+// popStoppingContainer debounces container stop events
+func (d *DockerEngine) popStoppingContainer(stopCh chan string, containerId string) {
+	if d.stopping[containerId] {
+		d.stopMutex.Lock()
+		if d.stopping[containerId] { // double-guard
+			delete(d.stopping, containerId)
+		}
+		d.stopMutex.Unlock()
+		stopCh <- containerId
+	}
+}
+
+func (d *DockerEngine) notifyOnRemoval(containerId string, stopCh chan string) {
 	go func() {
 		ctx, cli := buildCliClient()
 
@@ -206,7 +246,7 @@ func notifyOnRemoval(containerId string, stopCh chan string) {
 			if !client.IsErrNotFound(err) {
 				logrus.Warnf("failed to find mock engine container %v to remove: %v", containerId, err)
 			}
-			stopCh <- containerId
+			d.popStoppingContainer(stopCh, containerId)
 			return
 		}
 
@@ -215,7 +255,7 @@ func notifyOnRemoval(containerId string, stopCh chan string) {
 			if !client.IsErrNotFound(err) {
 				logrus.Warnf("failed to remove mock engine container %v: %v", containerId, err)
 			}
-			stopCh <- containerId
+			d.popStoppingContainer(stopCh, containerId)
 			return
 		}
 
@@ -225,21 +265,23 @@ func notifyOnRemoval(containerId string, stopCh chan string) {
 			if err != nil && !client.IsErrNotFound(err) {
 				logrus.Warnf("error waiting for removal of mock engine container %v: %v", containerId, err)
 			}
-			stopCh <- containerId
+			d.popStoppingContainer(stopCh, containerId)
 			break
 		case <-statusCh:
 			logrus.Tracef("mock engine container %v removed", containerId)
-			stopCh <- containerId
+			d.popStoppingContainer(stopCh, containerId)
 			break
 		}
 	}()
 }
 
-func NotifyOnStop(containerId string, stopCh chan string) {
+func (d *DockerEngine) NotifyOnStop(stopCh chan string) {
+	oldContainerId := d.containerId
+
 	go func() {
 		ctx, cli := buildCliClient()
 
-		statusCh, errCh := cli.ContainerWait(ctx, containerId, container.WaitConditionNotRunning)
+		statusCh, errCh := cli.ContainerWait(ctx, oldContainerId, container.WaitConditionNotRunning)
 		select {
 		case err := <-errCh:
 			if err != nil {
@@ -247,17 +289,27 @@ func NotifyOnStop(containerId string, stopCh chan string) {
 					logrus.Warnf("failed to wait for mock engine container to stop: %v", err)
 				}
 			}
-			stopCh <- containerId
+			d.popStoppingContainer(stopCh, oldContainerId)
 			break
 		case <-statusCh:
-			stopCh <- containerId
+			d.popStoppingContainer(stopCh, oldContainerId)
 			break
 		}
 	}()
 }
 
-func BlockUntilStopped(containerId string) {
+func (d *DockerEngine) BlockUntilStopped() {
 	stopCh := make(chan string)
-	NotifyOnStop(containerId, stopCh)
+	d.NotifyOnStop(stopCh)
 	<-stopCh
+}
+
+func (d *DockerEngine) Restart(stopCh chan string) {
+	d.TriggerRemovalAndNotify(stopCh)
+
+	// don't pull again
+	restartOptions := d.options
+	restartOptions.ImagePullPolicy = engine.ImagePullSkip
+
+	d.StartWithOptions(restartOptions)
 }

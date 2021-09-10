@@ -18,6 +18,7 @@ package cmd
 import (
 	"gatehill.io/imposter/cliconfig"
 	"gatehill.io/imposter/engine"
+	"gatehill.io/imposter/engine/docker"
 	"gatehill.io/imposter/fileutil"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -32,7 +33,6 @@ var flagPort int
 var flagForcePull bool
 var flagRestartOnChange bool
 
-var containerId string
 var stopCh chan string
 var restartsPending int
 
@@ -45,8 +45,6 @@ var upCmd = &cobra.Command{
 If CONFIG_DIR is not specified, the current working directory is used.`,
 	Args: cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
-		trapExit()
-
 		var configDir string
 		if len(args) == 0 {
 			configDir, _ = os.Getwd()
@@ -66,7 +64,10 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 			ImagePullPolicy: imagePullPolicy,
 			LogLevel:        cliconfig.Config.LogLevel,
 		}
-		startControlLoop(configDir, startOptions)
+		mockEngine := docker.BuildEngine(configDir, startOptions)
+
+		trapExit(mockEngine)
+		startControlLoop(mockEngine, configDir)
 	},
 }
 
@@ -79,23 +80,20 @@ func init() {
 }
 
 // listen for an interrupt from the OS, then attempt engine cleanup
-func trapExit() {
+func trapExit(mockEngine engine.MockEngine) {
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-c
 		println()
-		if len(containerId) > 0 {
-			engine.TriggerRemovalAndNotify(containerId, stopCh)
-		} else {
-			os.Exit(0)
-		}
+		mockEngine.TriggerRemovalAndNotify(stopCh)
 	}()
 }
 
-func startControlLoop(configDir string, startOptions engine.StartOptions) {
+func startControlLoop(mockEngine engine.MockEngine, configDir string) {
 	stopCh = make(chan string)
-	containerId = engine.StartMockEngine(configDir, startOptions)
+
+	mockEngine.Start()
 
 	var dirUpdated chan bool
 	if flagRestartOnChange {
@@ -104,37 +102,24 @@ func startControlLoop(configDir string, startOptions engine.StartOptions) {
 
 control:
 	for {
-		engine.NotifyOnStop(containerId, stopCh)
+		mockEngine.NotifyOnStop(stopCh)
 
 		select {
 		case <-dirUpdated:
 			logrus.Infof("detected change in: %v - triggering restart", configDir)
-			containerId = restart(configDir, startOptions, containerId)
+			restartsPending++
+			mockEngine.Restart(stopCh)
 			break
 
-		case stoppedContainerId := <-stopCh:
-			// check ID to debounce events
-			if stoppedContainerId == containerId {
-				if restartsPending > 0 {
-					restartsPending--
-				} else {
-					break control
-				}
+		case <-stopCh:
+			if restartsPending > 0 {
+				restartsPending--
+			} else {
+				break control
 			}
 			break
 		}
 	}
 
 	logrus.Debug("shutting down")
-}
-
-func restart(configDir string, options engine.StartOptions, existingContainerId string) (containerId string) {
-	restartsPending++
-	engine.StopMockEngine(existingContainerId)
-
-	// don't pull again
-	options.ImagePullPolicy = engine.ImagePullSkip
-
-	newContainerId := engine.StartMockEngine(configDir, options)
-	return newContainerId
 }
