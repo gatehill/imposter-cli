@@ -77,10 +77,15 @@ func createMockConfig(configDir string, generateResources bool, forceOverwrite b
 }
 
 func writeMockConfig(dir string, specFilePath string, generateResources bool, forceOverwrite bool, scriptEngine impostermodel.ScriptEngine) {
-	configFileName := fileutil.GenerateFilenameAdjacentToFile(specFilePath, "-config.yaml", forceOverwrite)
 	scriptFileName := writeScriptFile(dir, specFilePath, scriptEngine, forceOverwrite)
-	config := impostermodel.GenerateConfig(specFilePath, generateResources, scriptEngine, scriptFileName)
+	resources := buildResources(generateResources, specFilePath, scriptEngine, scriptFileName)
 
+	config := impostermodel.GenerateConfig(specFilePath, resources, impostermodel.ConfigGenerationOptions{
+		ScriptEngine:   scriptEngine,
+		ScriptFileName: scriptFileName,
+	})
+
+	configFileName := fileutil.GenerateFilenameAdjacentToFile(specFilePath, "-config.yaml", forceOverwrite)
 	configFile, err := os.Create(filepath.Join(dir, configFileName))
 	if err != nil {
 		logrus.Fatal(err)
@@ -94,11 +99,25 @@ func writeMockConfig(dir string, specFilePath string, generateResources bool, fo
 	logrus.Infof("wrote Imposter config: %v", configFile.Name())
 }
 
-func writeScriptFile(dir string, spec string, engine impostermodel.ScriptEngine, forceOverwrite bool) (scriptFileName string) {
+func buildResources(generateResources bool, specFilePath string, scriptEngine impostermodel.ScriptEngine, scriptFileName string) []impostermodel.Resource {
+	var resources []impostermodel.Resource
+	if generateResources {
+		logrus.Debug("generating resources from spec")
+		resources = impostermodel.GenerateResourcesFromSpec(specFilePath, impostermodel.ResourceGenerationOptions{
+			ScriptEngine:   scriptEngine,
+			ScriptFileName: scriptFileName,
+		})
+	} else {
+		logrus.Debug("skipping resource generation")
+	}
+	return resources
+}
+
+func writeScriptFile(dir string, specFilePath string, engine impostermodel.ScriptEngine, forceOverwrite bool) (scriptFileName string) {
 	if engine == impostermodel.ScriptEngineNone {
 		return ""
 	}
-	scriptFileName = impostermodel.BuildScriptFileName(spec, engine, forceOverwrite)
+	scriptFileName = impostermodel.BuildScriptFileName(specFilePath, engine, forceOverwrite)
 	scriptFilePath := filepath.Join(dir, scriptFileName)
 	file, err := os.Create(scriptFilePath)
 	if err != nil {
@@ -108,7 +127,11 @@ func writeScriptFile(dir string, spec string, engine impostermodel.ScriptEngine,
 
 	_, err = file.WriteString(`
 // TODO add your custom logic here
-logger.debug(context.request);
+logger.debug('method: ' + context.request.method);
+logger.debug('path: ' + context.request.path);
+logger.debug('pathParams: ' + context.request.pathParams);
+logger.debug('queryParams: ' + context.request.queryParams);
+logger.debug('headers: ' + context.request.headers);
 `)
 	if err != nil {
 		logrus.Fatalf("error writing script file: %v: %v", scriptFilePath, err)

@@ -28,23 +28,31 @@ type ScriptEngine string
 
 const (
 	ScriptEngineNone       ScriptEngine = "none"
-	ScriptEngineGroovy                  = "groovy"
-	ScriptEngineJavaScript              = "javascript"
+	ScriptEngineGroovy     ScriptEngine = "groovy"
+	ScriptEngineJavaScript ScriptEngine = "javascript"
 )
 
-func GenerateConfig(specFilePath string, generateResources bool, scriptEngine ScriptEngine, scriptFileName string) []byte {
+type ResourceGenerationOptions struct {
+	ScriptEngine   ScriptEngine
+	ScriptFileName string
+}
+
+type ConfigGenerationOptions struct {
+	ScriptEngine   ScriptEngine
+	ScriptFileName string
+}
+
+func GenerateConfig(specFilePath string, resources []Resource, options ConfigGenerationOptions) []byte {
 	pluginConfig := PluginConfig{
 		Plugin:   "openapi",
 		SpecFile: filepath.Base(specFilePath),
 	}
-	if generateResources {
-		logrus.Debug("generating resources from spec")
-		pluginConfig.Resources = generateResourcesFromSpec(specFilePath, scriptEngine, scriptFileName)
+	if len(resources) > 0 {
+		pluginConfig.Resources = resources
 	} else {
-		logrus.Debug("skipping resource generation")
-		if scriptEngine != ScriptEngineNone {
+		if options.ScriptEngine != ScriptEngineNone {
 			pluginConfig.Response = &ResponseConfig{
-				ScriptFile: scriptFileName,
+				ScriptFile: options.ScriptFileName,
 			}
 		}
 	}
@@ -75,7 +83,7 @@ func BuildScriptFileName(specFilePath string, scriptEngine ScriptEngine, forceOv
 	return scriptFileName
 }
 
-func generateResourcesFromSpec(specFilePath string, scriptEngine ScriptEngine, scriptFileName string) []Resource {
+func GenerateResourcesFromSpec(specFilePath string, options ResourceGenerationOptions) []Resource {
 	var resources []Resource
 	partialSpec, err := openapi.Parse(specFilePath)
 	if err != nil {
@@ -88,9 +96,9 @@ func generateResourcesFromSpec(specFilePath string, scriptEngine ScriptEngine, s
 					Path:   path,
 					Method: strings.ToUpper(verb),
 				}
-				if scriptEngine != ScriptEngineNone {
+				if options.ScriptEngine != ScriptEngineNone {
 					resource.Response = &ResponseConfig{
-						ScriptFile: scriptFileName,
+						ScriptFile: options.ScriptFileName,
 					}
 				}
 				resources = append(resources, resource)

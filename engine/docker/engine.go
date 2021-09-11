@@ -55,15 +55,11 @@ func BuildEngine(configDir string, options engine.StartOptions) engine.MockEngin
 	}
 }
 
-func (d *DockerEngine) GetInstanceId() string {
-	return d.containerId
-}
-
 func (d *DockerEngine) Start() {
-	d.StartWithOptions(d.options)
+	d.startWithOptions(d.options)
 }
 
-func (d *DockerEngine) StartWithOptions(options engine.StartOptions) {
+func (d *DockerEngine) startWithOptions(options engine.StartOptions) {
 	logrus.Infof("starting mock engine on port %d", options.Port)
 	ctx, cli := buildCliClient()
 
@@ -311,5 +307,5 @@ func (d *DockerEngine) Restart(stopCh chan string) {
 	restartOptions := d.options
 	restartOptions.ImagePullPolicy = engine.ImagePullSkip
 
-	d.StartWithOptions(restartOptions)
+	d.startWithOptions(restartOptions)
 }

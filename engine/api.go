@@ -26,17 +26,15 @@ type ImagePullPolicy int
 
 const (
 	ImagePullSkip         ImagePullPolicy = iota
-	ImagePullAlways                       = iota
-	ImagePullIfNotPresent                 = iota
+	ImagePullAlways       ImagePullPolicy = iota
+	ImagePullIfNotPresent ImagePullPolicy = iota
 )
 
 type MockEngine interface {
-	StartWithOptions(options StartOptions)
 	Start()
 	Stop()
 	Restart(stopCh chan string)
 	TriggerRemovalAndNotify(stopCh chan string)
 	NotifyOnStop(stopCh chan string)
 	BlockUntilStopped()
-	GetInstanceId() string
 }
