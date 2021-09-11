@@ -13,23 +13,15 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package impostermodel
 
 import (
-	"gatehill.io/imposter/fileutil"
 	"gatehill.io/imposter/openapi"
 	"github.com/sirupsen/logrus"
 	"path/filepath"
 	"sigs.k8s.io/yaml"
 	"strings"
-)
-
-type ScriptEngine string
-
-const (
-	ScriptEngineNone       ScriptEngine = "none"
-	ScriptEngineGroovy     ScriptEngine = "groovy"
-	ScriptEngineJavaScript ScriptEngine = "javascript"
 )
 
 type ResourceGenerationOptions struct {
@@ -50,7 +42,7 @@ func GenerateConfig(specFilePath string, resources []Resource, options ConfigGen
 	if len(resources) > 0 {
 		pluginConfig.Resources = resources
 	} else {
-		if options.ScriptEngine != ScriptEngineNone {
+		if IsScriptEngineEnabled(options.ScriptEngine) {
 			pluginConfig.Response = &ResponseConfig{
 				ScriptFile: options.ScriptFileName,
 			}
@@ -62,25 +54,6 @@ func GenerateConfig(specFilePath string, resources []Resource, options ConfigGen
 		logrus.Fatalf("unable to marshal imposter config: %v", err)
 	}
 	return config
-}
-
-func BuildScriptFilePath(specFilePath string, scriptEngine ScriptEngine, forceOverwrite bool) string {
-	var scriptFilePath string
-	if scriptEngine != ScriptEngineNone {
-		var scriptEngineExt string
-		switch scriptEngine {
-		case ScriptEngineJavaScript:
-			scriptEngineExt = ".js"
-			break
-		case ScriptEngineGroovy:
-			scriptEngineExt = ".groovy"
-			break
-		default:
-			logrus.Fatal("script engine is disabled")
-		}
-		scriptFilePath = fileutil.GenerateFilePathAdjacentToFile(specFilePath, scriptEngineExt, forceOverwrite)
-	}
-	return scriptFilePath
 }
 
 func GenerateResourcesFromSpec(specFilePath string, options ResourceGenerationOptions) []Resource {
@@ -96,7 +69,7 @@ func GenerateResourcesFromSpec(specFilePath string, options ResourceGenerationOp
 					Path:   path,
 					Method: strings.ToUpper(verb),
 				}
-				if options.ScriptEngine != ScriptEngineNone {
+				if IsScriptEngineEnabled(options.ScriptEngine) {
 					resource.Response = &ResponseConfig{
 						ScriptFile: options.ScriptFileName,
 					}

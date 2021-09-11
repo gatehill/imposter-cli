@@ -13,10 +13,10 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package cmd
 
 import (
-	"fmt"
 	"gatehill.io/imposter/fileutil"
 	"gatehill.io/imposter/impostermodel"
 	"gatehill.io/imposter/openapi"
@@ -45,7 +45,7 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 		} else {
 			configDir, _ = filepath.Abs(args[0])
 		}
-		scriptEngine := parseScriptEngine(flagScriptEngine)
+		scriptEngine := impostermodel.ParseScriptEngine(flagScriptEngine)
 		createMockConfig(configDir, flagGenerateResources, flagForceOverwrite, scriptEngine)
 	},
 }
@@ -55,16 +55,6 @@ func init() {
 	scaffoldCmd.Flags().BoolVar(&flagGenerateResources, "generate-resources", true, "Generate Imposter resources from OpenAPI paths")
 	scaffoldCmd.Flags().StringVarP(&flagScriptEngine, "script-engine", "s", "none", "Generate placeholder Imposter script (none|groovy|js)")
 	rootCmd.AddCommand(scaffoldCmd)
-}
-
-func parseScriptEngine(scriptEngine string) impostermodel.ScriptEngine {
-	engine := impostermodel.ScriptEngine(scriptEngine)
-	switch engine {
-	case impostermodel.ScriptEngineNone, impostermodel.ScriptEngineGroovy, impostermodel.ScriptEngineJavaScript:
-		return engine
-	default:
-		panic(fmt.Errorf("unsupported script engine: %v", flagScriptEngine))
-	}
 }
 
 func createMockConfig(configDir string, generateResources bool, forceOverwrite bool, scriptEngine impostermodel.ScriptEngine) {
@@ -77,10 +67,19 @@ func createMockConfig(configDir string, generateResources bool, forceOverwrite b
 }
 
 func writeMockConfig(specFilePath string, generateResources bool, forceOverwrite bool, scriptEngine impostermodel.ScriptEngine) {
-	scriptFilePath := writeScriptFile(specFilePath, scriptEngine, forceOverwrite)
-	scriptFileName := filepath.Base(scriptFilePath)
+	var scriptFileName string
+	if impostermodel.IsScriptEngineEnabled(scriptEngine) {
+		scriptFilePath := writeScriptFile(specFilePath, scriptEngine, forceOverwrite)
+		scriptFileName = filepath.Base(scriptFilePath)
+	}
 
-	resources := buildResources(generateResources, specFilePath, scriptEngine, scriptFileName)
+	var resources []impostermodel.Resource
+	if generateResources {
+		resources = buildResources(specFilePath, scriptEngine, scriptFileName)
+	} else {
+		logrus.Debug("skipping resource generation")
+	}
+
 	config := impostermodel.GenerateConfig(specFilePath, resources, impostermodel.ConfigGenerationOptions{
 		ScriptEngine:   scriptEngine,
 		ScriptFileName: scriptFileName,
@@ -100,24 +99,7 @@ func writeMockConfig(specFilePath string, generateResources bool, forceOverwrite
 	logrus.Infof("wrote Imposter config: %v", configFilePath)
 }
 
-func buildResources(generateResources bool, specFilePath string, scriptEngine impostermodel.ScriptEngine, scriptFileName string) []impostermodel.Resource {
-	var resources []impostermodel.Resource
-	if generateResources {
-		resources = impostermodel.GenerateResourcesFromSpec(specFilePath, impostermodel.ResourceGenerationOptions{
-			ScriptEngine:   scriptEngine,
-			ScriptFileName: scriptFileName,
-		})
-		logrus.Debugf("generated %d resources from spec", len(resources))
-	} else {
-		logrus.Debug("skipping resource generation")
-	}
-	return resources
-}
-
 func writeScriptFile(specFilePath string, engine impostermodel.ScriptEngine, forceOverwrite bool) string {
-	if engine == impostermodel.ScriptEngineNone {
-		return ""
-	}
 	scriptFilePath := impostermodel.BuildScriptFilePath(specFilePath, engine, forceOverwrite)
 	scriptFile, err := os.Create(scriptFilePath)
 	if err != nil {
@@ -139,4 +121,13 @@ logger.debug('headers: ' + context.request.headers);
 
 	logrus.Infof("wrote script file: %v", scriptFilePath)
 	return scriptFilePath
+}
+
+func buildResources(specFilePath string, scriptEngine impostermodel.ScriptEngine, scriptFileName string) []impostermodel.Resource {
+	resources := impostermodel.GenerateResourcesFromSpec(specFilePath, impostermodel.ResourceGenerationOptions{
+		ScriptEngine:   scriptEngine,
+		ScriptFileName: scriptFileName,
+	})
+	logrus.Debugf("generated %d resources from spec", len(resources))
+	return resources
 }
