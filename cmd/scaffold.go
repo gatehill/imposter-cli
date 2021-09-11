@@ -72,21 +72,22 @@ func createMockConfig(configDir string, generateResources bool, forceOverwrite b
 	logrus.Infof("found %d OpenAPI spec(s)", len(openApiSpecs))
 
 	for _, openApiSpec := range openApiSpecs {
-		writeMockConfig(configDir, openApiSpec, generateResources, forceOverwrite, scriptEngine)
+		writeMockConfig(openApiSpec, generateResources, forceOverwrite, scriptEngine)
 	}
 }
 
-func writeMockConfig(dir string, specFilePath string, generateResources bool, forceOverwrite bool, scriptEngine impostermodel.ScriptEngine) {
-	scriptFileName := writeScriptFile(dir, specFilePath, scriptEngine, forceOverwrite)
-	resources := buildResources(generateResources, specFilePath, scriptEngine, scriptFileName)
+func writeMockConfig(specFilePath string, generateResources bool, forceOverwrite bool, scriptEngine impostermodel.ScriptEngine) {
+	scriptFilePath := writeScriptFile(specFilePath, scriptEngine, forceOverwrite)
+	scriptFileName := filepath.Base(scriptFilePath)
 
+	resources := buildResources(generateResources, specFilePath, scriptEngine, scriptFileName)
 	config := impostermodel.GenerateConfig(specFilePath, resources, impostermodel.ConfigGenerationOptions{
 		ScriptEngine:   scriptEngine,
 		ScriptFileName: scriptFileName,
 	})
 
-	configFileName := fileutil.GenerateFilenameAdjacentToFile(specFilePath, "-config.yaml", forceOverwrite)
-	configFile, err := os.Create(filepath.Join(dir, configFileName))
+	configFilePath := fileutil.GenerateFilePathAdjacentToFile(specFilePath, "-config.yaml", forceOverwrite)
+	configFile, err := os.Create(configFilePath)
 	if err != nil {
 		logrus.Fatal(err)
 	}
@@ -96,36 +97,35 @@ func writeMockConfig(dir string, specFilePath string, generateResources bool, fo
 		logrus.Fatal(err)
 	}
 
-	logrus.Infof("wrote Imposter config: %v", configFile.Name())
+	logrus.Infof("wrote Imposter config: %v", configFilePath)
 }
 
 func buildResources(generateResources bool, specFilePath string, scriptEngine impostermodel.ScriptEngine, scriptFileName string) []impostermodel.Resource {
 	var resources []impostermodel.Resource
 	if generateResources {
-		logrus.Debug("generating resources from spec")
 		resources = impostermodel.GenerateResourcesFromSpec(specFilePath, impostermodel.ResourceGenerationOptions{
 			ScriptEngine:   scriptEngine,
 			ScriptFileName: scriptFileName,
 		})
+		logrus.Debugf("generated %d resources from spec", len(resources))
 	} else {
 		logrus.Debug("skipping resource generation")
 	}
 	return resources
 }
 
-func writeScriptFile(dir string, specFilePath string, engine impostermodel.ScriptEngine, forceOverwrite bool) (scriptFileName string) {
+func writeScriptFile(specFilePath string, engine impostermodel.ScriptEngine, forceOverwrite bool) string {
 	if engine == impostermodel.ScriptEngineNone {
 		return ""
 	}
-	scriptFileName = impostermodel.BuildScriptFileName(specFilePath, engine, forceOverwrite)
-	scriptFilePath := filepath.Join(dir, scriptFileName)
-	file, err := os.Create(scriptFilePath)
+	scriptFilePath := impostermodel.BuildScriptFilePath(specFilePath, engine, forceOverwrite)
+	scriptFile, err := os.Create(scriptFilePath)
 	if err != nil {
 		logrus.Fatalf("error writing script file: %v: %v", scriptFilePath, err)
 	}
-	defer file.Close()
+	defer scriptFile.Close()
 
-	_, err = file.WriteString(`
+	_, err = scriptFile.WriteString(`
 // TODO add your custom logic here
 logger.debug('method: ' + context.request.method);
 logger.debug('path: ' + context.request.path);
@@ -138,5 +138,5 @@ logger.debug('headers: ' + context.request.headers);
 	}
 
 	logrus.Infof("wrote script file: %v", scriptFilePath)
-	return scriptFileName
+	return scriptFilePath
 }

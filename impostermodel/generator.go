@@ -64,8 +64,8 @@ func GenerateConfig(specFilePath string, resources []Resource, options ConfigGen
 	return config
 }
 
-func BuildScriptFileName(specFilePath string, scriptEngine ScriptEngine, forceOverwrite bool) string {
-	var scriptFileName string
+func BuildScriptFilePath(specFilePath string, scriptEngine ScriptEngine, forceOverwrite bool) string {
+	var scriptFilePath string
 	if scriptEngine != ScriptEngineNone {
 		var scriptEngineExt string
 		switch scriptEngine {
@@ -78,9 +78,9 @@ func BuildScriptFileName(specFilePath string, scriptEngine ScriptEngine, forceOv
 		default:
 			logrus.Fatal("script engine is disabled")
 		}
-		scriptFileName = fileutil.GenerateFilenameAdjacentToFile(specFilePath, scriptEngineExt, forceOverwrite)
+		scriptFilePath = fileutil.GenerateFilePathAdjacentToFile(specFilePath, scriptEngineExt, forceOverwrite)
 	}
-	return scriptFileName
+	return scriptFilePath
 }
 
 func GenerateResourcesFromSpec(specFilePath string, options ResourceGenerationOptions) []Resource {
