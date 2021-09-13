@@ -20,6 +20,7 @@ import (
 	"gatehill.io/imposter/cliconfig"
 	"gatehill.io/imposter/engine"
 	"gatehill.io/imposter/engine/docker"
+	"gatehill.io/imposter/engine/jvm"
 	"gatehill.io/imposter/fileutil"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -29,12 +30,14 @@ import (
 	"syscall"
 )
 
+var flagEngine string
 var flagImageTag string
 var flagPort int
 var flagForcePull bool
 var flagRestartOnChange bool
 
-var stopCh chan string
+var stopCh chan engine.StopEvent
+var terminating bool
 var restartsPending int
 
 // upCmd represents the up command
@@ -53,26 +56,40 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 			configDir, _ = filepath.Abs(args[0])
 		}
 
-		var imagePullPolicy engine.ImagePullPolicy
+		var imagePullPolicy engine.PullPolicy
 		if flagForcePull {
-			imagePullPolicy = engine.ImagePullAlways
+			imagePullPolicy = engine.PullAlways
 		} else {
-			imagePullPolicy = engine.ImagePullIfNotPresent
+			imagePullPolicy = engine.PullIfNotPresent
 		}
 		startOptions := engine.StartOptions{
-			Port:            flagPort,
-			ImageTag:        flagImageTag,
-			ImagePullPolicy: imagePullPolicy,
-			LogLevel:        cliconfig.Config.LogLevel,
+			Port:       flagPort,
+			Version:    flagImageTag,
+			PullPolicy: imagePullPolicy,
+			LogLevel:   cliconfig.Config.LogLevel,
 		}
-		mockEngine := docker.BuildEngine(configDir, startOptions)
+		mockEngine := determineEngine(configDir, startOptions)
 
 		trapExit(mockEngine)
-		startControlLoop(mockEngine, configDir)
+		startControlLoop(mockEngine, configDir, flagRestartOnChange)
 	},
 }
 
+func determineEngine(configDir string, startOptions engine.StartOptions) engine.MockEngine {
+	switch flagEngine {
+	case "docker":
+		return docker.BuildEngine(configDir, startOptions)
+	case "jvm":
+		flagRestartOnChange = false
+		return jvm.BuildEngine(configDir, startOptions)
+	default:
+		logrus.Fatalf("unsupported engine type: %v", flagEngine)
+		return nil
+	}
+}
+
 func init() {
+	upCmd.Flags().StringVarP(&flagEngine, "engine", "e", "docker", "Imposter engine type (docker|jvm)")
 	upCmd.Flags().StringVarP(&flagImageTag, "version", "v", "latest", "Imposter engine version")
 	upCmd.Flags().IntVarP(&flagPort, "port", "p", 8080, "Port on which to listen")
 	upCmd.Flags().BoolVar(&flagForcePull, "pull", false, "Force engine image pull")
@@ -87,17 +104,18 @@ func trapExit(mockEngine engine.MockEngine) {
 	go func() {
 		<-c
 		println()
+		terminating = true
 		mockEngine.TriggerRemovalAndNotify(stopCh)
 	}()
 }
 
-func startControlLoop(mockEngine engine.MockEngine, configDir string) {
-	stopCh = make(chan string)
+func startControlLoop(mockEngine engine.MockEngine, configDir string, restartOnChange bool) {
+	stopCh = make(chan engine.StopEvent)
 
 	mockEngine.Start()
 
 	var dirUpdated chan bool
-	if flagRestartOnChange {
+	if restartOnChange {
 		dirUpdated = fileutil.WatchDir(configDir)
 	}
 
@@ -112,7 +130,10 @@ control:
 			mockEngine.Restart(stopCh)
 			break
 
-		case <-stopCh:
+		case stopEvent := <-stopCh:
+			if stopEvent.Err != nil && !terminating {
+				logrus.Warn(stopEvent.Err)
+			}
 			if restartsPending > 0 {
 				restartsPending--
 			} else {
@@ -122,5 +143,6 @@ control:
 		}
 	}
 
+	terminating = true
 	logrus.Debug("shutting down")
 }

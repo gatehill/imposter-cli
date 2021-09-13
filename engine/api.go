@@ -17,25 +17,30 @@ limitations under the License.
 package engine
 
 type StartOptions struct {
-	Port            int
-	ImageTag        string
-	ImagePullPolicy ImagePullPolicy
-	LogLevel        string
+	Port       int
+	Version    string
+	PullPolicy PullPolicy
+	LogLevel   string
 }
 
-type ImagePullPolicy int
+type PullPolicy int
 
 const (
-	ImagePullSkip         ImagePullPolicy = iota
-	ImagePullAlways       ImagePullPolicy = iota
-	ImagePullIfNotPresent ImagePullPolicy = iota
+	PullSkip         PullPolicy = iota
+	PullAlways       PullPolicy = iota
+	PullIfNotPresent PullPolicy = iota
 )
+
+type StopEvent struct {
+	Id  string
+	Err error
+}
 
 type MockEngine interface {
 	Start()
 	Stop()
-	Restart(stopCh chan string)
-	TriggerRemovalAndNotify(stopCh chan string)
-	NotifyOnStop(stopCh chan string)
+	Restart(stopCh chan StopEvent)
+	TriggerRemovalAndNotify(stopCh chan StopEvent)
+	NotifyOnStop(stopCh chan StopEvent)
 	BlockUntilStopped()
 }
