@@ -16,6 +16,8 @@ limitations under the License.
 
 package engine
 
+import "gatehill.io/imposter/debounce"
+
 type StartOptions struct {
 	Port       int
 	Version    string
@@ -31,16 +33,11 @@ const (
 	PullIfNotPresent PullPolicy = iota
 )
 
-type StopEvent struct {
-	Id  string
-	Err error
-}
-
 type MockEngine interface {
 	Start()
 	Stop()
-	Restart(stopCh chan StopEvent)
-	TriggerRemovalAndNotify(stopCh chan StopEvent)
-	NotifyOnStop(stopCh chan StopEvent)
+	Restart(stopCh chan debounce.AtMostOnceEvent)
+	TriggerRemovalAndNotify(stopCh chan debounce.AtMostOnceEvent)
+	NotifyOnStop(stopCh chan debounce.AtMostOnceEvent)
 	BlockUntilStopped()
 }

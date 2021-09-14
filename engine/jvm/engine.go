@@ -18,13 +18,13 @@ package jvm
 
 import (
 	"fmt"
+	"gatehill.io/imposter/debounce"
 	"gatehill.io/imposter/engine"
 	"github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
-	"sync"
 )
 
 type JvmMockEngine struct {
@@ -33,8 +33,7 @@ type JvmMockEngine struct {
 	javaCmd   string
 	jarPath   string
 	command   *exec.Cmd
-	stopMutex *sync.Mutex
-	stopping  map[string]bool
+	debouncer debounce.Debouncer
 }
 
 func BuildEngine(configDir string, options engine.StartOptions) engine.MockEngine {
@@ -49,8 +48,7 @@ func BuildEngine(configDir string, options engine.StartOptions) engine.MockEngin
 		options:   options,
 		javaCmd:   javaCmd,
 		jarPath:   jarPath,
-		stopMutex: &sync.Mutex{},
-		stopping:  make(map[string]bool),
+		debouncer: debounce.Build(),
 	}
 }
 
@@ -62,7 +60,7 @@ func (j *JvmMockEngine) startWithOptions(options engine.StartOptions) {
 	args := []string{
 		"-jar", j.jarPath,
 		"--configDir=" + j.configDir,
-		fmt.Sprintf("--listenPort=%v", options.Port),
+		fmt.Sprintf("--listenPort=%d", options.Port),
 	}
 	command := exec.Command(j.javaCmd, args...)
 	command.Env = []string{
@@ -72,19 +70,19 @@ func (j *JvmMockEngine) startWithOptions(options engine.StartOptions) {
 	command.Stderr = os.Stderr
 	err := command.Start()
 	if err != nil {
-		logrus.Fatalf("failed to exec imposter: %v %v: %v", j.javaCmd, args, err)
+		logrus.Fatalf("failed to exec: %v %v: %v", j.javaCmd, args, err)
 	}
 	logrus.Info("mock engine started - press ctrl+c to stop")
 	j.command = command
 }
 
 func (j *JvmMockEngine) Stop() {
-	stopCh := make(chan engine.StopEvent)
+	stopCh := make(chan debounce.AtMostOnceEvent)
 	j.TriggerRemovalAndNotify(stopCh)
 	<-stopCh
 }
 
-func (j *JvmMockEngine) Restart(stopCh chan engine.StopEvent) {
+func (j *JvmMockEngine) Restart(stopCh chan debounce.AtMostOnceEvent) {
 	j.TriggerRemovalAndNotify(stopCh)
 
 	// don't pull again
@@ -94,68 +92,52 @@ func (j *JvmMockEngine) Restart(stopCh chan engine.StopEvent) {
 	j.startWithOptions(restartOptions)
 }
 
-func (j *JvmMockEngine) TriggerRemovalAndNotify(stopCh chan engine.StopEvent) {
+func (j *JvmMockEngine) TriggerRemovalAndNotify(stopCh chan debounce.AtMostOnceEvent) {
 	if j.command == nil {
-		logrus.Tracef("no PID to remove")
-		j.popStoppingInstance(stopCh, engine.StopEvent{})
+		logrus.Tracef("no process to remove")
+		j.debouncer.Notify(stopCh, debounce.AtMostOnceEvent{})
 		return
 	}
 	if logrus.IsLevelEnabled(logrus.TraceLevel) {
-		logrus.Tracef("stopping mock engine with PID %v", j.command.Process.Pid)
+		logrus.Tracef("stopping mock engine with PID: %v", j.command.Process.Pid)
 	} else {
 		logrus.Info("stopping mock engine")
 	}
-	j.pushStoppingProcess(j.command.Process.Pid)
+
+	j.debouncer.Register(strconv.Itoa(j.command.Process.Pid))
+
 	err := j.command.Process.Kill()
 	if err != nil {
-		logrus.Fatalf("error stopping engine with PID %d: %v", j.command.Process.Pid, err)
+		logrus.Fatalf("error stopping engine with PID: %d: %v", j.command.Process.Pid, err)
 	}
 	j.NotifyOnStop(stopCh)
 }
 
-func (j *JvmMockEngine) NotifyOnStop(stopCh chan engine.StopEvent) {
+func (j *JvmMockEngine) NotifyOnStop(stopCh chan debounce.AtMostOnceEvent) {
 	if j.command == nil || j.command.Process == nil {
 		logrus.Trace("no subprocess - notifying immediately")
-		j.popStoppingInstance(stopCh, engine.StopEvent{})
+		j.debouncer.Notify(stopCh, debounce.AtMostOnceEvent{})
 	}
 	pid := strconv.Itoa(j.command.Process.Pid)
 	if j.command.ProcessState != nil && j.command.ProcessState.Exited() {
 		logrus.Tracef("process with PID: %v already exited - notifying immediately", pid)
-		j.popStoppingInstance(stopCh, engine.StopEvent{Id: pid})
+		j.debouncer.Notify(stopCh, debounce.AtMostOnceEvent{Id: pid})
 	}
 	go func() {
 		_, err := j.command.Process.Wait()
 		if err != nil {
-			j.popStoppingInstance(stopCh, engine.StopEvent{
+			j.debouncer.Notify(stopCh, debounce.AtMostOnceEvent{
 				Id:  pid,
 				Err: fmt.Errorf("failed to wait for process with PID: %v: %v", pid, err),
 			})
 		} else {
-			j.popStoppingInstance(stopCh, engine.StopEvent{Id: pid})
+			j.debouncer.Notify(stopCh, debounce.AtMostOnceEvent{Id: pid})
 		}
 	}()
 }
 
 func (j *JvmMockEngine) BlockUntilStopped() {
-	stopCh := make(chan engine.StopEvent)
+	stopCh := make(chan debounce.AtMostOnceEvent)
 	j.NotifyOnStop(stopCh)
 	<-stopCh
-}
-
-func (j *JvmMockEngine) pushStoppingProcess(pid int) {
-	j.stopMutex.Lock()
-	j.stopping[strconv.Itoa(pid)] = true
-	j.stopMutex.Unlock()
-}
-
-// popStoppingInstance debounces container stop events
-func (j *JvmMockEngine) popStoppingInstance(stopCh chan engine.StopEvent, event engine.StopEvent) {
-	if j.stopping[event.Id] {
-		j.stopMutex.Lock()
-		if j.stopping[event.Id] { // double-guard
-			delete(j.stopping, event.Id)
-		}
-		j.stopMutex.Unlock()
-		stopCh <- event
-	}
 }

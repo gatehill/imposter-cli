@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"gatehill.io/imposter/cliconfig"
+	"gatehill.io/imposter/debounce"
 	"gatehill.io/imposter/engine"
 	"gatehill.io/imposter/engine/docker"
 	"gatehill.io/imposter/engine/jvm"
@@ -36,7 +37,7 @@ var flagPort int
 var flagForcePull bool
 var flagRestartOnChange bool
 
-var stopCh chan engine.StopEvent
+var stopCh chan debounce.AtMostOnceEvent
 var terminating bool
 var restartsPending int
 
@@ -109,7 +110,7 @@ func trapExit(mockEngine engine.MockEngine) {
 }
 
 func startControlLoop(mockEngine engine.MockEngine, configDir string, restartOnChange bool) {
-	stopCh = make(chan engine.StopEvent)
+	stopCh = make(chan debounce.AtMostOnceEvent)
 
 	mockEngine.Start()
 

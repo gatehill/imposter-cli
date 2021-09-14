@@ -19,6 +19,7 @@ package docker
 import (
 	"context"
 	"fmt"
+	"gatehill.io/imposter/debounce"
 	"gatehill.io/imposter/engine"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -31,7 +32,6 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -43,16 +43,14 @@ type DockerMockEngine struct {
 	configDir   string
 	options     engine.StartOptions
 	containerId string
-	stopMutex   *sync.Mutex
-	stopping    map[string]bool
+	debouncer   debounce.Debouncer
 }
 
 func BuildEngine(configDir string, options engine.StartOptions) engine.MockEngine {
 	return &DockerMockEngine{
 		configDir: configDir,
 		options:   options,
-		stopMutex: &sync.Mutex{},
-		stopping:  make(map[string]bool),
+		debouncer: debounce.Build(),
 	}
 }
 
@@ -183,15 +181,15 @@ func pullImage(cli *client.Client, ctx context.Context, imageTag string, imageAn
 }
 
 func (d *DockerMockEngine) Stop() {
-	stopCh := make(chan engine.StopEvent)
+	stopCh := make(chan debounce.AtMostOnceEvent)
 	d.TriggerRemovalAndNotify(stopCh)
 	<-stopCh
 }
 
-func (d *DockerMockEngine) TriggerRemovalAndNotify(stopCh chan engine.StopEvent) {
+func (d *DockerMockEngine) TriggerRemovalAndNotify(stopCh chan debounce.AtMostOnceEvent) {
 	if len(d.containerId) == 0 {
 		logrus.Tracef("no container ID to remove")
-		stopCh <- engine.StopEvent{}
+		stopCh <- debounce.AtMostOnceEvent{}
 		return
 	}
 
@@ -203,37 +201,19 @@ func (d *DockerMockEngine) TriggerRemovalAndNotify(stopCh chan engine.StopEvent)
 
 	oldContainerId := d.containerId
 
-	d.pushStoppingContainer(oldContainerId)
+	d.debouncer.Register(oldContainerId)
 
 	// supervisor to work-around removal race
 	go func() {
 		time.Sleep(removalTimeoutSec * time.Second)
 		logrus.Tracef("fired timeout supervisor for container %v removal", oldContainerId)
-		d.popStoppingContainer(stopCh, engine.StopEvent{Id: oldContainerId})
+		d.debouncer.Notify(stopCh, debounce.AtMostOnceEvent{Id: oldContainerId})
 	}()
 
 	d.removeAndNotify(oldContainerId, stopCh)
 }
 
-func (d *DockerMockEngine) pushStoppingContainer(oldContainerId string) {
-	d.stopMutex.Lock()
-	d.stopping[oldContainerId] = true
-	d.stopMutex.Unlock()
-}
-
-// popStoppingContainer debounces container stop events
-func (d *DockerMockEngine) popStoppingContainer(stopCh chan engine.StopEvent, event engine.StopEvent) {
-	if d.stopping[event.Id] {
-		d.stopMutex.Lock()
-		if d.stopping[event.Id] { // double-guard
-			delete(d.stopping, event.Id)
-		}
-		d.stopMutex.Unlock()
-		stopCh <- event
-	}
-}
-
-func (d *DockerMockEngine) removeAndNotify(containerId string, stopCh chan engine.StopEvent) {
+func (d *DockerMockEngine) removeAndNotify(containerId string, stopCh chan debounce.AtMostOnceEvent) {
 	go func() {
 		ctx, cli := buildCliClient()
 
@@ -242,9 +222,9 @@ func (d *DockerMockEngine) removeAndNotify(containerId string, stopCh chan engin
 		if err != nil {
 			if !client.IsErrNotFound(err) {
 				logrus.Warnf("failed to find mock engine container %v to remove: %v", containerId, err)
-				d.popStoppingContainer(stopCh, engine.StopEvent{Id: containerId, Err: err})
+				d.debouncer.Notify(stopCh, debounce.AtMostOnceEvent{Id: containerId, Err: err})
 			} else {
-				d.popStoppingContainer(stopCh, engine.StopEvent{Id: containerId})
+				d.debouncer.Notify(stopCh, debounce.AtMostOnceEvent{Id: containerId})
 			}
 			return
 		}
@@ -253,9 +233,9 @@ func (d *DockerMockEngine) removeAndNotify(containerId string, stopCh chan engin
 		if err != nil {
 			if !client.IsErrNotFound(err) {
 				logrus.Warnf("failed to remove mock engine container %v: %v", containerId, err)
-				d.popStoppingContainer(stopCh, engine.StopEvent{Id: containerId, Err: err})
+				d.debouncer.Notify(stopCh, debounce.AtMostOnceEvent{Id: containerId, Err: err})
 			} else {
-				d.popStoppingContainer(stopCh, engine.StopEvent{Id: containerId})
+				d.debouncer.Notify(stopCh, debounce.AtMostOnceEvent{Id: containerId})
 			}
 			return
 		}
@@ -265,20 +245,20 @@ func (d *DockerMockEngine) removeAndNotify(containerId string, stopCh chan engin
 		case err := <-errCh:
 			if err != nil && !client.IsErrNotFound(err) {
 				logrus.Warnf("error waiting for removal of mock engine container %v: %v", containerId, err)
-				d.popStoppingContainer(stopCh, engine.StopEvent{Id: containerId, Err: err})
+				d.debouncer.Notify(stopCh, debounce.AtMostOnceEvent{Id: containerId, Err: err})
 			} else {
-				d.popStoppingContainer(stopCh, engine.StopEvent{Id: containerId})
+				d.debouncer.Notify(stopCh, debounce.AtMostOnceEvent{Id: containerId})
 			}
 			break
 		case <-statusCh:
 			logrus.Tracef("mock engine container %v removed", containerId)
-			d.popStoppingContainer(stopCh, engine.StopEvent{Id: containerId})
+			d.debouncer.Notify(stopCh, debounce.AtMostOnceEvent{Id: containerId})
 			break
 		}
 	}()
 }
 
-func (d *DockerMockEngine) NotifyOnStop(stopCh chan engine.StopEvent) {
+func (d *DockerMockEngine) NotifyOnStop(stopCh chan debounce.AtMostOnceEvent) {
 	oldContainerId := d.containerId
 
 	go func() {
@@ -289,25 +269,25 @@ func (d *DockerMockEngine) NotifyOnStop(stopCh chan engine.StopEvent) {
 		case err := <-errCh:
 			if err != nil && !client.IsErrNotFound(err) {
 				logrus.Warnf("failed to wait for mock engine container to stop: %v", err)
-				d.popStoppingContainer(stopCh, engine.StopEvent{Id: oldContainerId, Err: err})
+				d.debouncer.Notify(stopCh, debounce.AtMostOnceEvent{Id: oldContainerId, Err: err})
 			} else {
-				d.popStoppingContainer(stopCh, engine.StopEvent{Id: oldContainerId})
+				d.debouncer.Notify(stopCh, debounce.AtMostOnceEvent{Id: oldContainerId})
 			}
 			break
 		case <-statusCh:
-			d.popStoppingContainer(stopCh, engine.StopEvent{Id: oldContainerId})
+			d.debouncer.Notify(stopCh, debounce.AtMostOnceEvent{Id: oldContainerId})
 			break
 		}
 	}()
 }
 
 func (d *DockerMockEngine) BlockUntilStopped() {
-	stopCh := make(chan engine.StopEvent)
+	stopCh := make(chan debounce.AtMostOnceEvent)
 	d.NotifyOnStop(stopCh)
 	<-stopCh
 }
 
-func (d *DockerMockEngine) Restart(stopCh chan engine.StopEvent) {
+func (d *DockerMockEngine) Restart(stopCh chan debounce.AtMostOnceEvent) {
 	d.TriggerRemovalAndNotify(stopCh)
 
 	// don't pull again

@@ -1,11 +1,15 @@
 package jvm
 
 import (
+	"fmt"
 	"gatehill.io/imposter/engine"
 	"github.com/sirupsen/logrus"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestJvmMockEngine_Start(t *testing.T) {
@@ -36,8 +40,42 @@ func TestJvmMockEngine_Start(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			engine := BuildEngine(tt.fields.configDir, tt.fields.options)
-			engine.Start()
+			mockEngine := BuildEngine(tt.fields.configDir, tt.fields.options)
+			mockEngine.Start()
+
+			baseUrl := fmt.Sprintf("http://localhost:%d", tt.fields.options.Port)
+			t.Logf("waiting for mock engine to come up at %v", baseUrl)
+
+			for {
+				time.Sleep(100 * time.Millisecond)
+				resp, err := http.Get(baseUrl + "/system/status")
+				if err != nil {
+					continue
+				}
+				if _, err := io.ReadAll(resp.Body); err != nil {
+					continue
+				}
+				resp.Body.Close()
+				if resp.StatusCode == 200 {
+					break
+				}
+			}
+
+			resp, err := http.Get(baseUrl + "/example")
+			if err != nil {
+				t.Fatalf("failed to invoke mock endpoint: %v", err)
+			}
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			wants := "Hello world"
+			actual := string(body)
+			if actual != wants {
+				t.Fatalf("expected body to be '%v' but was '%v'", wants, actual)
+			}
+			mockEngine.Stop()
 		})
 	}
 }
