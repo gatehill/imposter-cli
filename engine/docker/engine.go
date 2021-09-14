@@ -63,6 +63,9 @@ func (d *DockerMockEngine) startWithOptions(options engine.StartOptions) {
 	ctx, cli := buildCliClient()
 
 	imageAndTag, err := ensureContainerImage(cli, ctx, options.Version, options.PullPolicy)
+	if err != nil {
+		logrus.Fatal(err)
+	}
 
 	containerPort := nat.Port(fmt.Sprintf("%d/tcp", options.Port))
 	hostPort := fmt.Sprintf("%d", options.Port)
@@ -147,7 +150,7 @@ func ensureContainerImage(cli *client.Client, ctx context.Context, imageTag stri
 			if client.IsErrNotFound(err) {
 				hasImage = false
 			} else {
-				panic(err)
+				return "", err
 			}
 		}
 		if hasImage {

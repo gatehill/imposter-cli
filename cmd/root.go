@@ -17,15 +17,14 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"os"
+	"path/filepath"
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
 )
-
-var cfgFile string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -57,30 +56,24 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-
-	// Global flags.
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.imposter.yaml)")
 }
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
-	if cfgFile != "" {
-		// Use config file from the flag.
-		viper.SetConfigFile(cfgFile)
-	} else {
-		// Find home directory.
-		home, err := homedir.Dir()
-		cobra.CheckErr(err)
+	home, err := homedir.Dir()
+	cobra.CheckErr(err)
 
-		// Search config in home directory with name ".imposter" (without extension).
-		viper.AddConfigPath(home)
-		viper.SetConfigName(".imposter")
+	configDir := filepath.Join(home, ".imposter")
+	if _, err := os.Stat(configDir); err == nil {
+		// Search files in config directory with name "config" (without extension).
+		viper.AddConfigPath(configDir)
+		viper.SetConfigName("config")
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+		logrus.Tracef("Using config file: %v", viper.ConfigFileUsed())
 	}
 }

@@ -32,11 +32,12 @@ var flagScriptEngine string
 
 // scaffoldCmd represents the up command
 var scaffoldCmd = &cobra.Command{
-	Use:   "scaffold [CONFIG_DIR]",
+	Use:   "scaffold [DIR]",
 	Short: "Create Imposter configuration from OpenAPI specs",
-	Long: `Creates Imposter configuration from one or more OpenAPI/Swagger specification files.
+	Long: `Creates Imposter configuration from one or more OpenAPI/Swagger specification files
+in a directory.
 
-If CONFIG_DIR is not specified, the current working directory is used.`,
+If DIR is not specified, the current working directory is used.`,
 	Args: cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
 		var configDir string

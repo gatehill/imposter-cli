@@ -69,20 +69,23 @@ Usage:
   imposter up [CONFIG_DIR] [flags]
 
 Flags:
-  -p, --port int         Port on which to listen (default 8080)
-      --pull             Force engine image pull
       --auto-restart     Automatically restart when config dir contents change (default true)
+  -e, --engine string    Imposter engine type (docker|jvm - default docker)
+  -p, --port int         Port on which to listen (default 8080)
+      --pull             Force engine pull
   -v, --version string   Imposter engine version (default "latest")
 ```
 
-Scaffold Imposter configuration from OpenAPI specification files:
-```
-Creates Imposter configuration from one or more OpenAPI/Swagger specification files.
+Generate Imposter configuration from OpenAPI specification files:
 
-If CONFIG_DIR is not specified, the current working directory is used.
+```
+Creates Imposter configuration from one or more OpenAPI/Swagger specification files
+in a directory.
+
+If DIR is not specified, the current working directory is used.
 
 Usage:
-  imposter scaffold [CONFIG_DIR] [flags]
+  imposter scaffold [DIR] [flags]
 
 Flags:
   -f  --force-overwrite        Force overwrite of destination file(s) if already exist
@@ -105,6 +108,10 @@ Usage:
 The default log level is `debug`. You can override this by setting the `LOG_LEVEL` environment variable:
 
     export LOG_LEVEL=info
+
+### Configuration
+
+Learn more about [configuration](./docs/config.md).
 
 ---
 
