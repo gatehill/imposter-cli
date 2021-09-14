@@ -17,7 +17,9 @@ limitations under the License.
 package fileutil
 
 import (
+	"fmt"
 	"github.com/sirupsen/logrus"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -50,4 +52,52 @@ func GenerateFilePathAdjacentToFile(sourceFilePath string, suffix string, forceO
 		logrus.Fatalf("file already exists: %v - aborting", destFilePath)
 	}
 	return destFilePath
+}
+
+func CopyDirShallow(src string, dest string) error {
+	files, err := os.ReadDir(src)
+	if err != nil {
+		return fmt.Errorf("error reading directory: %v: %v", src, err)
+	}
+
+	destInfo, err := os.Stat(dest)
+	if err != nil {
+		if os.IsNotExist(err) {
+			if err := os.MkdirAll(dest, 0700); err != nil {
+				return fmt.Errorf("error creating directory: %v: %v", dest, err)
+			}
+		}
+	}
+	if !destInfo.IsDir() {
+		return fmt.Errorf("destination is not a directory: %v", dest)
+	}
+
+	for _, file := range files {
+		err := CopyFile(filepath.Join(src, file.Name()), filepath.Join(dest, file.Name()))
+		if err != nil {
+			return fmt.Errorf("error copying file: %v: %v", file.Name(), err)
+		}
+	}
+	return nil
+}
+
+func CopyFile(src string, dest string) error {
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return fmt.Errorf("error reading source: %s", err.Error())
+	}
+	defer srcFile.Close()
+
+	destFile, err := os.Create(dest) // creates if file doesn't exist
+	if err != nil {
+		return fmt.Errorf("error creating destination: %s", err.Error())
+	}
+	defer destFile.Close()
+
+	_, err = io.Copy(destFile, srcFile) // check first var for number of bytes copied
+	if err != nil {
+		return fmt.Errorf("error copying content: %s", err.Error())
+	}
+
+	return nil
 }

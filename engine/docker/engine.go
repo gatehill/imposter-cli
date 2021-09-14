@@ -28,8 +28,6 @@ import (
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/go-connections/nat"
 	"github.com/sirupsen/logrus"
-	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -134,53 +132,6 @@ func buildCliClient() (context.Context, *client.Client) {
 		panic(err)
 	}
 	return ctx, cli
-}
-
-func ensureContainerImage(cli *client.Client, ctx context.Context, imageTag string, imagePullPolicy engine.PullPolicy) (imageAndTag string, e error) {
-	imageAndTag = engineDockerImage + ":" + imageTag
-
-	if imagePullPolicy == engine.PullSkip {
-		return imageAndTag, nil
-	}
-
-	if imagePullPolicy == engine.PullIfNotPresent {
-		var hasImage = true
-		_, _, err := cli.ImageInspectWithRaw(ctx, imageAndTag)
-		if err != nil {
-			if client.IsErrNotFound(err) {
-				hasImage = false
-			} else {
-				return "", err
-			}
-		}
-		if hasImage {
-			logrus.Debugf("engine image '%v' already present", imageTag)
-			return imageAndTag, nil
-		}
-	}
-
-	err := pullImage(cli, ctx, imageTag, imageAndTag)
-	return imageAndTag, err
-}
-
-func pullImage(cli *client.Client, ctx context.Context, imageTag string, imageAndTag string) error {
-	logrus.Infof("pulling '%v' engine image", imageTag)
-	reader, err := cli.ImagePull(ctx, "docker.io/"+imageAndTag, types.ImagePullOptions{})
-	if err != nil {
-		panic(err)
-	}
-
-	var pullLogDestination io.Writer
-	if logrus.IsLevelEnabled(logrus.TraceLevel) {
-		pullLogDestination = os.Stdout
-	} else {
-		pullLogDestination = ioutil.Discard
-	}
-	_, err = io.Copy(pullLogDestination, reader)
-	if err != nil {
-		panic(err)
-	}
-	return err
 }
 
 func (d *DockerMockEngine) Stop() {

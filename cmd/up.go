@@ -21,8 +21,7 @@ import (
 	"gatehill.io/imposter/cliconfig"
 	"gatehill.io/imposter/debounce"
 	"gatehill.io/imposter/engine"
-	"gatehill.io/imposter/engine/docker"
-	"gatehill.io/imposter/engine/jvm"
+	"gatehill.io/imposter/engine/builder"
 	"gatehill.io/imposter/fileutil"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -30,7 +29,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"strings"
 	"syscall"
 )
 
@@ -71,11 +69,11 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 		}
 		startOptions := engine.StartOptions{
 			Port:       flagPort,
-			Version:    flagEngineVersion,
+			Version:    cliconfig.GetOrDefaultString(flagEngineVersion, viper.GetString("version"), "latest"),
 			PullPolicy: pullPolicy,
 			LogLevel:   cliconfig.Config.LogLevel,
 		}
-		mockEngine := determineEngine(configDir, startOptions)
+		mockEngine := builder.DetermineEngine(flagEngineType, configDir, startOptions)
 
 		trapExit(mockEngine)
 		startControlLoop(mockEngine, configDir, flagRestartOnChange)
@@ -83,8 +81,8 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 }
 
 func init() {
-	upCmd.Flags().StringVarP(&flagEngineType, "engine", "e", "", "Imposter engine type (docker|jvm - default docker)")
-	upCmd.Flags().StringVarP(&flagEngineVersion, "version", "v", "latest", "Imposter engine version")
+	upCmd.Flags().StringVarP(&flagEngineType, "engine", "e", "", "Imposter engine type (valid: docker,jvm - default \"docker\")")
+	upCmd.Flags().StringVarP(&flagEngineVersion, "version", "v", "", "Imposter engine version (default \"latest\")")
 	upCmd.Flags().IntVarP(&flagPort, "port", "p", 8080, "Port on which to listen")
 	upCmd.Flags().BoolVar(&flagForcePull, "pull", false, "Force engine pull")
 	upCmd.Flags().BoolVar(&flagRestartOnChange, "auto-restart", true, "Automatically restart when config dir contents change")
@@ -103,43 +101,15 @@ func validateConfigExists(configDir string) error {
 	if err != nil {
 		return fmt.Errorf("unable to list directory contents: %v: %v", configDir, err)
 	}
+
 	configFileFound := false
 	for _, file := range files {
-		for _, configFileSuffix := range getConfigFileSuffixes() {
-			if strings.HasSuffix(file.Name(), configFileSuffix) {
-				configFileFound = true
-				break
-			}
+		configFileFound = cliconfig.MatchesConfigFileFmt(file)
+		if configFileFound {
+			return nil
 		}
 	}
-	if !configFileFound {
-		return fmt.Errorf("no Imposter configuration files found in: %v", configDir)
-	}
-	return nil
-}
-
-func getConfigFileSuffixes() []string {
-	return []string{
-		"-config.yaml",
-		"-config.yml",
-		"-config.json",
-	}
-}
-
-func determineEngine(configDir string, startOptions engine.StartOptions) engine.MockEngine {
-	var engineType string
-	if len(flagEngineType) == 0 {
-		engineType = viper.GetString("engine")
-	}
-	switch engineType {
-	case "", "docker":
-		return docker.BuildEngine(configDir, startOptions)
-	case "jvm":
-		return jvm.BuildEngine(configDir, startOptions)
-	default:
-		logrus.Fatalf("unsupported engine type: %v", flagEngineType)
-		return nil
-	}
+	return fmt.Errorf("no Imposter configuration files found in: %v", configDir)
 }
 
 // listen for an interrupt from the OS, then attempt engine cleanup

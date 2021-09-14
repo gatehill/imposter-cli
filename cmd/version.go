@@ -17,8 +17,10 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"gatehill.io/imposter/cliconfig"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // versionCmd represents the up command
@@ -27,8 +29,16 @@ var versionCmd = &cobra.Command{
 	Short: "Print CLI version",
 	Long:  `Prints the version of the CLI.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		println("imposter-cli " + cliconfig.Config.Version)
+		println(printVersion())
 	},
+}
+
+func printVersion() string {
+	return fmt.Sprintf(`imposter-cli %v
+imposter-engine %v`,
+		cliconfig.Config.Version,
+		cliconfig.GetOrDefaultString(viper.GetString("version"), "latest"),
+	)
 }
 
 func init() {

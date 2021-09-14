@@ -70,7 +70,7 @@ Usage:
 
 Flags:
       --auto-restart     Automatically restart when config dir contents change (default true)
-  -e, --engine string    Imposter engine type (docker|jvm - default docker)
+  -e, --engine string    Imposter engine type (valid: docker,jvm - default "docker")
   -p, --port int         Port on which to listen (default 8080)
       --pull             Force engine pull
   -v, --version string   Imposter engine version (default "latest")

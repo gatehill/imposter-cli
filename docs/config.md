@@ -45,6 +45,10 @@ You can also use a configuration file to set CLI defaults. The configuration fil
 The currently supported elements are as follows:
 
 ````yaml
-# the engine type - valid values are docker or jvm
+# the engine type - valid values are "docker" or "jvm"
 engine: "docker"
+
+# the engine version - valid values are "latest", or a binary release such as "1.21.0"
+# see: https://github.com/outofcoffee/imposter/releases
+version: "latest"
 ````
