@@ -80,7 +80,6 @@ func determineEngine(configDir string, startOptions engine.StartOptions) engine.
 	case "docker":
 		return docker.BuildEngine(configDir, startOptions)
 	case "jvm":
-		flagRestartOnChange = false
 		return jvm.BuildEngine(configDir, startOptions)
 	default:
 		logrus.Fatalf("unsupported engine type: %v", flagEngine)

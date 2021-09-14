@@ -212,7 +212,7 @@ func (d *DockerMockEngine) TriggerRemovalAndNotify(stopCh chan engine.StopEvent)
 		d.popStoppingContainer(stopCh, engine.StopEvent{Id: oldContainerId})
 	}()
 
-	d.notifyOnRemoval(oldContainerId, stopCh)
+	d.removeAndNotify(oldContainerId, stopCh)
 }
 
 func (d *DockerMockEngine) pushStoppingContainer(oldContainerId string) {
@@ -233,7 +233,7 @@ func (d *DockerMockEngine) popStoppingContainer(stopCh chan engine.StopEvent, ev
 	}
 }
 
-func (d *DockerMockEngine) notifyOnRemoval(containerId string, stopCh chan engine.StopEvent) {
+func (d *DockerMockEngine) removeAndNotify(containerId string, stopCh chan engine.StopEvent) {
 	go func() {
 		ctx, cli := buildCliClient()
 
