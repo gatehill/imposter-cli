@@ -31,7 +31,7 @@ import (
 
 const binCacheDir = ".imposter/cache/"
 const downloadUrlTemplate = "https://github.com/outofcoffee/imposter/releases/download/v%[1]v/imposter-%[1]v.jar"
-const fallbackVersion = "1.21.0"
+const fallbackVersion = "1.22.0"
 
 func getJavaCmd() string {
 	if javaHomeEnv, found := os.LookupEnv("JAVA_HOME"); found {
