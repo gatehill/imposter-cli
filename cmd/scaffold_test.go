@@ -65,7 +65,7 @@ func Test_createMockConfig(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			configDir := prepTestData(t, testConfigPath)
-			createMockConfig(configDir, tt.args.generateResources, tt.args.forceOverwrite, tt.args.scriptEngine)
+			impostermodel.CreateFromSpecs(configDir, tt.args.generateResources, tt.args.forceOverwrite, tt.args.scriptEngine)
 
 			if !doesFileExist(filepath.Join(configDir, "order_service-config.yaml")) {
 				t.Fatalf("imposter config file should exist")

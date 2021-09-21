@@ -22,6 +22,7 @@ import (
 	"gatehill.io/imposter/engine"
 	"gatehill.io/imposter/engine/builder"
 	"gatehill.io/imposter/fileutil"
+	"gatehill.io/imposter/impostermodel"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -37,6 +38,7 @@ var flagEngineVersion string
 var flagPort int
 var flagForcePull bool
 var flagRestartOnChange bool
+var flagScaffoldMissing bool
 
 var wg = &sync.WaitGroup{}
 
@@ -55,7 +57,7 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 		} else {
 			configDir, _ = filepath.Abs(args[0])
 		}
-		if err := validateConfigExists(configDir); err != nil {
+		if err := validateConfigExists(configDir, flagScaffoldMissing); err != nil {
 			logrus.Fatal(err)
 		}
 
@@ -87,10 +89,11 @@ func init() {
 	upCmd.Flags().IntVarP(&flagPort, "port", "p", 8080, "Port on which to listen")
 	upCmd.Flags().BoolVar(&flagForcePull, "pull", false, "Force engine pull")
 	upCmd.Flags().BoolVar(&flagRestartOnChange, "auto-restart", true, "Automatically restart when config dir contents change")
+	upCmd.Flags().BoolVarP(&flagScaffoldMissing, "scaffold", "s", false, "Scaffold missing Imposter configuration")
 	rootCmd.AddCommand(upCmd)
 }
 
-func validateConfigExists(configDir string) error {
+func validateConfigExists(configDir string, scaffoldMissing bool) error {
 	fileInfo, err := os.Stat(configDir)
 	if err != nil {
 		return fmt.Errorf("cannot find config dir: %v", err)
@@ -109,6 +112,11 @@ func validateConfigExists(configDir string) error {
 		if configFileFound {
 			return nil
 		}
+	}
+	if scaffoldMissing {
+		logrus.Infof("scaffolding Imposter configuration files")
+		impostermodel.CreateFromSpecs(configDir, false, false, impostermodel.ScriptEngineNone)
+		return nil
 	}
 	return fmt.Errorf("no Imposter configuration files found in: %v", configDir)
 }

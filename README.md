@@ -2,21 +2,34 @@
 
 Reliable, scriptable and extensible mock server for REST APIs, OpenAPI (and Swagger) specifications, Salesforce and HBase APIs. 
 
+Start a live mock of an OpenAPI specification with just:
+
+```shell
+$ imposter up -s
+
+found 1 OpenAPI spec(s)
+starting server on port 8080...
+...
+mock server up and running at http://localhost:8080
+```
+
 Features:
 
-* run standalone mocks in place of real systems
-* turn an OpenAPI/Swagger file into a mock API for testing or QA
-* quickly set up a temporary API for your mobile/web client teams whilst the real API is being built
-* decouple your integration tests from the cloud/various back-end systems and take control of your dependencies
-* validate your API requests against an OpenAPI specification
+- run standalone mocks in place of real systems
+- turn an OpenAPI/Swagger file into a mock API for testing or QA (even before the real API is built)
+- decouple your integration tests from the cloud/various back-end systems and take control of your dependencies
+- validate your API requests against an OpenAPI specification
+- capture data and validate later or use response templates to provide conditional responses
 
-Provide mock responses using static files or customise behaviour based on characteristics of the request.
-Capture data and use response templates to provide conditional responses.
+Send dynamic responses:
 
-Power users can control mock responses with JavaScript or Java/Groovy script engines.
-Advanced users can write their own plugins in a JVM language of their choice.
+- Provide mock responses using static files or customise behaviour based on characteristics of the request.
+- Power users can control mock responses with JavaScript or Java/Groovy script engines.
+- Advanced users can write their own plugins in a JVM language of their choice.
 
 > This project is the CLI tool for the [Imposter mock engine](https://github.com/outofcoffee/imposter).
+
+You can also generate Imposter configuration from OpenAPI files:
 
 <img src="./docs/img/imposter-scaffold.gif" alt="Screenshot of scaffold command" width="67%">
 
@@ -58,7 +71,13 @@ Available Commands:
   version     Print CLI version
 ```
 
-Create and start mocks:
+#### Create and start mocks
+
+Example:
+
+    imposter up
+
+Usage:
 
 ```
 Starts a live mock of your APIs, using their Imposter configuration.
@@ -73,10 +92,17 @@ Flags:
   -e, --engine string    Imposter engine type (valid: docker,jvm - default "docker")
   -p, --port int         Port on which to listen (default 8080)
       --pull             Force engine pull
+  -s, --scaffold         Scaffold missing Imposter configuration
   -v, --version string   Imposter engine version (default "latest")
 ```
 
-Generate Imposter configuration from OpenAPI specification files:
+#### Generate Imposter configuration from OpenAPI specification files
+
+Example:
+
+    imposter scaffold
+
+Usage:
 
 ```
 Creates Imposter configuration from one or more OpenAPI/Swagger specification files
@@ -93,7 +119,7 @@ Flags:
   -s  --script-engine string   Generate placeholder Imposter script (none|groovy|js) (default "none")
 ```
 
-Help:
+#### Help
 
 ```
 Provides help for any command in the application.
