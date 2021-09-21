@@ -20,12 +20,12 @@ import "testing"
 
 func Test_printVersion(t *testing.T) {
 	t.Run("print version", func(t *testing.T) {
-		expected := `imposter-cli dev
+		want := `imposter-cli dev
 imposter-engine latest`
 
-		actual := printVersion()
-		if actual != expected {
-			t.Fatalf("expected version to be '%v' but was '%v'", expected, actual)
+		got := printVersion()
+		if got != want {
+			t.Fatalf("expected version to be '%v' but was '%v'", want, got)
 		}
 	})
 }

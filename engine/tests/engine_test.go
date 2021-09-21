@@ -57,7 +57,7 @@ func TestEngine_StartStop(t *testing.T) {
 				configDir: testConfigPath,
 				options: engine.StartOptions{
 					Port:       8080,
-					Version:    "1.21.0",
+					Version:    "1.22.0",
 					PullPolicy: engine.PullIfNotPresent,
 					LogLevel:   "DEBUG",
 				},
@@ -69,8 +69,8 @@ func TestEngine_StartStop(t *testing.T) {
 			fields: fields{
 				configDir: testConfigPath,
 				options: engine.StartOptions{
-					Port:       8080,
-					Version:    "1.21.0",
+					Port:       8081,
+					Version:    "1.22.0",
 					PullPolicy: engine.PullIfNotPresent,
 					LogLevel:   "DEBUG",
 				},
@@ -96,10 +96,10 @@ func TestEngine_StartStop(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			expected := "Hello world"
-			actual := string(body)
-			if actual != expected {
-				t.Fatalf("expected body to be '%v' but was '%v'", expected, actual)
+			want := "Hello world"
+			got := string(body)
+			if got != want {
+				t.Fatalf("expected body to be '%v' but was '%v'", want, got)
 			}
 		})
 	}
@@ -128,8 +128,8 @@ func TestEngine_Restart(t *testing.T) {
 			fields: fields{
 				configDir: testConfigPath,
 				options: engine.StartOptions{
-					Port:       8080,
-					Version:    "1.21.0",
+					Port:       8082,
+					Version:    "1.22.0",
 					PullPolicy: engine.PullIfNotPresent,
 					LogLevel:   "DEBUG",
 				},
@@ -141,8 +141,8 @@ func TestEngine_Restart(t *testing.T) {
 			fields: fields{
 				configDir: testConfigPath,
 				options: engine.StartOptions{
-					Port:       8080,
-					Version:    "1.21.0",
+					Port:       8083,
+					Version:    "1.22.0",
 					PullPolicy: engine.PullIfNotPresent,
 					LogLevel:   "DEBUG",
 				},
