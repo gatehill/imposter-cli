@@ -18,7 +18,6 @@ package tests
 
 import (
 	"fmt"
-	"gatehill.io/imposter/debounce"
 	"gatehill.io/imposter/engine"
 	"gatehill.io/imposter/engine/builder"
 	"github.com/sirupsen/logrus"
@@ -26,8 +25,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
-	"time"
 )
 
 func init() {
@@ -79,15 +78,19 @@ func TestEngine_StartStop(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockEngine := builder.DetermineEngine(tt.engine, tt.fields.configDir, tt.fields.options)
-			mockEngine.Start()
-			defer mockEngine.Stop()
+			wg := &sync.WaitGroup{}
+			mockEngine := builder.BuildEngine(tt.engine, tt.fields.configDir, tt.fields.options)
+			mockEngine.Start(wg)
 
-			baseUrl := fmt.Sprintf("http://localhost:%d", tt.fields.options.Port)
+			defer func() {
+				mockEngine.Stop(wg)
+				wg.Wait()
+			}()
 
-			waitUntilUp(t, baseUrl)
+			checkUp(t, tt.fields.options.Port)
 
-			resp, err := http.Get(baseUrl + "/example")
+			url := fmt.Sprintf("http://localhost:%d/example", tt.fields.options.Port)
+			resp, err := http.Get(url)
 			if err != nil {
 				t.Fatalf("failed to invoke mock endpoint: %v", err)
 			}
@@ -151,37 +154,36 @@ func TestEngine_Restart(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockEngine := builder.DetermineEngine(tt.engine, tt.fields.configDir, tt.fields.options)
-			mockEngine.Start()
-			defer mockEngine.Stop()
+			wg := &sync.WaitGroup{}
+			mockEngine := builder.BuildEngine(tt.engine, tt.fields.configDir, tt.fields.options)
+			mockEngine.Start(wg)
 
-			baseUrl := fmt.Sprintf("http://localhost:%d", tt.fields.options.Port)
+			defer func() {
+				mockEngine.Stop(wg)
+				wg.Wait()
+			}()
 
-			waitUntilUp(t, baseUrl)
+			checkUp(t, tt.fields.options.Port)
 
-			stopCh := make(chan debounce.AtMostOnceEvent)
-			mockEngine.Restart(stopCh)
-
-			waitUntilUp(t, baseUrl)
+			mockEngine.Restart(wg)
+			checkUp(t, tt.fields.options.Port)
 		})
 	}
 }
 
-func waitUntilUp(t *testing.T, baseUrl string) {
-	url := baseUrl + "/system/status"
-	t.Logf("waiting for mock engine to come up at %v", url)
-	for {
-		time.Sleep(100 * time.Millisecond)
-		resp, err := http.Get(url)
-		if err != nil {
-			continue
-		}
-		if _, err := io.ReadAll(resp.Body); err != nil {
-			continue
-		}
-		resp.Body.Close()
-		if resp.StatusCode == 200 {
-			break
-		}
+func checkUp(t *testing.T, port int) {
+	url := fmt.Sprintf("http://localhost:%d/system/status", port)
+	resp, err := http.Get(url)
+	if err != nil {
+		t.Fatalf("error checking status endpoint: %v", err)
+	}
+	if _, err := io.ReadAll(resp.Body); err != nil {
+		t.Fatalf("error checking status endpoint: %v", err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode == 200 {
+		t.Logf("mock engine up at: %v", url)
+	} else {
+		t.Fatalf("unexpected response status code: %d", resp.StatusCode)
 	}
 }

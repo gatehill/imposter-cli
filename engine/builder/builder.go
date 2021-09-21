@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func DetermineEngine(engineType string, configDir string, startOptions engine.StartOptions) engine.MockEngine {
+func BuildEngine(engineType string, configDir string, startOptions engine.StartOptions) engine.MockEngine {
 	switch cliconfig.GetOrDefaultString(engineType, viper.GetString("engine")) {
 	case "", "docker":
 		return docker.BuildEngine(configDir, startOptions)

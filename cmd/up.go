@@ -19,7 +19,6 @@ package cmd
 import (
 	"fmt"
 	"gatehill.io/imposter/cliconfig"
-	"gatehill.io/imposter/debounce"
 	"gatehill.io/imposter/engine"
 	"gatehill.io/imposter/engine/builder"
 	"gatehill.io/imposter/fileutil"
@@ -29,6 +28,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"sync"
 	"syscall"
 )
 
@@ -38,9 +38,7 @@ var flagPort int
 var flagForcePull bool
 var flagRestartOnChange bool
 
-var stopCh chan debounce.AtMostOnceEvent
-var terminating bool
-var restartsPending int
+var wg = &sync.WaitGroup{}
 
 // upCmd represents the up command
 var upCmd = &cobra.Command{
@@ -73,10 +71,13 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 			PullPolicy: pullPolicy,
 			LogLevel:   cliconfig.Config.LogLevel,
 		}
-		mockEngine := builder.DetermineEngine(flagEngineType, configDir, startOptions)
+		mockEngine := builder.BuildEngine(flagEngineType, configDir, startOptions)
 
 		trapExit(mockEngine)
-		startControlLoop(mockEngine, configDir, flagRestartOnChange)
+		start(mockEngine, configDir, flagRestartOnChange)
+
+		wg.Wait()
+		logrus.Debug("shutting down")
 	},
 }
 
@@ -119,45 +120,21 @@ func trapExit(mockEngine engine.MockEngine) {
 	go func() {
 		<-c
 		println()
-		terminating = true
-		mockEngine.TriggerRemovalAndNotify(stopCh)
+		mockEngine.Stop(wg)
 	}()
 }
 
-func startControlLoop(mockEngine engine.MockEngine, configDir string, restartOnChange bool) {
-	stopCh = make(chan debounce.AtMostOnceEvent)
+func start(mockEngine engine.MockEngine, configDir string, restartOnChange bool) {
+	mockEngine.Start(wg)
 
-	mockEngine.Start()
-
-	var dirUpdated chan bool
 	if restartOnChange {
-		dirUpdated = fileutil.WatchDir(configDir)
-	}
-
-control:
-	for {
-		mockEngine.NotifyOnStop(stopCh)
-
-		select {
-		case <-dirUpdated:
-			logrus.Infof("detected change in: %v - triggering restart", configDir)
-			restartsPending++
-			mockEngine.Restart(stopCh)
-			break
-
-		case stopEvent := <-stopCh:
-			if stopEvent.Err != nil && !terminating {
-				logrus.Warn(stopEvent.Err)
+		dirUpdated := fileutil.WatchDir(configDir)
+		go func() {
+			for {
+				<-dirUpdated
+				logrus.Infof("detected change in: %v - triggering restart", configDir)
+				mockEngine.Restart(wg)
 			}
-			if restartsPending > 0 {
-				restartsPending--
-			} else {
-				break control
-			}
-			break
-		}
+		}()
 	}
-
-	terminating = true
-	logrus.Debug("shutting down")
 }

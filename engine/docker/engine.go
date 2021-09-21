@@ -30,6 +30,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -52,11 +53,11 @@ func BuildEngine(configDir string, options engine.StartOptions) engine.MockEngin
 	}
 }
 
-func (d *DockerMockEngine) Start() {
-	d.startWithOptions(d.options)
+func (d *DockerMockEngine) Start(wg *sync.WaitGroup) {
+	d.startWithOptions(wg, d.options)
 }
 
-func (d *DockerMockEngine) startWithOptions(options engine.StartOptions) {
+func (d *DockerMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.StartOptions) {
 	logrus.Infof("starting mock engine on port %d", options.Port)
 	ctx, cli := buildCliClient()
 
@@ -101,6 +102,7 @@ func (d *DockerMockEngine) startWithOptions(options engine.StartOptions) {
 		panic(err)
 	}
 
+	d.debouncer.Register(wg, resp.ID)
 	if err := cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
 		panic(err)
 	}
@@ -118,11 +120,13 @@ func (d *DockerMockEngine) startWithOptions(options engine.StartOptions) {
 	go func() {
 		_, err := stdcopy.StdCopy(os.Stdout, os.Stderr, containerLogs)
 		if err != nil {
-			panic(err)
+			logrus.Warnf("error streaming container logs: %v", err)
 		}
 	}()
 
 	d.containerId = resp.ID
+
+	engine.WaitUntilUp(options.Port)
 }
 
 func buildCliClient() (context.Context, *client.Client) {
@@ -134,19 +138,12 @@ func buildCliClient() (context.Context, *client.Client) {
 	return ctx, cli
 }
 
-func (d *DockerMockEngine) Stop() {
-	stopCh := make(chan debounce.AtMostOnceEvent)
-	d.TriggerRemovalAndNotify(stopCh)
-	<-stopCh
-}
-
-func (d *DockerMockEngine) TriggerRemovalAndNotify(stopCh chan debounce.AtMostOnceEvent) {
+func (d *DockerMockEngine) Stop(wg *sync.WaitGroup) {
 	if len(d.containerId) == 0 {
 		logrus.Tracef("no container ID to remove")
-		stopCh <- debounce.AtMostOnceEvent{}
+		wg.Done()
 		return
 	}
-
 	if logrus.IsLevelEnabled(logrus.TraceLevel) {
 		logrus.Tracef("stopping mock engine container %v", d.containerId)
 	} else {
@@ -155,19 +152,17 @@ func (d *DockerMockEngine) TriggerRemovalAndNotify(stopCh chan debounce.AtMostOn
 
 	oldContainerId := d.containerId
 
-	d.debouncer.Register(oldContainerId)
-
 	// supervisor to work-around removal race
 	go func() {
 		time.Sleep(removalTimeoutSec * time.Second)
 		logrus.Tracef("fired timeout supervisor for container %v removal", oldContainerId)
-		d.debouncer.Notify(stopCh, debounce.AtMostOnceEvent{Id: oldContainerId})
+		d.debouncer.Notify(wg, debounce.AtMostOnceEvent{Id: oldContainerId})
 	}()
 
-	d.removeAndNotify(oldContainerId, stopCh)
+	d.removeAndNotify(wg, oldContainerId)
 }
 
-func (d *DockerMockEngine) removeAndNotify(containerId string, stopCh chan debounce.AtMostOnceEvent) {
+func (d *DockerMockEngine) removeAndNotify(wg *sync.WaitGroup, containerId string) {
 	go func() {
 		ctx, cli := buildCliClient()
 
@@ -176,9 +171,9 @@ func (d *DockerMockEngine) removeAndNotify(containerId string, stopCh chan debou
 		if err != nil {
 			if !client.IsErrNotFound(err) {
 				logrus.Warnf("failed to find mock engine container %v to remove: %v", containerId, err)
-				d.debouncer.Notify(stopCh, debounce.AtMostOnceEvent{Id: containerId, Err: err})
+				d.debouncer.Notify(wg, debounce.AtMostOnceEvent{Id: containerId, Err: err})
 			} else {
-				d.debouncer.Notify(stopCh, debounce.AtMostOnceEvent{Id: containerId})
+				d.debouncer.Notify(wg, debounce.AtMostOnceEvent{Id: containerId})
 			}
 			return
 		}
@@ -187,66 +182,58 @@ func (d *DockerMockEngine) removeAndNotify(containerId string, stopCh chan debou
 		if err != nil {
 			if !client.IsErrNotFound(err) {
 				logrus.Warnf("failed to remove mock engine container %v: %v", containerId, err)
-				d.debouncer.Notify(stopCh, debounce.AtMostOnceEvent{Id: containerId, Err: err})
+				d.debouncer.Notify(wg, debounce.AtMostOnceEvent{Id: containerId, Err: err})
 			} else {
-				d.debouncer.Notify(stopCh, debounce.AtMostOnceEvent{Id: containerId})
+				d.debouncer.Notify(wg, debounce.AtMostOnceEvent{Id: containerId})
 			}
 			return
 		}
 
-		statusCh, errCh := cli.ContainerWait(ctx, containerId, container.WaitConditionRemoved)
-		select {
-		case err := <-errCh:
-			if err != nil && !client.IsErrNotFound(err) {
-				logrus.Warnf("error waiting for removal of mock engine container %v: %v", containerId, err)
-				d.debouncer.Notify(stopCh, debounce.AtMostOnceEvent{Id: containerId, Err: err})
-			} else {
-				d.debouncer.Notify(stopCh, debounce.AtMostOnceEvent{Id: containerId})
-			}
-			break
-		case <-statusCh:
-			logrus.Tracef("mock engine container %v removed", containerId)
-			d.debouncer.Notify(stopCh, debounce.AtMostOnceEvent{Id: containerId})
-			break
-		}
+		d.notifyOnStopSync(wg, containerId)
 	}()
 }
 
-func (d *DockerMockEngine) NotifyOnStop(stopCh chan debounce.AtMostOnceEvent) {
-	oldContainerId := d.containerId
+func (d *DockerMockEngine) Restart(wg *sync.WaitGroup) {
+	innerWg := &sync.WaitGroup{}
+	innerWg.Add(1)
 
-	go func() {
-		ctx, cli := buildCliClient()
-
-		statusCh, errCh := cli.ContainerWait(ctx, oldContainerId, container.WaitConditionNotRunning)
-		select {
-		case err := <-errCh:
-			if err != nil && !client.IsErrNotFound(err) {
-				logrus.Warnf("failed to wait for mock engine container to stop: %v", err)
-				d.debouncer.Notify(stopCh, debounce.AtMostOnceEvent{Id: oldContainerId, Err: err})
-			} else {
-				d.debouncer.Notify(stopCh, debounce.AtMostOnceEvent{Id: oldContainerId})
-			}
-			break
-		case <-statusCh:
-			d.debouncer.Notify(stopCh, debounce.AtMostOnceEvent{Id: oldContainerId})
-			break
-		}
-	}()
-}
-
-func (d *DockerMockEngine) BlockUntilStopped() {
-	stopCh := make(chan debounce.AtMostOnceEvent)
-	d.NotifyOnStop(stopCh)
-	<-stopCh
-}
-
-func (d *DockerMockEngine) Restart(stopCh chan debounce.AtMostOnceEvent) {
-	d.TriggerRemovalAndNotify(stopCh)
+	d.Stop(innerWg)
+	innerWg.Wait()
 
 	// don't pull again
 	restartOptions := d.options
 	restartOptions.PullPolicy = engine.PullSkip
 
-	d.startWithOptions(restartOptions)
+	d.startWithOptions(wg, restartOptions)
+	wg.Done()
+}
+
+func (d *DockerMockEngine) NotifyOnStop(wg *sync.WaitGroup) {
+	oldContainerId := d.containerId
+	go func() { d.notifyOnStopSync(wg, oldContainerId) }()
+}
+
+func (d *DockerMockEngine) notifyOnStopSync(wg *sync.WaitGroup, oldContainerId string) {
+	ctx, cli := buildCliClient()
+	statusCh, errCh := cli.ContainerWait(ctx, oldContainerId, container.WaitConditionNotRunning)
+	select {
+	case err := <-errCh:
+		if err != nil && !client.IsErrNotFound(err) {
+			logrus.Warnf("failed to wait for mock engine container to stop: %v", err)
+			d.debouncer.Notify(wg, debounce.AtMostOnceEvent{Id: oldContainerId, Err: err})
+		} else {
+			d.debouncer.Notify(wg, debounce.AtMostOnceEvent{Id: oldContainerId})
+		}
+		break
+	case <-statusCh:
+		logrus.Tracef("mock engine container %v stopped", oldContainerId)
+		d.debouncer.Notify(wg, debounce.AtMostOnceEvent{Id: oldContainerId})
+		break
+	}
+}
+
+func (d *DockerMockEngine) BlockUntilStopped() {
+	wg := &sync.WaitGroup{}
+	d.NotifyOnStop(wg)
+	wg.Wait()
 }

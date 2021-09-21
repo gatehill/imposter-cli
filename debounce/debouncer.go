@@ -25,16 +25,16 @@ type AtMostOnceEvent struct {
 	Err error
 }
 
-// Debouncer dispatches events with at-most-once semantics for a given ID.
+// Debouncer manages a WaitGroup with at-most-once semantics for a given ID.
 type Debouncer interface {
 	// Register records the ID for later debouncing.
-	Register(id string)
+	Register(wg *sync.WaitGroup, id string)
 
-	// Notify dispatches an event to a channel if the event's ID is registered,
+	// Notify decrements the WaitGroup if the event's ID is registered,
 	// otherwise it is dropped.
-	// If an event is dispatched, the ID is deregistered to avoid future
-	// events being dispatched for the same ID.
-	Notify(c chan AtMostOnceEvent, event AtMostOnceEvent)
+	// If the ID was registered, the ID is deregistered to avoid future
+	// decrements for the same ID.
+	Notify(wg *sync.WaitGroup, event AtMostOnceEvent)
 }
 
 type registrations struct {
@@ -44,25 +44,26 @@ type registrations struct {
 
 // Build creates a new Debouncer
 func Build() Debouncer {
-	return registrations{
+	return &registrations{
 		mutex: &sync.Mutex{},
 		ids:   make(map[string]bool),
 	}
 }
 
-func (d registrations) Register(id string) {
+func (d *registrations) Register(wg *sync.WaitGroup, id string) {
 	d.mutex.Lock()
 	d.ids[id] = true
 	d.mutex.Unlock()
+	wg.Add(1)
 }
 
-func (d registrations) Notify(c chan AtMostOnceEvent, event AtMostOnceEvent) {
+func (d *registrations) Notify(wg *sync.WaitGroup, event AtMostOnceEvent) {
 	if d.ids[event.Id] {
 		d.mutex.Lock()
 		if d.ids[event.Id] { // double-guard
 			delete(d.ids, event.Id)
+			wg.Done()
 		}
 		d.mutex.Unlock()
-		c <- event
 	}
 }

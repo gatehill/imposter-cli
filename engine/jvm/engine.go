@@ -25,6 +25,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 type JvmMockEngine struct {
@@ -52,11 +53,11 @@ func BuildEngine(configDir string, options engine.StartOptions) engine.MockEngin
 	}
 }
 
-func (j *JvmMockEngine) Start() {
-	j.startWithOptions(j.options)
+func (j *JvmMockEngine) Start(wg *sync.WaitGroup) {
+	j.startWithOptions(wg, j.options)
 }
 
-func (j *JvmMockEngine) startWithOptions(options engine.StartOptions) {
+func (j *JvmMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.StartOptions) {
 	args := []string{
 		"-jar", j.jarPath,
 		"--configDir=" + j.configDir,
@@ -72,30 +73,17 @@ func (j *JvmMockEngine) startWithOptions(options engine.StartOptions) {
 	if err != nil {
 		logrus.Fatalf("failed to exec: %v %v: %v", j.javaCmd, args, err)
 	}
+	j.debouncer.Register(wg, strconv.Itoa(command.Process.Pid))
 	logrus.Info("mock engine started - press ctrl+c to stop")
 	j.command = command
+
+	engine.WaitUntilUp(options.Port)
 }
 
-func (j *JvmMockEngine) Stop() {
-	stopCh := make(chan debounce.AtMostOnceEvent)
-	j.TriggerRemovalAndNotify(stopCh)
-	<-stopCh
-}
-
-func (j *JvmMockEngine) Restart(stopCh chan debounce.AtMostOnceEvent) {
-	j.TriggerRemovalAndNotify(stopCh)
-
-	// don't pull again
-	restartOptions := j.options
-	restartOptions.PullPolicy = engine.PullSkip
-
-	j.startWithOptions(restartOptions)
-}
-
-func (j *JvmMockEngine) TriggerRemovalAndNotify(stopCh chan debounce.AtMostOnceEvent) {
+func (j *JvmMockEngine) Stop(wg *sync.WaitGroup) {
 	if j.command == nil {
 		logrus.Tracef("no process to remove")
-		j.debouncer.Notify(stopCh, debounce.AtMostOnceEvent{})
+		wg.Done()
 		return
 	}
 	if logrus.IsLevelEnabled(logrus.TraceLevel) {
@@ -104,40 +92,53 @@ func (j *JvmMockEngine) TriggerRemovalAndNotify(stopCh chan debounce.AtMostOnceE
 		logrus.Info("stopping mock engine")
 	}
 
-	j.debouncer.Register(strconv.Itoa(j.command.Process.Pid))
-
 	err := j.command.Process.Kill()
 	if err != nil {
 		logrus.Fatalf("error stopping engine with PID: %d: %v", j.command.Process.Pid, err)
 	}
-	j.NotifyOnStop(stopCh)
+	j.NotifyOnStop(wg)
 }
 
-func (j *JvmMockEngine) NotifyOnStop(stopCh chan debounce.AtMostOnceEvent) {
+func (j *JvmMockEngine) Restart(wg *sync.WaitGroup) {
+	innerWg := &sync.WaitGroup{}
+	innerWg.Add(1)
+
+	j.Stop(innerWg)
+	innerWg.Wait()
+
+	// don't pull again
+	restartOptions := j.options
+	restartOptions.PullPolicy = engine.PullSkip
+
+	j.startWithOptions(wg, restartOptions)
+	wg.Done()
+}
+
+func (j *JvmMockEngine) NotifyOnStop(wg *sync.WaitGroup) {
 	if j.command == nil || j.command.Process == nil {
 		logrus.Trace("no subprocess - notifying immediately")
-		j.debouncer.Notify(stopCh, debounce.AtMostOnceEvent{})
+		j.debouncer.Notify(wg, debounce.AtMostOnceEvent{})
 	}
 	pid := strconv.Itoa(j.command.Process.Pid)
 	if j.command.ProcessState != nil && j.command.ProcessState.Exited() {
 		logrus.Tracef("process with PID: %v already exited - notifying immediately", pid)
-		j.debouncer.Notify(stopCh, debounce.AtMostOnceEvent{Id: pid})
+		j.debouncer.Notify(wg, debounce.AtMostOnceEvent{Id: pid})
 	}
 	go func() {
 		_, err := j.command.Process.Wait()
 		if err != nil {
-			j.debouncer.Notify(stopCh, debounce.AtMostOnceEvent{
+			j.debouncer.Notify(wg, debounce.AtMostOnceEvent{
 				Id:  pid,
 				Err: fmt.Errorf("failed to wait for process with PID: %v: %v", pid, err),
 			})
 		} else {
-			j.debouncer.Notify(stopCh, debounce.AtMostOnceEvent{Id: pid})
+			j.debouncer.Notify(wg, debounce.AtMostOnceEvent{Id: pid})
 		}
 	}()
 }
 
 func (j *JvmMockEngine) BlockUntilStopped() {
-	stopCh := make(chan debounce.AtMostOnceEvent)
-	j.NotifyOnStop(stopCh)
-	<-stopCh
+	wg := &sync.WaitGroup{}
+	j.NotifyOnStop(wg)
+	wg.Wait()
 }

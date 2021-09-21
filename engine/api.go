@@ -16,7 +16,7 @@ limitations under the License.
 
 package engine
 
-import "gatehill.io/imposter/debounce"
+import "sync"
 
 type StartOptions struct {
 	Port       int
@@ -34,10 +34,9 @@ const (
 )
 
 type MockEngine interface {
-	Start()
-	Stop()
-	Restart(stopCh chan debounce.AtMostOnceEvent)
-	TriggerRemovalAndNotify(stopCh chan debounce.AtMostOnceEvent)
-	NotifyOnStop(stopCh chan debounce.AtMostOnceEvent)
+	Start(wg *sync.WaitGroup)
+	Stop(wg *sync.WaitGroup)
+	Restart(wg *sync.WaitGroup)
+	NotifyOnStop(wg *sync.WaitGroup)
 	BlockUntilStopped()
 }
