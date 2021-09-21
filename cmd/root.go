@@ -17,14 +17,15 @@ limitations under the License.
 package cmd
 
 import (
+	homedir "github.com/mitchellh/go-homedir"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"os"
 	"path/filepath"
-
-	homedir "github.com/mitchellh/go-homedir"
-	"github.com/spf13/viper"
 )
+
+var cfgFile string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -56,18 +57,25 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
+
+	// Global flags.
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.imposter/config.yaml)")
 }
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
-	home, err := homedir.Dir()
-	cobra.CheckErr(err)
+	if cfgFile != "" {
+		viper.SetConfigFile(cfgFile)
+	} else {
+		home, err := homedir.Dir()
+		cobra.CheckErr(err)
 
-	configDir := filepath.Join(home, ".imposter")
-	if _, err := os.Stat(configDir); err == nil {
-		// Search files in config directory with name "config" (without extension).
-		viper.AddConfigPath(configDir)
-		viper.SetConfigName("config")
+		configDir := filepath.Join(home, ".imposter")
+		if _, err := os.Stat(configDir); err == nil {
+			// Search files in config directory with name "config" (without extension).
+			viper.AddConfigPath(configDir)
+			viper.SetConfigName("config")
+		}
 	}
 
 	viper.SetEnvPrefix("IMPOSTER")

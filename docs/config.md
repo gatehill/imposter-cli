@@ -40,15 +40,17 @@ Learn about [Imposter mock configuration](https://outofcoffee.github.io/imposter
 
 ## CLI Configuration file
 
-You can also use a configuration file to set CLI defaults. The configuration file should be located at `$HOME/.imposter/config.yaml`
+You can also use a configuration file to set CLI defaults. By default, Imposter looks for a CLI configuration file located at `$HOME/.imposter/config.yaml`
+
+> You can override the path to the CLI configuration file by passing the `--config CONFIG_PATH` flag.
 
 The currently supported elements are as follows:
 
-````yaml
+```yaml
 # the engine type - valid values are "docker" or "jvm"
 engine: "docker"
 
 # the engine version - valid values are "latest", or a binary release such as "1.21.0"
 # see: https://github.com/outofcoffee/imposter/releases
 version: "latest"
-````
+```
