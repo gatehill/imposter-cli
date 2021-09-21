@@ -34,8 +34,16 @@ const downloadUrlTemplate = "https://github.com/outofcoffee/imposter/releases/do
 const fallbackVersion = "1.22.0"
 
 func getJavaCmd() string {
+	var binaryPathSuffix string
+	if runtime.GOOS == "Windows" {
+		binaryPathSuffix = ".exe"
+	} else {
+		binaryPathSuffix = ""
+	}
+
+	// prefer JAVA_HOME environment variable
 	if javaHomeEnv, found := os.LookupEnv("JAVA_HOME"); found {
-		return filepath.Join(javaHomeEnv, "/bin/java")
+		return filepath.Join(javaHomeEnv, "/bin/java"+binaryPathSuffix)
 	}
 
 	if runtime.GOOS == "darwin" {
@@ -46,7 +54,7 @@ func getJavaCmd() string {
 			logrus.Fatalf("error determining JAVA_HOME: %v", err)
 		}
 		if command.ProcessState.Success() {
-			return filepath.Join(strings.TrimSpace(stdout.String()), "/bin/java")
+			return filepath.Join(strings.TrimSpace(stdout.String()), "/bin/java"+binaryPathSuffix)
 		} else {
 			logrus.Fatal("failed to determine JAVA_HOME using libexec")
 		}
