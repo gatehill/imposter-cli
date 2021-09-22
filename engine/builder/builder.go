@@ -10,13 +10,14 @@ import (
 )
 
 func BuildEngine(engineType string, configDir string, startOptions engine.StartOptions) engine.MockEngine {
-	switch cliconfig.GetOrDefaultString(engineType, viper.GetString("engine")) {
+	et := cliconfig.GetOrDefaultString(engineType, viper.GetString("engine"))
+	switch et {
 	case "", "docker":
 		return docker.BuildEngine(configDir, startOptions)
 	case "jvm":
 		return jvm.BuildEngine(configDir, startOptions)
 	default:
-		logrus.Fatalf("unsupported engine type: %v", engineType)
+		logrus.Fatalf("unsupported engine type: %v", et)
 		return nil
 	}
 }
