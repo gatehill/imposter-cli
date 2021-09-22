@@ -35,11 +35,11 @@ You can also generate Imposter configuration from OpenAPI files:
 
 ## Getting started & documentation
 
-You must have [Docker](https://docs.docker.com/get-docker/) installed.
+You must have [Docker](https://docs.docker.com/get-docker/) installed and running.
 
 ### Installation
 
-See the [Installation](./docs/install.md) instructions for your system.
+See the [Installation](./docs/install.md) instructions for your system or follow the quick-start instructions below:
 
 #### Homebrew
 

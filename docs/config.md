@@ -54,3 +54,10 @@ engine: "docker"
 # see: https://github.com/outofcoffee/imposter/releases
 version: "latest"
 ```
+
+### Engine types
+
+Imposter supports different mock engine types: Docker (default) and JVM. For more information about configuring the engine type see:
+
+- [Docker engine](./docker_engine.md) (default)
+- [JVM engine](./jvm_engine.md)
