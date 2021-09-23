@@ -33,7 +33,7 @@ const binCacheDir = ".imposter/cache/"
 const downloadUrlTemplate = "https://github.com/outofcoffee/imposter/releases/download/v%[1]v/imposter-%[1]v.jar"
 const fallbackVersion = "1.22.0"
 
-func getJavaCmd() string {
+func GetJavaCmdPath() (string, error) {
 	var binaryPathSuffix string
 	if runtime.GOOS == "Windows" {
 		binaryPathSuffix = ".exe"
@@ -43,7 +43,7 @@ func getJavaCmd() string {
 
 	// prefer JAVA_HOME environment variable
 	if javaHomeEnv, found := os.LookupEnv("JAVA_HOME"); found {
-		return filepath.Join(javaHomeEnv, "/bin/java"+binaryPathSuffix)
+		return filepath.Join(javaHomeEnv, "/bin/java"+binaryPathSuffix), nil
 	}
 
 	if runtime.GOOS == "darwin" {
@@ -51,21 +51,21 @@ func getJavaCmd() string {
 		command.Stdout = stdout
 		err := command.Run()
 		if err != nil {
-			logrus.Fatalf("error determining JAVA_HOME: %v", err)
+			return "", fmt.Errorf("error determining JAVA_HOME: %v", err)
 		}
 		if command.ProcessState.Success() {
-			return filepath.Join(strings.TrimSpace(stdout.String()), "/bin/java"+binaryPathSuffix)
+			return filepath.Join(strings.TrimSpace(stdout.String()), "/bin/java"+binaryPathSuffix), nil
 		} else {
-			logrus.Fatal("failed to determine JAVA_HOME using libexec")
+			return "", fmt.Errorf("failed to determine JAVA_HOME using libexec")
 		}
 	}
 
 	// search for 'java' in the PATH
 	javaPath, err := exec.LookPath("java")
 	if err != nil {
-		logrus.Fatalf("could not find 'java' in PATH: %v", err)
+		return "", fmt.Errorf("could not find 'java' in PATH: %v", err)
 	}
-	return javaPath
+	return javaPath, nil
 }
 
 func findImposterJar(version string, pullPolicy engine.PullPolicy) string {

@@ -68,6 +68,7 @@ Available Commands:
   up          Start live mocks of APIs
   scaffold    Create Imposter configuration from OpenAPI specs
   help        Help about any command
+  doctor      Check prerequisites for running Imposter
   version     Print CLI version
 ```
 
@@ -127,6 +128,16 @@ Simply type imposter help [path to command] for full details.
 
 Usage:
   imposter help [command] [flags]
+```
+
+#### Doctor
+
+```
+Checks prerequisites for running Imposter, including those needed
+by the engines.
+
+Usage:
+  imposter doctor
 ```
 
 ### Logging

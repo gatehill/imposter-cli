@@ -59,7 +59,10 @@ func (d *DockerMockEngine) Start(wg *sync.WaitGroup) {
 
 func (d *DockerMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.StartOptions) {
 	logrus.Infof("starting mock engine on port %d", options.Port)
-	ctx, cli := buildCliClient()
+	ctx, cli, err := BuildCliClient()
+	if err != nil {
+		logrus.Fatal(err)
+	}
 
 	imageAndTag, err := ensureContainerImage(cli, ctx, options.Version, options.PullPolicy)
 	if err != nil {
@@ -129,13 +132,13 @@ func (d *DockerMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.S
 	engine.WaitUntilUp(options.Port)
 }
 
-func buildCliClient() (context.Context, *client.Client) {
+func BuildCliClient() (context.Context, *client.Client, error) {
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
-		panic(err)
+		return nil, nil, err
 	}
-	return ctx, cli
+	return ctx, cli, nil
 }
 
 func (d *DockerMockEngine) Stop(wg *sync.WaitGroup) {
@@ -164,10 +167,13 @@ func (d *DockerMockEngine) Stop(wg *sync.WaitGroup) {
 
 func (d *DockerMockEngine) removeAndNotify(wg *sync.WaitGroup, containerId string) {
 	go func() {
-		ctx, cli := buildCliClient()
+		ctx, cli, err := BuildCliClient()
+		if err != nil {
+			logrus.Fatal(err)
+		}
 
 		// check it exists
-		_, err := cli.ContainerInspect(ctx, containerId)
+		_, err = cli.ContainerInspect(ctx, containerId)
 		if err != nil {
 			if !client.IsErrNotFound(err) {
 				logrus.Warnf("failed to find mock engine container %v to remove: %v", containerId, err)
@@ -214,7 +220,11 @@ func (d *DockerMockEngine) NotifyOnStop(wg *sync.WaitGroup) {
 }
 
 func (d *DockerMockEngine) notifyOnStopSync(wg *sync.WaitGroup, oldContainerId string) {
-	ctx, cli := buildCliClient()
+	ctx, cli, err := BuildCliClient()
+	if err != nil {
+		logrus.Fatal(err)
+	}
+
 	statusCh, errCh := cli.ContainerWait(ctx, oldContainerId, container.WaitConditionNotRunning)
 	select {
 	case err := <-errCh:

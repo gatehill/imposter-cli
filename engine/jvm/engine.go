@@ -38,7 +38,10 @@ type JvmMockEngine struct {
 }
 
 func BuildEngine(configDir string, options engine.StartOptions) engine.MockEngine {
-	javaCmd := getJavaCmd()
+	javaCmd, err := GetJavaCmdPath()
+	if err != nil {
+		logrus.Fatal(err)
+	}
 	logrus.Tracef("using java: %v", javaCmd)
 
 	jarPath := findImposterJar(options.Version, options.PullPolicy)
