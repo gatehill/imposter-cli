@@ -16,16 +16,17 @@ limitations under the License.
 
 package cmd
 
-import "testing"
+import (
+	"github.com/stretchr/testify/require"
+	"testing"
+)
 
-func Test_printVersion(t *testing.T) {
+func Test_describeVersions(t *testing.T) {
 	t.Run("print version", func(t *testing.T) {
 		want := `imposter-cli dev
 imposter-engine latest`
 
-		got := printVersion()
-		if got != want {
-			t.Fatalf("expected version to be '%v' but was '%v'", want, got)
-		}
+		got := describeVersions()
+		require.Equal(t, want, got, "version should match")
 	})
 }

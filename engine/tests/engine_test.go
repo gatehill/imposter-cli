@@ -21,6 +21,7 @@ import (
 	"gatehill.io/imposter/engine"
 	"gatehill.io/imposter/engine/builder"
 	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"os"
@@ -101,9 +102,7 @@ func TestEngine_StartStop(t *testing.T) {
 
 			want := "Hello world"
 			got := string(body)
-			if got != want {
-				t.Fatalf("expected body to be '%v' but was '%v'", want, got)
-			}
+			require.Equal(t, want, got, "expected body to match")
 		})
 	}
 }

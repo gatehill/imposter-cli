@@ -29,11 +29,11 @@ var versionCmd = &cobra.Command{
 	Short: "Print CLI version",
 	Long:  `Prints the version of the CLI.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		println(printVersion())
+		println(describeVersions())
 	},
 }
 
-func printVersion() string {
+func describeVersions() string {
 	return fmt.Sprintf(`imposter-cli %v
 imposter-engine %v`,
 		cliconfig.Config.Version,
