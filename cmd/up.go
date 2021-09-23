@@ -68,10 +68,11 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 			pullPolicy = engine.PullIfNotPresent
 		}
 		startOptions := engine.StartOptions{
-			Port:       flagPort,
-			Version:    cliconfig.GetOrDefaultString(flagEngineVersion, viper.GetString("version"), "latest"),
-			PullPolicy: pullPolicy,
-			LogLevel:   cliconfig.Config.LogLevel,
+			Port:           flagPort,
+			Version:        cliconfig.GetOrDefaultString(flagEngineVersion, viper.GetString("version"), "latest"),
+			PullPolicy:     pullPolicy,
+			LogLevel:       cliconfig.Config.LogLevel,
+			ReplaceRunning: true,
 		}
 		mockEngine := builder.BuildEngine(flagEngineType, configDir, startOptions)
 
