@@ -93,7 +93,7 @@ Flags:
   -e, --engine string    Imposter engine type (valid: docker,jvm - default "docker")
   -p, --port int         Port on which to listen (default 8080)
       --pull             Force engine pull
-  -s, --scaffold         Scaffold missing Imposter configuration
+  -s, --scaffold         Scaffold Imposter configuration for all OpenAPI files
   -v, --version string   Imposter engine version (default "latest")
 ```
 

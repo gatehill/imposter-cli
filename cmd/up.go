@@ -89,7 +89,7 @@ func init() {
 	upCmd.Flags().IntVarP(&flagPort, "port", "p", 8080, "Port on which to listen")
 	upCmd.Flags().BoolVar(&flagForcePull, "pull", false, "Force engine pull")
 	upCmd.Flags().BoolVar(&flagRestartOnChange, "auto-restart", true, "Automatically restart when config dir contents change")
-	upCmd.Flags().BoolVarP(&flagScaffoldMissing, "scaffold", "s", false, "Scaffold missing Imposter configuration")
+	upCmd.Flags().BoolVarP(&flagScaffoldMissing, "scaffold", "s", false, "Scaffold Imposter configuration for all OpenAPI files")
 	rootCmd.AddCommand(upCmd)
 }
 
@@ -118,7 +118,8 @@ func validateConfigExists(configDir string, scaffoldMissing bool) error {
 		impostermodel.CreateFromSpecs(configDir, false, false, impostermodel.ScriptEngineNone)
 		return nil
 	}
-	return fmt.Errorf("no Imposter configuration files found in: %v", configDir)
+	return fmt.Errorf(`No Imposter configuration files found in: %v
+Consider running 'imposter scaffold' first.`, configDir)
 }
 
 // listen for an interrupt from the OS, then attempt engine cleanup
