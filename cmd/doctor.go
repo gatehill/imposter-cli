@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"gatehill.io/imposter/engine/docker"
 	"gatehill.io/imposter/engine/jvm"
+	"github.com/docker/docker/client"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"os/exec"
@@ -37,7 +38,7 @@ JVM ENGINE
 %[3]v
 `
 
-// doctorCmd represents the up command
+// doctorCmd represents the doctor command
 var doctorCmd = &cobra.Command{
 	Use:   "doctor",
 	Short: "Check prerequisites for running Imposter",
@@ -45,11 +46,11 @@ var doctorCmd = &cobra.Command{
 by the engines.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logrus.Debug("running check up...")
-		checkPrereqs()
+		println(checkPrereqs())
 	},
 }
 
-func checkPrereqs() {
+func checkPrereqs() string {
 	dockerOk, dockerMsgs := checkDocker()
 	jvmOk, jvmMsgs := checkJvm()
 
@@ -59,24 +60,28 @@ func checkPrereqs() {
 	} else {
 		summary = "😭 You may not be able to run Imposter, as you do not have support for at least one engine."
 	}
-	println(fmt.Sprintf(reportTemplate, summary, strings.Join(dockerMsgs, "\n"), strings.Join(jvmMsgs, "\n")))
+	return fmt.Sprintf(reportTemplate, summary, strings.Join(dockerMsgs, "\n"), strings.Join(jvmMsgs, "\n"))
 }
 
 func checkDocker() (bool, []string) {
 	var msgs []string
 	ctx, cli, err := docker.BuildCliClient()
 	if err != nil {
-		msgs = append(msgs, fmt.Sprintf("❌ Failed to connect to Docker: %v", err))
+		msgs = append(msgs, fmt.Sprintf("❌ Failed to build Docker client: %v", err))
 		return false, msgs
 	}
-	msgs = append(msgs, "✅ Connected to Docker")
 
 	version, err := cli.ServerVersion(ctx)
 	if err != nil {
-		msgs = append(msgs, fmt.Sprintf("❌ Failed to get Docker version: %v", err))
-		return false, msgs
+		if client.IsErrConnectionFailed(err) {
+			msgs = append(msgs, fmt.Sprintf("❌ Failed to connect to Docker: %v", err))
+			return false, msgs
+		} else {
+			msgs = append(msgs, fmt.Sprintf("❌ Failed to get Docker version: %v", err))
+			return false, msgs
+		}
 	}
-	msgs = append(msgs, fmt.Sprintf("✅ Docker version installed: %v", version.Version))
+	msgs = append(msgs, "✅ Connected to Docker", fmt.Sprintf("✅ Docker version installed: %v", version.Version))
 
 	return true, msgs
 }
