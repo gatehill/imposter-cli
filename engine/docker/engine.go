@@ -191,8 +191,3 @@ func (d *DockerMockEngine) Restart(wg *sync.WaitGroup) {
 	d.startWithOptions(wg, restartOptions)
 	wg.Done()
 }
-
-func (d *DockerMockEngine) NotifyOnStop(wg *sync.WaitGroup) {
-	oldContainerId := d.containerId
-	go func() { notifyOnStopBlocking(d, wg, oldContainerId) }()
-}

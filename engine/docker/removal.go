@@ -67,19 +67,11 @@ func removeContainer(d *DockerMockEngine, wg *sync.WaitGroup, containerId string
 			return
 		}
 
-		notifyOnStopBlocking(d, wg, containerId)
+		notifyOnStopBlocking(d, wg, containerId, cli, ctx)
 	}()
 }
 
-func notifyOnStopBlocking(d *DockerMockEngine, wg *sync.WaitGroup, containerId string) {
-	ctx, cli, err := BuildCliClient()
-	if err != nil {
-		logrus.Fatal(err)
-	}
-	notifyOnStopUsingCliBlocking(d, wg, containerId, cli, ctx)
-}
-
-func notifyOnStopUsingCliBlocking(d *DockerMockEngine, wg *sync.WaitGroup, containerId string, cli *client.Client, ctx context.Context) {
+func notifyOnStopBlocking(d *DockerMockEngine, wg *sync.WaitGroup, containerId string, cli *client.Client, ctx context.Context) {
 	statusCh, errCh := cli.ContainerWait(ctx, containerId, container.WaitConditionNotRunning)
 	select {
 	case err := <-errCh:

@@ -99,7 +99,7 @@ func (j *JvmMockEngine) Stop(wg *sync.WaitGroup) {
 	if err != nil {
 		logrus.Fatalf("error stopping engine with PID: %d: %v", j.command.Process.Pid, err)
 	}
-	j.NotifyOnStop(wg)
+	j.notifyOnStop(wg)
 }
 
 func (j *JvmMockEngine) Restart(wg *sync.WaitGroup) {
@@ -117,7 +117,7 @@ func (j *JvmMockEngine) Restart(wg *sync.WaitGroup) {
 	wg.Done()
 }
 
-func (j *JvmMockEngine) NotifyOnStop(wg *sync.WaitGroup) {
+func (j *JvmMockEngine) notifyOnStop(wg *sync.WaitGroup) {
 	if j.command == nil || j.command.Process == nil {
 		logrus.Trace("no subprocess - notifying immediately")
 		j.debouncer.Notify(wg, debounce.AtMostOnceEvent{})
