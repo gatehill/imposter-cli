@@ -196,9 +196,3 @@ func (d *DockerMockEngine) NotifyOnStop(wg *sync.WaitGroup) {
 	oldContainerId := d.containerId
 	go func() { notifyOnStopBlocking(d, wg, oldContainerId) }()
 }
-
-func (d *DockerMockEngine) BlockUntilStopped() {
-	wg := &sync.WaitGroup{}
-	d.NotifyOnStop(wg)
-	wg.Wait()
-}
