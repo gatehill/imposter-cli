@@ -139,9 +139,3 @@ func (j *JvmMockEngine) NotifyOnStop(wg *sync.WaitGroup) {
 		}
 	}()
 }
-
-func (j *JvmMockEngine) BlockUntilStopped() {
-	wg := &sync.WaitGroup{}
-	j.NotifyOnStop(wg)
-	wg.Wait()
-}

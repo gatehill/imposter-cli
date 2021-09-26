@@ -39,5 +39,4 @@ type MockEngine interface {
 	Stop(wg *sync.WaitGroup)
 	Restart(wg *sync.WaitGroup)
 	NotifyOnStop(wg *sync.WaitGroup)
-	BlockUntilStopped()
 }
