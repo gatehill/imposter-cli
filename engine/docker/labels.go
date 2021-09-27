@@ -25,11 +25,13 @@ import (
 	filters2 "github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
 	"github.com/sirupsen/logrus"
-	"path/filepath"
 )
 
-func genPathHash(path string) string {
-	input, _ := filepath.Abs(path)
+func genDefaultHash(absPath string, port int) string {
+	return sha1hash(fmt.Sprintf("%v:%d", absPath, port))
+}
+
+func sha1hash(input string) string {
 	h := sha1.New()
 	h.Write([]byte(input))
 	bs := h.Sum(nil)

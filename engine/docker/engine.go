@@ -29,6 +29,7 @@ import (
 	"github.com/docker/go-connections/nat"
 	"github.com/sirupsen/logrus"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -70,13 +71,10 @@ func (d *DockerMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.S
 		logrus.Fatal(err)
 	}
 
-	containerLabels := map[string]string{
-		"io.gatehill.imposter.port":      strconv.Itoa(options.Port),
-		"io.gatehill.imposter.path-hash": genPathHash(d.configDir),
-	}
+	mockHash, containerLabels := generateMetadata(d, options)
 
 	if options.ReplaceRunning {
-		stopContainersMatchingLabels(d, cli, ctx, containerLabels)
+		stopContainersMatchingLabel(d, cli, ctx, labelKeyHash, mockHash)
 	}
 
 	containerPort := nat.Port(fmt.Sprintf("%d/tcp", options.Port))
@@ -125,6 +123,24 @@ func (d *DockerMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.S
 	d.containerId = resp.ID
 	streamLogs(err, cli, ctx, resp.ID)
 	engine.WaitUntilUp(options.Port)
+}
+
+func generateMetadata(d *DockerMockEngine, options engine.StartOptions) (string, map[string]string) {
+	absoluteConfigDir, _ := filepath.Abs(d.configDir)
+
+	var mockHash string
+	if options.Deduplicate != "" {
+		mockHash = sha1hash(options.Deduplicate)
+	} else {
+		mockHash = genDefaultHash(absoluteConfigDir, options.Port)
+	}
+
+	containerLabels := map[string]string{
+		labelKeyDir:  absoluteConfigDir,
+		labelKeyPort: strconv.Itoa(options.Port),
+		labelKeyHash: mockHash,
+	}
+	return mockHash, containerLabels
 }
 
 func streamLogs(err error, cli *client.Client, ctx context.Context, containerId string) {

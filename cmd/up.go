@@ -33,10 +33,11 @@ import (
 	"syscall"
 )
 
+var flagDeduplicate string
 var flagEngineType string
 var flagEngineVersion string
-var flagPort int
 var flagForcePull bool
+var flagPort int
 var flagRestartOnChange bool
 var flagScaffoldMissing bool
 
@@ -73,6 +74,7 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 			PullPolicy:     pullPolicy,
 			LogLevel:       cliconfig.Config.LogLevel,
 			ReplaceRunning: true,
+			Deduplicate:    flagDeduplicate,
 		}
 		mockEngine := builder.BuildEngine(flagEngineType, configDir, startOptions)
 
@@ -91,6 +93,7 @@ func init() {
 	upCmd.Flags().BoolVar(&flagForcePull, "pull", false, "Force engine pull")
 	upCmd.Flags().BoolVar(&flagRestartOnChange, "auto-restart", true, "Automatically restart when config dir contents change")
 	upCmd.Flags().BoolVarP(&flagScaffoldMissing, "scaffold", "s", false, "Scaffold Imposter configuration for all OpenAPI files")
+	upCmd.Flags().StringVar(&flagDeduplicate, "deduplicate", "", "Override deduplication ID for replacement of containers")
 	rootCmd.AddCommand(upCmd)
 }
 

@@ -26,6 +26,10 @@ import (
 	"sync"
 )
 
+const labelKeyPort = "io.gatehill.imposter.port"
+const labelKeyDir = "io.gatehill.imposter.dir"
+const labelKeyHash = "io.gatehill.imposter.hash"
+
 func removeContainers(d *DockerMockEngine, containerIds []string) {
 	logrus.Tracef("removing containers: %v", containerIds)
 	wg := &sync.WaitGroup{}
@@ -87,6 +91,10 @@ func notifyOnStopBlocking(d *DockerMockEngine, wg *sync.WaitGroup, containerId s
 		d.debouncer.Notify(wg, debounce.AtMostOnceEvent{Id: containerId})
 		break
 	}
+}
+
+func stopContainersMatchingLabel(d *DockerMockEngine, cli *client.Client, ctx context.Context, labelKey string, labelValue string) {
+	stopContainersMatchingLabels(d, cli, ctx, map[string]string{labelKey: labelValue})
 }
 
 func stopContainersMatchingLabels(d *DockerMockEngine, cli *client.Client, ctx context.Context, containerLabels map[string]string) {
