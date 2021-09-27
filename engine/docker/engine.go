@@ -74,7 +74,7 @@ func (d *DockerMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.S
 	mockHash, containerLabels := generateMetadata(d, options)
 
 	if options.ReplaceRunning {
-		stopContainersMatchingLabel(d, cli, ctx, labelKeyHash, mockHash)
+		stopDuplicateContainers(d, cli, ctx, mockHash)
 	}
 
 	containerPort := nat.Port(fmt.Sprintf("%d/tcp", options.Port))

@@ -93,11 +93,11 @@ func notifyOnStopBlocking(d *DockerMockEngine, wg *sync.WaitGroup, containerId s
 	}
 }
 
-func stopContainersMatchingLabel(d *DockerMockEngine, cli *client.Client, ctx context.Context, labelKey string, labelValue string) {
-	stopContainersMatchingLabels(d, cli, ctx, map[string]string{labelKey: labelValue})
+func stopDuplicateContainers(d *DockerMockEngine, cli *client.Client, ctx context.Context, mockHash string) {
+	stopDuplicateContainersWithLabels(d, cli, ctx, map[string]string{labelKeyHash: mockHash})
 }
 
-func stopContainersMatchingLabels(d *DockerMockEngine, cli *client.Client, ctx context.Context, containerLabels map[string]string) {
+func stopDuplicateContainersWithLabels(d *DockerMockEngine, cli *client.Client, ctx context.Context, containerLabels map[string]string) {
 	existingContainerIds, err := findContainersWithLabels(cli, ctx, containerLabels)
 	if err != nil {
 		logrus.Fatalf("error searching for existing containers: %v", err)
@@ -107,6 +107,6 @@ func stopContainersMatchingLabels(d *DockerMockEngine, cli *client.Client, ctx c
 		return
 	}
 
-	logrus.Debugf("replacing %d existing container(s) matching port and directory", len(existingContainerIds))
+	logrus.Debugf("replacing %d duplicate container(s)", len(existingContainerIds))
 	removeContainers(d, existingContainerIds)
 }
