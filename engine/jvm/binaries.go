@@ -136,9 +136,12 @@ func downloadBinary(localPath string, version string) error {
 
 	resp, err := http.Get(url)
 	if err != nil {
-		return fmt.Errorf("error dwnloading from: %v: %v", url, err)
+		return fmt.Errorf("error downloading from: %v: %v", url, err)
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return fmt.Errorf("error downloading from: %v: status code: %d", url, resp.StatusCode)
+	}
 
 	_, err = io.Copy(file, resp.Body)
 	return err
