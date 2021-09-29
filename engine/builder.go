@@ -6,6 +6,8 @@ import (
 	"github.com/spf13/viper"
 )
 
+const defaultEngineType = "docker"
+
 var (
 	providers = make(map[string]func(version string) Provider)
 	engines   = make(map[string]func(configDir string, startOptions StartOptions) MockEngine)
@@ -38,5 +40,5 @@ func BuildEngine(engineType string, configDir string, startOptions StartOptions)
 }
 
 func getConfiguredEngineType(engineType string) string {
-	return cliconfig.GetOrDefaultString(engineType, viper.GetString("engine"))
+	return cliconfig.GetOrDefaultString(engineType, viper.GetString("engine"), defaultEngineType)
 }
