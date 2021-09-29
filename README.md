@@ -67,9 +67,10 @@ Usage:
 Available Commands:
   up          Start live mocks of APIs
   scaffold    Create Imposter configuration from OpenAPI specs
-  help        Help about any command
+  pull        Pull the engine into the cache
   doctor      Check prerequisites for running Imposter
   version     Print CLI version
+  help        Help about any command
 ```
 
 #### Create and start mocks
@@ -120,14 +121,27 @@ Flags:
   -s  --script-engine string   Generate placeholder Imposter script (none|groovy|js) (default "none")
 ```
 
-#### Help
+#### Pull engine
 
-```
-Provides help for any command in the application.
-Simply type imposter help [path to command] for full details.
+Example:
+
+    imposter engine pull
 
 Usage:
-  imposter help [command] [flags]
+
+```
+Pulls a specified version of the engine binary/image into the cache.
+
+If version is not specified, it defaults to 'latest'.
+
+Usage:
+  imposter engine pull [flags]
+
+Flags:
+  -e, --engine string    Imposter engine type (valid: docker,jvm - default "docker")
+  -h, --help             help for pull
+      --pull             Force engine pull
+  -v, --version string   Imposter engine version (default "latest")
 ```
 
 #### Doctor
@@ -138,6 +152,16 @@ by the engines.
 
 Usage:
   imposter doctor
+```
+
+#### Help
+
+```
+Provides help for any command in the application.
+Simply type imposter help [path to command] for full details.
+
+Usage:
+  imposter help [command] [flags]
 ```
 
 ### Logging

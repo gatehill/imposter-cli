@@ -31,44 +31,35 @@ import (
 
 const binCacheDir = ".imposter/cache/"
 const downloadUrlTemplate = "https://github.com/outofcoffee/imposter/releases/download/v%[1]v/imposter-%[1]v.jar"
-const fallbackVersion = "1.22.0"
+const fallbackVersion = "1.23.0"
 
-func GetJavaCmdPath() (string, error) {
-	var binaryPathSuffix string
-	if runtime.GOOS == "Windows" {
-		binaryPathSuffix = ".exe"
-	} else {
-		binaryPathSuffix = ""
-	}
-
-	// prefer JAVA_HOME environment variable
-	if javaHomeEnv, found := os.LookupEnv("JAVA_HOME"); found {
-		return filepath.Join(javaHomeEnv, "/bin/java"+binaryPathSuffix), nil
-	}
-
-	if runtime.GOOS == "darwin" {
-		command, stdout := exec.Command("/usr/libexec/java_home"), new(strings.Builder)
-		command.Stdout = stdout
-		err := command.Run()
-		if err != nil {
-			return "", fmt.Errorf("error determining JAVA_HOME: %v", err)
-		}
-		if command.ProcessState.Success() {
-			return filepath.Join(strings.TrimSpace(stdout.String()), "/bin/java"+binaryPathSuffix), nil
-		} else {
-			return "", fmt.Errorf("failed to determine JAVA_HOME using libexec")
-		}
-	}
-
-	// search for 'java' in the PATH
-	javaPath, err := exec.LookPath("java")
-	if err != nil {
-		return "", fmt.Errorf("could not find 'java' in PATH: %v", err)
-	}
-	return javaPath, nil
+type EngineJarProvider struct {
+	engine.ProviderOptions
+	jarPath string
 }
 
-func findImposterJar(version string, pullPolicy engine.PullPolicy) string {
+func GetProvider(version string) *EngineJarProvider {
+	return &EngineJarProvider{
+		ProviderOptions: engine.ProviderOptions{
+			Version: version,
+		},
+	}
+}
+
+func (d *EngineJarProvider) Provide(policy engine.PullPolicy) error {
+	jarPath, err := ensureBinary(d.Version, policy)
+	if err != nil {
+		return err
+	}
+	d.jarPath = jarPath
+	return nil
+}
+
+func (d *EngineJarProvider) Satisfied() bool {
+	return d.jarPath != ""
+}
+
+func ensureBinary(version string, policy engine.PullPolicy) (string, error) {
 	if version == "latest" {
 		version = fallbackVersion
 	}
@@ -79,26 +70,27 @@ func findImposterJar(version string, pullPolicy engine.PullPolicy) string {
 	}
 
 	binFilePath := filepath.Join(binCachePath, fmt.Sprintf("imposter-%v.jar", version))
-	if pullPolicy == engine.PullSkip {
-		return binFilePath
+	if policy == engine.PullSkip {
+		return binFilePath, nil
 	}
 
-	if pullPolicy == engine.PullIfNotPresent {
+	if policy == engine.PullIfNotPresent {
 		if _, err = os.Stat(binFilePath); err != nil {
 			if !os.IsNotExist(err) {
-				logrus.Fatalf("failed to stat: %v: %v", binFilePath, err)
+				return "", fmt.Errorf("failed to stat: %v: %v", binFilePath, err)
 			}
 		} else {
 			logrus.Debugf("engine version '%v' already present", version)
 			logrus.Tracef("binary for version %v found at: %v", version, binFilePath)
-			return binFilePath
+			return binFilePath, nil
 		}
 	}
 
 	if err := downloadBinary(binFilePath, version); err != nil {
-		logrus.Fatalf("failed to fetch binary: %v", err)
+		return "", fmt.Errorf("failed to fetch binary: %v", err)
 	}
-	return binFilePath
+	logrus.Tracef("using imposter at: %v", binFilePath)
+	return binFilePath, nil
 }
 
 func ensureBinCache() (error, string) {
@@ -145,4 +137,40 @@ func downloadBinary(localPath string, version string) error {
 
 	_, err = io.Copy(file, resp.Body)
 	return err
+}
+
+func GetJavaCmdPath() (string, error) {
+	var binaryPathSuffix string
+	if runtime.GOOS == "Windows" {
+		binaryPathSuffix = ".exe"
+	} else {
+		binaryPathSuffix = ""
+	}
+
+	// prefer JAVA_HOME environment variable
+	if javaHomeEnv, found := os.LookupEnv("JAVA_HOME"); found {
+		return filepath.Join(javaHomeEnv, "/bin/java"+binaryPathSuffix), nil
+	}
+
+	if runtime.GOOS == "darwin" {
+		command, stdout := exec.Command("/usr/libexec/java_home"), new(strings.Builder)
+		command.Stdout = stdout
+		err := command.Run()
+		if err != nil {
+			return "", fmt.Errorf("error determining JAVA_HOME: %v", err)
+		}
+		if command.ProcessState.Success() {
+			return filepath.Join(strings.TrimSpace(stdout.String()), "/bin/java"+binaryPathSuffix), nil
+		} else {
+			return "", fmt.Errorf("failed to determine JAVA_HOME using libexec")
+		}
+	}
+
+	// search for 'java' in the PATH
+	javaPath, err := exec.LookPath("java")
+	if err != nil {
+		return "", fmt.Errorf("could not find 'java' in PATH: %v", err)
+	}
+	logrus.Tracef("using java: %v", javaPath)
+	return javaPath, nil
 }

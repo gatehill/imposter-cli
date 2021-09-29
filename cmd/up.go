@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"gatehill.io/imposter/cliconfig"
 	"gatehill.io/imposter/engine"
-	"gatehill.io/imposter/engine/builder"
 	"gatehill.io/imposter/fileutil"
 	"gatehill.io/imposter/impostermodel"
 	"github.com/sirupsen/logrus"
@@ -33,13 +32,15 @@ import (
 	"syscall"
 )
 
-var flagDeduplicate string
-var flagEngineType string
-var flagEngineVersion string
-var flagForcePull bool
-var flagPort int
-var flagRestartOnChange bool
-var flagScaffoldMissing bool
+var upFlags = struct {
+	flagDeduplicate     string
+	flagEngineType      string
+	flagEngineVersion   string
+	flagForcePull       bool
+	flagPort            int
+	flagRestartOnChange bool
+	flagScaffoldMissing bool
+}{}
 
 var wg = &sync.WaitGroup{}
 
@@ -58,28 +59,28 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 		} else {
 			configDir, _ = filepath.Abs(args[0])
 		}
-		if err := validateConfigExists(configDir, flagScaffoldMissing); err != nil {
+		if err := validateConfigExists(configDir, upFlags.flagScaffoldMissing); err != nil {
 			logrus.Fatal(err)
 		}
 
 		var pullPolicy engine.PullPolicy
-		if flagForcePull {
+		if upFlags.flagForcePull {
 			pullPolicy = engine.PullAlways
 		} else {
 			pullPolicy = engine.PullIfNotPresent
 		}
 		startOptions := engine.StartOptions{
-			Port:           flagPort,
-			Version:        cliconfig.GetOrDefaultString(flagEngineVersion, viper.GetString("version"), "latest"),
+			Port:           upFlags.flagPort,
+			Version:        cliconfig.GetOrDefaultString(upFlags.flagEngineVersion, viper.GetString("version"), "latest"),
 			PullPolicy:     pullPolicy,
 			LogLevel:       cliconfig.Config.LogLevel,
 			ReplaceRunning: true,
-			Deduplicate:    flagDeduplicate,
+			Deduplicate:    upFlags.flagDeduplicate,
 		}
-		mockEngine := builder.BuildEngine(flagEngineType, configDir, startOptions)
+		mockEngine := engine.BuildEngine(upFlags.flagEngineType, configDir, startOptions)
 
 		trapExit(mockEngine)
-		start(mockEngine, configDir, flagRestartOnChange)
+		start(mockEngine, configDir, upFlags.flagRestartOnChange)
 
 		wg.Wait()
 		logrus.Debug("shutting down")
@@ -87,13 +88,13 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 }
 
 func init() {
-	upCmd.Flags().StringVarP(&flagEngineType, "engine", "e", "", "Imposter engine type (valid: docker,jvm - default \"docker\")")
-	upCmd.Flags().StringVarP(&flagEngineVersion, "version", "v", "", "Imposter engine version (default \"latest\")")
-	upCmd.Flags().IntVarP(&flagPort, "port", "p", 8080, "Port on which to listen")
-	upCmd.Flags().BoolVar(&flagForcePull, "pull", false, "Force engine pull")
-	upCmd.Flags().BoolVar(&flagRestartOnChange, "auto-restart", true, "Automatically restart when config dir contents change")
-	upCmd.Flags().BoolVarP(&flagScaffoldMissing, "scaffold", "s", false, "Scaffold Imposter configuration for all OpenAPI files")
-	upCmd.Flags().StringVar(&flagDeduplicate, "deduplicate", "", "Override deduplication ID for replacement of containers")
+	upCmd.Flags().StringVarP(&upFlags.flagEngineType, "engine", "e", "", "Imposter engine type (valid: docker,jvm - default \"docker\")")
+	upCmd.Flags().StringVarP(&upFlags.flagEngineVersion, "version", "v", "", "Imposter engine version (default \"latest\")")
+	upCmd.Flags().IntVarP(&upFlags.flagPort, "port", "p", 8080, "Port on which to listen")
+	upCmd.Flags().BoolVar(&upFlags.flagForcePull, "pull", false, "Force engine pull")
+	upCmd.Flags().BoolVar(&upFlags.flagRestartOnChange, "auto-restart", true, "Automatically restart when config dir contents change")
+	upCmd.Flags().BoolVarP(&upFlags.flagScaffoldMissing, "scaffold", "s", false, "Scaffold Imposter configuration for all OpenAPI files")
+	upCmd.Flags().StringVar(&upFlags.flagDeduplicate, "deduplicate", "", "Override deduplication ID for replacement of containers")
 	rootCmd.AddCommand(upCmd)
 }
 

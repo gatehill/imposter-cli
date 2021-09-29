@@ -43,14 +43,25 @@ const removalTimeoutSec = 5
 type DockerMockEngine struct {
 	configDir   string
 	options     engine.StartOptions
+	provider    *EngineImageProvider
 	containerId string
 	debouncer   debounce.Debouncer
+}
+
+func init() {
+	engine.RegisterProvider("docker", func(version string) engine.Provider {
+		return GetProvider(version)
+	})
+	engine.RegisterEngine("docker", func(configDir string, startOptions engine.StartOptions) engine.MockEngine {
+		return BuildEngine(configDir, startOptions)
+	})
 }
 
 func BuildEngine(configDir string, options engine.StartOptions) engine.MockEngine {
 	return &DockerMockEngine{
 		configDir: configDir,
 		options:   options,
+		provider:  GetProvider(options.Version),
 		debouncer: debounce.Build(),
 	}
 }
@@ -66,9 +77,11 @@ func (d *DockerMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.S
 		logrus.Fatal(err)
 	}
 
-	imageAndTag, err := ensureContainerImage(cli, ctx, options.Version, options.PullPolicy)
-	if err != nil {
-		logrus.Fatal(err)
+	if !d.provider.Satisfied() {
+		err := d.provider.Provide(options.PullPolicy)
+		if err != nil {
+			logrus.Fatal(err)
+		}
 	}
 
 	mockHash, containerLabels := generateMetadata(d, options)
@@ -81,7 +94,7 @@ func (d *DockerMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.S
 	hostPort := fmt.Sprintf("%d", options.Port)
 
 	resp, err := cli.ContainerCreate(ctx, &container.Config{
-		Image: imageAndTag,
+		Image: d.provider.imageAndTag,
 		Cmd: []string{
 			"--configDir=" + containerConfigDir,
 			fmt.Sprintf("--listenPort=%d", options.Port),

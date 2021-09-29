@@ -31,27 +31,26 @@ import (
 type JvmMockEngine struct {
 	configDir string
 	options   engine.StartOptions
+	provider  *EngineJarProvider
 	javaCmd   string
-	jarPath   string
 	command   *exec.Cmd
 	debouncer debounce.Debouncer
 }
 
+func init() {
+	engine.RegisterProvider("jvm", func(version string) engine.Provider {
+		return GetProvider(version)
+	})
+	engine.RegisterEngine("jvm", func(configDir string, startOptions engine.StartOptions) engine.MockEngine {
+		return BuildEngine(configDir, startOptions)
+	})
+}
+
 func BuildEngine(configDir string, options engine.StartOptions) engine.MockEngine {
-	javaCmd, err := GetJavaCmdPath()
-	if err != nil {
-		logrus.Fatal(err)
-	}
-	logrus.Tracef("using java: %v", javaCmd)
-
-	jarPath := findImposterJar(options.Version, options.PullPolicy)
-	logrus.Tracef("using imposter at: %v", jarPath)
-
 	return &JvmMockEngine{
 		configDir: configDir,
 		options:   options,
-		javaCmd:   javaCmd,
-		jarPath:   jarPath,
+		provider:  GetProvider(options.Version),
 		debouncer: debounce.Build(),
 	}
 }
@@ -61,8 +60,21 @@ func (j *JvmMockEngine) Start(wg *sync.WaitGroup) {
 }
 
 func (j *JvmMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.StartOptions) {
+	if j.javaCmd == "" {
+		javaCmd, err := GetJavaCmdPath()
+		if err != nil {
+			logrus.Fatal(err)
+		}
+		j.javaCmd = javaCmd
+	}
+	if !j.provider.Satisfied() {
+		err := j.provider.Provide(options.PullPolicy)
+		if err != nil {
+			logrus.Fatal(err)
+		}
+	}
 	args := []string{
-		"-jar", j.jarPath,
+		"-jar", j.provider.jarPath,
 		"--configDir=" + j.configDir,
 		fmt.Sprintf("--listenPort=%d", options.Port),
 	}

@@ -25,7 +25,9 @@ import (
 	"path/filepath"
 )
 
-var cfgFile string
+var rootFlags = struct {
+	cfgFile string
+}{}
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -59,13 +61,13 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	// Global flags.
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.imposter/config.yaml)")
+	rootCmd.PersistentFlags().StringVar(&rootFlags.cfgFile, "config", "", "config file (default is $HOME/.imposter/config.yaml)")
 }
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
-	if cfgFile != "" {
-		viper.SetConfigFile(cfgFile)
+	if rootFlags.cfgFile != "" {
+		viper.SetConfigFile(rootFlags.cfgFile)
 	} else {
 		home, err := homedir.Dir()
 		cobra.CheckErr(err)

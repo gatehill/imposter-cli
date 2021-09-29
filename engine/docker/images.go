@@ -27,6 +27,36 @@ import (
 	"os"
 )
 
+type EngineImageProvider struct {
+	engine.ProviderOptions
+	imageAndTag string
+}
+
+func GetProvider(version string) *EngineImageProvider {
+	return &EngineImageProvider{
+		ProviderOptions: engine.ProviderOptions{
+			Version: version,
+		},
+	}
+}
+
+func (d *EngineImageProvider) Provide(policy engine.PullPolicy) error {
+	ctx, cli, err := BuildCliClient()
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	imageAndTag, err := ensureContainerImage(cli, ctx, d.Version, policy)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	d.imageAndTag = imageAndTag
+	return nil
+}
+
+func (d *EngineImageProvider) Satisfied() bool {
+	return d.imageAndTag != ""
+}
+
 func ensureContainerImage(cli *client.Client, ctx context.Context, imageTag string, imagePullPolicy engine.PullPolicy) (imageAndTag string, e error) {
 	imageAndTag = engineDockerImage + ":" + imageTag
 

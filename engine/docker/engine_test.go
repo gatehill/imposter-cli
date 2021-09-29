@@ -1,0 +1,83 @@
+/*
+Copyright © 2021 Pete Cornish <outofcoffee@gmail.com>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package docker
+
+import (
+	"gatehill.io/imposter/engine"
+	"gatehill.io/imposter/engine/enginetests"
+	"github.com/sirupsen/logrus"
+	"os"
+	"path/filepath"
+	"testing"
+)
+
+var engineBuilder = func(tt enginetests.EngineTestScenario) engine.MockEngine {
+	return engine.BuildEngine("docker", tt.Fields.ConfigDir, tt.Fields.Options)
+}
+
+func init() {
+	logrus.SetLevel(logrus.TraceLevel)
+}
+
+func TestEngine_StartStop(t *testing.T) {
+	workingDir, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	testConfigPath := filepath.Join(workingDir, "../enginetests/testdata")
+
+	tests := []enginetests.EngineTestScenario{
+		{
+			Name: "start docker engine",
+			Fields: enginetests.EngineTestFields{
+				ConfigDir: testConfigPath,
+				Options: engine.StartOptions{
+					Port:       8080,
+					Version:    "1.22.0",
+					PullPolicy: engine.PullIfNotPresent,
+					LogLevel:   "DEBUG",
+				},
+			},
+		},
+	}
+	enginetests.StartStop(t, tests, engineBuilder)
+}
+
+func TestEngine_Restart(t *testing.T) {
+	logrus.SetLevel(logrus.TraceLevel)
+	workingDir, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	testConfigPath := filepath.Join(workingDir, "../enginetests/testdata")
+
+	tests := []enginetests.EngineTestScenario{
+		{
+			Name: "restart docker engine",
+			Fields: enginetests.EngineTestFields{
+				ConfigDir: testConfigPath,
+				Options: engine.StartOptions{
+					Port:       8082,
+					Version:    "1.22.0",
+					PullPolicy: engine.PullIfNotPresent,
+					LogLevel:   "DEBUG",
+				},
+			},
+		},
+	}
+	enginetests.Restart(t, tests, engineBuilder)
+}

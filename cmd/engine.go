@@ -14,38 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package engine
+package cmd
 
-import "sync"
-
-type StartOptions struct {
-	Port           int
-	Version        string
-	PullPolicy     PullPolicy
-	LogLevel       string
-	ReplaceRunning bool
-	Deduplicate    string
-}
-
-type PullPolicy int
-
-const (
-	PullSkip         PullPolicy = iota
-	PullAlways       PullPolicy = iota
-	PullIfNotPresent PullPolicy = iota
+import (
+	"github.com/spf13/cobra"
 )
 
-type MockEngine interface {
-	Start(wg *sync.WaitGroup)
-	Stop(wg *sync.WaitGroup)
-	Restart(wg *sync.WaitGroup)
+// engineCmd represents the engine command
+var engineCmd = &cobra.Command{
+	Use:   "engine",
+	Short: "Engine management commands",
 }
 
-type ProviderOptions struct {
-	Version string
-}
-
-type Provider interface {
-	Satisfied() bool
-	Provide(policy PullPolicy) error
+func init() {
+	rootCmd.AddCommand(engineCmd)
 }
