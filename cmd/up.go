@@ -71,7 +71,7 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 		}
 		startOptions := engine.StartOptions{
 			Port:           upFlags.flagPort,
-			Version:        cliconfig.GetOrDefaultString(upFlags.flagEngineVersion, viper.GetString("version"), "latest"),
+			Version:        cliconfig.GetFirstNonEmpty(upFlags.flagEngineVersion, viper.GetString("version"), "latest"),
 			PullPolicy:     pullPolicy,
 			LogLevel:       cliconfig.Config.LogLevel,
 			ReplaceRunning: true,

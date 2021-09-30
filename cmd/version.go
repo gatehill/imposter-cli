@@ -37,7 +37,7 @@ func describeVersions() string {
 	return fmt.Sprintf(`imposter-cli %v
 imposter-engine %v`,
 		cliconfig.Config.Version,
-		cliconfig.GetOrDefaultString(viper.GetString("version"), "latest"),
+		cliconfig.GetFirstNonEmpty(viper.GetString("version"), "latest"),
 	)
 }
 
