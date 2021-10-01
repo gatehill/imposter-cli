@@ -31,7 +31,7 @@ import (
 
 const binCacheDir = ".imposter/cache/"
 const downloadUrlTemplate = "https://github.com/outofcoffee/imposter/releases/download/v%[1]v/imposter-%[1]v.jar"
-const fallbackVersion = "1.23.0"
+const fallbackVersion = "1.23.2"
 
 type EngineJarProvider struct {
 	engine.ProviderOptions
