@@ -140,7 +140,7 @@ Usage:
 Flags:
   -e, --engine string    Imposter engine type (valid: docker,jvm - default "docker")
   -h, --help             help for pull
-      --pull             Force engine pull
+  -f, --force            Force engine pull
   -v, --version string   Imposter engine version (default "latest")
 ```
 
