@@ -42,8 +42,6 @@ var upFlags = struct {
 	flagScaffoldMissing bool
 }{}
 
-var wg = &sync.WaitGroup{}
-
 // upCmd represents the up command
 var upCmd = &cobra.Command{
 	Use:   "up [CONFIG_DIR]",
@@ -77,10 +75,11 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 			ReplaceRunning: true,
 			Deduplicate:    upFlags.flagDeduplicate,
 		}
-		mockEngine := engine.BuildEngine(upFlags.flagEngineType, configDir, startOptions)
+		mockEngine := engine.BuildEngine(engine.EngineType(upFlags.flagEngineType), configDir, startOptions)
 
-		trapExit(mockEngine)
-		start(mockEngine, configDir, upFlags.flagRestartOnChange)
+		wg := &sync.WaitGroup{}
+		trapExit(mockEngine, wg)
+		start(mockEngine, wg, configDir, upFlags.flagRestartOnChange)
 
 		wg.Wait()
 		logrus.Debug("shutting down")
@@ -128,7 +127,7 @@ Consider running 'imposter scaffold' first.`, configDir)
 }
 
 // listen for an interrupt from the OS, then attempt engine cleanup
-func trapExit(mockEngine engine.MockEngine) {
+func trapExit(mockEngine engine.MockEngine, wg *sync.WaitGroup) {
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
@@ -138,7 +137,7 @@ func trapExit(mockEngine engine.MockEngine) {
 	}()
 }
 
-func start(mockEngine engine.MockEngine, configDir string, restartOnChange bool) {
+func start(mockEngine engine.MockEngine, wg *sync.WaitGroup, configDir string, restartOnChange bool) {
 	mockEngine.Start(wg)
 
 	if restartOnChange {

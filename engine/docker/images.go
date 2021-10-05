@@ -35,7 +35,8 @@ type EngineImageProvider struct {
 func GetProvider(version string) *EngineImageProvider {
 	return &EngineImageProvider{
 		ProviderOptions: engine.ProviderOptions{
-			Version: version,
+			EngineType: engine.EngineTypeDocker,
+			Version:    version,
 		},
 	}
 }
@@ -55,6 +56,10 @@ func (d *EngineImageProvider) Provide(policy engine.PullPolicy) error {
 
 func (d *EngineImageProvider) Satisfied() bool {
 	return d.imageAndTag != ""
+}
+
+func (d *EngineImageProvider) GetEngineType() engine.EngineType {
+	return d.EngineType
 }
 
 func ensureContainerImage(cli *client.Client, ctx context.Context, imageTag string, imagePullPolicy engine.PullPolicy) (imageAndTag string, e error) {

@@ -127,15 +127,21 @@ func (d *DockerMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.S
 		panic(err)
 	}
 
-	d.debouncer.Register(wg, resp.ID)
-	if err := cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
+	containerId := resp.ID
+	d.debouncer.Register(wg, containerId)
+	if err := cli.ContainerStart(ctx, containerId, types.ContainerStartOptions{}); err != nil {
 		logrus.Fatalf("error starting mock engine container: %v", err)
 	}
 	logrus.Info("mock engine started - press ctrl+c to stop")
 
-	d.containerId = resp.ID
-	streamLogs(err, cli, ctx, resp.ID)
+	d.containerId = containerId
+	streamLogs(err, cli, ctx, containerId)
 	engine.WaitUntilUp(options.Port)
+
+	// watch in case container stops
+	go func() {
+		notifyOnStopBlocking(d, wg, containerId, cli, ctx)
+	}()
 }
 
 func generateMetadata(d *DockerMockEngine, options engine.StartOptions) (string, map[string]string) {
@@ -149,9 +155,10 @@ func generateMetadata(d *DockerMockEngine, options engine.StartOptions) (string,
 	}
 
 	containerLabels := map[string]string{
-		labelKeyDir:  absoluteConfigDir,
-		labelKeyPort: strconv.Itoa(options.Port),
-		labelKeyHash: mockHash,
+		labelKeyManaged: "true",
+		labelKeyDir:     absoluteConfigDir,
+		labelKeyPort:    strconv.Itoa(options.Port),
+		labelKeyHash:    mockHash,
 	}
 	return mockHash, containerLabels
 }
@@ -207,11 +214,8 @@ func (d *DockerMockEngine) Stop(wg *sync.WaitGroup) {
 }
 
 func (d *DockerMockEngine) Restart(wg *sync.WaitGroup) {
-	innerWg := &sync.WaitGroup{}
-	innerWg.Add(1)
-
-	d.Stop(innerWg)
-	innerWg.Wait()
+	wg.Add(1)
+	d.Stop(wg)
 
 	// don't pull again
 	restartOptions := d.options
@@ -219,4 +223,21 @@ func (d *DockerMockEngine) Restart(wg *sync.WaitGroup) {
 
 	d.startWithOptions(wg, restartOptions)
 	wg.Done()
+}
+
+func (d *DockerMockEngine) StopAllManaged() {
+	logrus.Info("stopping all managed mocks...")
+	cli, ctx, err := BuildCliClient()
+	if err != nil {
+		logrus.Fatal(err)
+	}
+
+	labels := map[string]string{
+		labelKeyManaged: "true",
+	}
+	if stopped := stopContainersWithLabels(d, ctx, cli, labels); stopped > 0 {
+		logrus.Infof("stopped %d managed mocks", stopped)
+	} else {
+		logrus.Info("no managed mocks were found")
+	}
 }

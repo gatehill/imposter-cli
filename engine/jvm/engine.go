@@ -38,10 +38,10 @@ type JvmMockEngine struct {
 }
 
 func init() {
-	engine.RegisterProvider("jvm", func(version string) engine.Provider {
+	engine.RegisterProvider(engine.EngineTypeJvm, func(version string) engine.Provider {
 		return GetProvider(version)
 	})
-	engine.RegisterEngine("jvm", func(configDir string, startOptions engine.StartOptions) engine.MockEngine {
+	engine.RegisterEngine(engine.EngineTypeJvm, func(configDir string, startOptions engine.StartOptions) engine.MockEngine {
 		return BuildEngine(configDir, startOptions)
 	})
 }
@@ -93,6 +93,11 @@ func (j *JvmMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.Star
 	j.command = command
 
 	engine.WaitUntilUp(options.Port)
+
+	// watch in case container stops
+	go func() {
+		j.notifyOnStopBlocking(wg)
+	}()
 }
 
 func (j *JvmMockEngine) Stop(wg *sync.WaitGroup) {
@@ -111,15 +116,12 @@ func (j *JvmMockEngine) Stop(wg *sync.WaitGroup) {
 	if err != nil {
 		logrus.Fatalf("error stopping engine with PID: %d: %v", j.command.Process.Pid, err)
 	}
-	j.notifyOnStop(wg)
+	j.notifyOnStopBlocking(wg)
 }
 
 func (j *JvmMockEngine) Restart(wg *sync.WaitGroup) {
-	innerWg := &sync.WaitGroup{}
-	innerWg.Add(1)
-
-	j.Stop(innerWg)
-	innerWg.Wait()
+	wg.Add(1)
+	j.Stop(wg)
 
 	// don't pull again
 	restartOptions := j.options
@@ -129,7 +131,7 @@ func (j *JvmMockEngine) Restart(wg *sync.WaitGroup) {
 	wg.Done()
 }
 
-func (j *JvmMockEngine) notifyOnStop(wg *sync.WaitGroup) {
+func (j *JvmMockEngine) notifyOnStopBlocking(wg *sync.WaitGroup) {
 	if j.command == nil || j.command.Process == nil {
 		logrus.Trace("no subprocess - notifying immediately")
 		j.debouncer.Notify(wg, debounce.AtMostOnceEvent{})
@@ -139,15 +141,17 @@ func (j *JvmMockEngine) notifyOnStop(wg *sync.WaitGroup) {
 		logrus.Tracef("process with PID: %v already exited - notifying immediately", pid)
 		j.debouncer.Notify(wg, debounce.AtMostOnceEvent{Id: pid})
 	}
-	go func() {
-		_, err := j.command.Process.Wait()
-		if err != nil {
-			j.debouncer.Notify(wg, debounce.AtMostOnceEvent{
-				Id:  pid,
-				Err: fmt.Errorf("failed to wait for process with PID: %v: %v", pid, err),
-			})
-		} else {
-			j.debouncer.Notify(wg, debounce.AtMostOnceEvent{Id: pid})
-		}
-	}()
+	_, err := j.command.Process.Wait()
+	if err != nil {
+		j.debouncer.Notify(wg, debounce.AtMostOnceEvent{
+			Id:  pid,
+			Err: fmt.Errorf("failed to wait for process with PID: %v: %v", pid, err),
+		})
+	} else {
+		j.debouncer.Notify(wg, debounce.AtMostOnceEvent{Id: pid})
+	}
+}
+
+func (j *JvmMockEngine) StopAllManaged() {
+	panic("stopping all JVM containers is not supported")
 }

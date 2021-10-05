@@ -41,7 +41,8 @@ type EngineJarProvider struct {
 func GetProvider(version string) *EngineJarProvider {
 	return &EngineJarProvider{
 		ProviderOptions: engine.ProviderOptions{
-			Version: version,
+			EngineType: engine.EngineTypeJvm,
+			Version:    version,
 		},
 	}
 }
@@ -57,6 +58,10 @@ func (d *EngineJarProvider) Provide(policy engine.PullPolicy) error {
 
 func (d *EngineJarProvider) Satisfied() bool {
 	return d.jarPath != ""
+}
+
+func (d *EngineJarProvider) GetEngineType() engine.EngineType {
+	return d.EngineType
 }
 
 func ensureBinary(version string, policy engine.PullPolicy) (string, error) {

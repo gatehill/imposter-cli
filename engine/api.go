@@ -39,13 +39,16 @@ type MockEngine interface {
 	Start(wg *sync.WaitGroup)
 	Stop(wg *sync.WaitGroup)
 	Restart(wg *sync.WaitGroup)
+	StopAllManaged()
 }
 
 type ProviderOptions struct {
-	Version string
+	EngineType EngineType
+	Version    string
 }
 
 type Provider interface {
 	Satisfied() bool
 	Provide(policy PullPolicy) error
+	GetEngineType() EngineType
 }

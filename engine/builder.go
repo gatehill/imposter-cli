@@ -22,22 +22,28 @@ import (
 	"github.com/spf13/viper"
 )
 
-const defaultEngineType = "docker"
+type EngineType string
+
+const (
+	EngineTypeDocker EngineType = "docker"
+	EngineTypeJvm    EngineType = "jvm"
+)
+const defaultEngineType = EngineTypeDocker
 
 var (
-	providers = make(map[string]func(version string) Provider)
-	engines   = make(map[string]func(configDir string, startOptions StartOptions) MockEngine)
+	providers = make(map[EngineType]func(version string) Provider)
+	engines   = make(map[EngineType]func(configDir string, startOptions StartOptions) MockEngine)
 )
 
-func RegisterProvider(engineType string, b func(version string) Provider) {
+func RegisterProvider(engineType EngineType, b func(version string) Provider) {
 	providers[engineType] = b
 }
 
-func RegisterEngine(engineType string, b func(configDir string, startOptions StartOptions) MockEngine) {
+func RegisterEngine(engineType EngineType, b func(configDir string, startOptions StartOptions) MockEngine) {
 	engines[engineType] = b
 }
 
-func GetProvider(engineType string, version string) Provider {
+func GetProvider(engineType EngineType, version string) Provider {
 	et := getConfiguredEngineType(engineType)
 	provider := providers[et]
 	if provider == nil {
@@ -46,7 +52,7 @@ func GetProvider(engineType string, version string) Provider {
 	return provider(version)
 }
 
-func BuildEngine(engineType string, configDir string, startOptions StartOptions) MockEngine {
+func BuildEngine(engineType EngineType, configDir string, startOptions StartOptions) MockEngine {
 	et := getConfiguredEngineType(engineType)
 	eng := engines[et]
 	if eng == nil {
@@ -55,6 +61,10 @@ func BuildEngine(engineType string, configDir string, startOptions StartOptions)
 	return eng(configDir, startOptions)
 }
 
-func getConfiguredEngineType(engineType string) string {
-	return cliconfig.GetFirstNonEmpty(engineType, viper.GetString("engine"), defaultEngineType)
+func getConfiguredEngineType(engineType EngineType) EngineType {
+	return EngineType(cliconfig.GetFirstNonEmpty(
+		string(engineType),
+		viper.GetString("engine"),
+		string(defaultEngineType),
+	))
 }
