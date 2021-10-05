@@ -19,6 +19,7 @@ package cmd
 import (
 	"gatehill.io/imposter/cliconfig"
 	"gatehill.io/imposter/engine"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"os"
@@ -26,8 +27,7 @@ import (
 )
 
 var downFlags = struct {
-	flagDeduplicate string
-	flagEngineType  string
+	flagEngineType string
 }{}
 
 // downCmd represents the down command
@@ -37,22 +37,27 @@ var downCmd = &cobra.Command{
 	Long:  `Stops running Imposter mocks for the current engine type.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		version := cliconfig.GetFirstNonEmpty(viper.GetString("version"), "latest")
-		stopAll(engine.EngineType(downFlags.flagEngineType), version, downFlags.flagDeduplicate)
+		stopAll(engine.EngineType(downFlags.flagEngineType), version)
 	},
 }
 
 func init() {
-	downCmd.Flags().StringVarP(&downFlags.flagEngineType, "engine", "e", "", "Imposter engine type (valid: docker - default \"docker\")")
-	downCmd.Flags().StringVar(&downFlags.flagDeduplicate, "deduplicate", "", "Override deduplication ID for replacement of containers")
+	downCmd.Flags().StringVarP(&downFlags.flagEngineType, "engine", "e", "", "Imposter engine type (valid: docker,jvm - default \"docker\")")
 	rootCmd.AddCommand(downCmd)
 }
 
-func stopAll(engineType engine.EngineType, version string, deduplicate string) {
-	configDir := filepath.Join(os.TempDir(), "imposter-tidy")
+func stopAll(engineType engine.EngineType, version string) {
+	logrus.Info("stopping all managed mocks...")
+
+	configDir := filepath.Join(os.TempDir(), "imposter-down")
 	mockEngine := engine.BuildEngine(engineType, configDir, engine.StartOptions{
-		Version:     version,
-		LogLevel:    cliconfig.Config.LogLevel,
-		Deduplicate: deduplicate,
+		Version:  version,
+		LogLevel: cliconfig.Config.LogLevel,
 	})
-	mockEngine.StopAllManaged()
+
+	if stopped := mockEngine.StopAllManaged(); stopped > 0 {
+		logrus.Infof("stopped %d managed mock(s)", stopped)
+	} else {
+		logrus.Info("no managed mocks were found")
+	}
 }

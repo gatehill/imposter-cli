@@ -225,8 +225,7 @@ func (d *DockerMockEngine) Restart(wg *sync.WaitGroup) {
 	wg.Done()
 }
 
-func (d *DockerMockEngine) StopAllManaged() {
-	logrus.Info("stopping all managed mocks...")
+func (d *DockerMockEngine) StopAllManaged() int {
 	cli, ctx, err := BuildCliClient()
 	if err != nil {
 		logrus.Fatal(err)
@@ -235,9 +234,5 @@ func (d *DockerMockEngine) StopAllManaged() {
 	labels := map[string]string{
 		labelKeyManaged: "true",
 	}
-	if stopped := stopContainersWithLabels(d, ctx, cli, labels); stopped > 0 {
-		logrus.Infof("stopped %d managed mocks", stopped)
-	} else {
-		logrus.Info("no managed mocks were found")
-	}
+	return stopContainersWithLabels(d, ctx, cli, labels)
 }

@@ -69,6 +69,7 @@ Available Commands:
   scaffold    Create Imposter configuration from OpenAPI specs
   pull        Pull the engine into the cache
   doctor      Check prerequisites for running Imposter
+  down        Stop running mocks
   version     Print CLI version
   help        Help about any command
 ```
@@ -152,6 +153,25 @@ by the engines.
 
 Usage:
   imposter doctor
+```
+
+#### Down
+
+Example:
+
+    imposter down
+
+Usage:
+
+```
+Stops running Imposter mocks for the current engine type.
+
+Usage:
+  imposter down [flags]
+
+Flags:
+  -e, --engine string   Imposter engine type (valid: docker,jvm - default "docker")
+  -h, --help            help for down
 ```
 
 #### Help

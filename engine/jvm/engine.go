@@ -152,6 +152,25 @@ func (j *JvmMockEngine) notifyOnStopBlocking(wg *sync.WaitGroup) {
 	}
 }
 
-func (j *JvmMockEngine) StopAllManaged() {
-	panic("stopping all JVM containers is not supported")
+func (j *JvmMockEngine) StopAllManaged() int {
+	processes, err := findImposterJvmProcesses()
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	if len(processes) == 0 {
+		return 0
+	}
+	for _, pid := range processes {
+		logrus.Tracef("finding JVM process to kill with PID: %d", pid)
+		p, err := os.FindProcess(pid)
+		if err != nil {
+			logrus.Fatal(err)
+		}
+		logrus.Debugf("killing JVM process with PID: %d", pid)
+		err = p.Kill()
+		if err != nil {
+			logrus.Warnf("error killing JVM process with PID: %d: %v", pid, err)
+		}
+	}
+	return len(processes)
 }
