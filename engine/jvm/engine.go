@@ -68,8 +68,7 @@ func (j *JvmMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.Star
 		j.javaCmd = javaCmd
 	}
 	if !j.provider.Satisfied() {
-		err := j.provider.Provide(options.PullPolicy)
-		if err != nil {
+		if err := j.provider.Provide(engine.PullIfNotPresent); err != nil {
 			logrus.Fatal(err)
 		}
 	}
@@ -173,4 +172,36 @@ func (j *JvmMockEngine) StopAllManaged() int {
 		}
 	}
 	return len(processes)
+}
+
+func (j *JvmMockEngine) GetVersionString() (string, error) {
+	if !j.provider.Satisfied() {
+		if err := j.provider.Provide(engine.PullIfNotPresent); err != nil {
+			return "", err
+		}
+	}
+
+	output := new(strings.Builder)
+	errOutput := new(strings.Builder)
+
+	if j.javaCmd == "" {
+		javaCmd, err := GetJavaCmdPath()
+		if err != nil {
+			return "", err
+		}
+		j.javaCmd = javaCmd
+	}
+	args := []string{
+		"-jar", j.provider.jarPath,
+		"--version",
+	}
+	command := exec.Command(j.javaCmd, args...)
+	command.Stdout = output
+	command.Stderr = errOutput
+	err := command.Run()
+
+	if err != nil {
+		return "", fmt.Errorf("error starting mock engine process: %v\n%v\n%v", err, output, errOutput)
+	}
+	return engine.SanitiseVersionOutput(output.String()), nil
 }

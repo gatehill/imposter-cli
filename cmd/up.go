@@ -75,7 +75,7 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 			ReplaceRunning: true,
 			Deduplicate:    upFlags.flagDeduplicate,
 		}
-		mockEngine := engine.BuildEngine(engine.EngineType(upFlags.flagEngineType), configDir, startOptions)
+		mockEngine := engine.BuildEngine(engine.GetConfiguredType(upFlags.flagEngineType), configDir, startOptions)
 
 		wg := &sync.WaitGroup{}
 		trapExit(mockEngine, wg)

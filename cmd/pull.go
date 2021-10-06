@@ -46,7 +46,7 @@ If version is not specified, it defaults to 'latest'.`,
 			pullPolicy = engine.PullIfNotPresent
 		}
 		version := cliconfig.GetFirstNonEmpty(pullFlags.flagEngineVersion, viper.GetString("version"), "latest")
-		downloader := engine.GetProvider(engine.EngineType(pullFlags.flagEngineType), version)
+		downloader := engine.GetProvider(engine.GetConfiguredType(pullFlags.flagEngineType), version)
 		err := downloader.Provide(pullPolicy)
 		if err != nil {
 			logrus.Fatal(err)

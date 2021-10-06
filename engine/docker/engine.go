@@ -28,6 +28,7 @@ import (
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/go-connections/nat"
 	"github.com/sirupsen/logrus"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -78,8 +79,7 @@ func (d *DockerMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.S
 	}
 
 	if !d.provider.Satisfied() {
-		err := d.provider.Provide(options.PullPolicy)
-		if err != nil {
+		if err := d.provider.Provide(engine.PullIfNotPresent); err != nil {
 			logrus.Fatal(err)
 		}
 	}
@@ -135,7 +135,9 @@ func (d *DockerMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.S
 	logrus.Info("mock engine started - press ctrl+c to stop")
 
 	d.containerId = containerId
-	streamLogs(err, cli, ctx, containerId)
+	if err = streamLogsToStdIo(cli, ctx, containerId); err != nil {
+		logrus.Warn(err)
+	}
 	engine.WaitUntilUp(options.Port)
 
 	// watch in case container stops
@@ -163,21 +165,25 @@ func generateMetadata(d *DockerMockEngine, options engine.StartOptions) (string,
 	return mockHash, containerLabels
 }
 
-func streamLogs(err error, cli *client.Client, ctx context.Context, containerId string) {
+func streamLogsToStdIo(cli *client.Client, ctx context.Context, containerId string) error {
+	return streamLogs(cli, ctx, containerId, os.Stdout, os.Stderr)
+}
+
+func streamLogs(cli *client.Client, ctx context.Context, containerId string, outStream io.Writer, errStream io.Writer) error {
 	containerLogs, err := cli.ContainerLogs(ctx, containerId, types.ContainerLogsOptions{
 		ShowStdout: true,
 		Follow:     true,
 	})
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("error streaming container logs for container with ID: %v: %v", containerId, err)
 	}
-
 	go func() {
-		_, err := stdcopy.StdCopy(os.Stdout, os.Stderr, containerLogs)
+		_, err := stdcopy.StdCopy(outStream, errStream, containerLogs)
 		if err != nil {
-			logrus.Warnf("error streaming container logs: %v", err)
+			logrus.Warnf("error streaming container logs for container with ID: %v: %v", containerId, err)
 		}
 	}()
+	return nil
 }
 
 func BuildCliClient() (context.Context, *client.Client, error) {
@@ -235,4 +241,38 @@ func (d *DockerMockEngine) StopAllManaged() int {
 		labelKeyManaged: "true",
 	}
 	return stopContainersWithLabels(d, ctx, cli, labels)
+}
+
+func (d *DockerMockEngine) GetVersionString() (string, error) {
+	if !d.provider.Satisfied() {
+		if err := d.provider.Provide(engine.PullIfNotPresent); err != nil {
+			return "", err
+		}
+	}
+
+	output := new(strings.Builder)
+	errOutput := new(strings.Builder)
+
+	ctx, cli, err := BuildCliClient()
+	resp, err := cli.ContainerCreate(ctx, &container.Config{
+		Image: d.provider.imageAndTag,
+		Cmd: []string{
+			"--version",
+		},
+	}, &container.HostConfig{}, nil, nil, "")
+	if err != nil {
+		return "", err
+	}
+	containerId := resp.ID
+
+	wg := &sync.WaitGroup{}
+	d.debouncer.Register(wg, containerId)
+	if err := cli.ContainerStart(ctx, containerId, types.ContainerStartOptions{}); err != nil {
+		return "", fmt.Errorf("error starting mock engine container: %v", err)
+	}
+	if err = streamLogs(cli, ctx, containerId, output, errOutput); err != nil {
+		return "", fmt.Errorf("error getting mock engine output: %v", err)
+	}
+	notifyOnStopBlocking(d, wg, containerId, cli, ctx)
+	return engine.SanitiseVersionOutput(output.String()), nil
 }

@@ -85,7 +85,7 @@ func ensureBinary(version string, policy engine.PullPolicy) (string, error) {
 				return "", fmt.Errorf("failed to stat: %v: %v", binFilePath, err)
 			}
 		} else {
-			logrus.Debugf("engine version '%v' already present", version)
+			logrus.Debugf("engine binary '%v' already present", version)
 			logrus.Tracef("binary for version %v found at: %v", version, binFilePath)
 			return binFilePath, nil
 		}

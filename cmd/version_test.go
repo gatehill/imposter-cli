@@ -17,16 +17,44 @@ limitations under the License.
 package cmd
 
 import (
+	"gatehill.io/imposter/engine"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
 
 func Test_describeVersions(t *testing.T) {
-	t.Run("print version", func(t *testing.T) {
-		want := `imposter-cli dev
-imposter-engine latest`
+	// set an explicit version
+	viper.Set("version", "1.23.2")
 
-		got := describeVersions()
-		require.Equal(t, want, got, "version should match")
-	})
+	type args struct {
+		engineType engine.EngineType
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		{
+			name: "print version with docker engine",
+			args: args{
+				engineType: engine.EngineTypeDocker,
+			},
+		},
+		{
+			name: "print version with jvm engine",
+			args: args{
+				engineType: engine.EngineTypeJvm,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			want := `imposter-cli dev
+imposter-engine 1.23.2
+engine-output: 1.23.2`
+
+			got := describeVersions(tt.args.engineType)
+			require.Equal(t, want, got, "version should match")
+		})
+	}
 }

@@ -40,6 +40,7 @@ type MockEngine interface {
 	Stop(wg *sync.WaitGroup)
 	Restart(wg *sync.WaitGroup)
 	StopAllManaged() int
+	GetVersionString() (string, error)
 }
 
 type ProviderOptions struct {

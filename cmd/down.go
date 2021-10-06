@@ -17,11 +17,9 @@ limitations under the License.
 package cmd
 
 import (
-	"gatehill.io/imposter/cliconfig"
 	"gatehill.io/imposter/engine"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"os"
 	"path/filepath"
 )
@@ -36,8 +34,7 @@ var downCmd = &cobra.Command{
 	Short: "Stop running mocks",
 	Long:  `Stops running Imposter mocks for the current engine type.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		version := cliconfig.GetFirstNonEmpty(viper.GetString("version"), "latest")
-		stopAll(engine.EngineType(downFlags.flagEngineType), version)
+		stopAll(engine.GetConfiguredType(downFlags.flagEngineType))
 	},
 }
 
@@ -46,14 +43,11 @@ func init() {
 	rootCmd.AddCommand(downCmd)
 }
 
-func stopAll(engineType engine.EngineType, version string) {
+func stopAll(engineType engine.EngineType) {
 	logrus.Info("stopping all managed mocks...")
 
 	configDir := filepath.Join(os.TempDir(), "imposter-down")
-	mockEngine := engine.BuildEngine(engineType, configDir, engine.StartOptions{
-		Version:  version,
-		LogLevel: cliconfig.Config.LogLevel,
-	})
+	mockEngine := engine.BuildEngine(engineType, configDir, engine.StartOptions{})
 
 	if stopped := mockEngine.StopAllManaged(); stopped > 0 {
 		logrus.Infof("stopped %d managed mock(s)", stopped)

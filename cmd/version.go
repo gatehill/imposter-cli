@@ -19,9 +19,15 @@ package cmd
 import (
 	"fmt"
 	"gatehill.io/imposter/cliconfig"
+	"gatehill.io/imposter/engine"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
+
+var versionFlags = struct {
+	flagEngineType string
+}{}
 
 // versionCmd represents the up command
 var versionCmd = &cobra.Command{
@@ -29,18 +35,37 @@ var versionCmd = &cobra.Command{
 	Short: "Print CLI version",
 	Long:  `Prints the version of the CLI.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		println(describeVersions())
+		engineType := engine.GetConfiguredType(versionFlags.flagEngineType)
+		println(describeVersions(engineType))
 	},
 }
 
-func describeVersions() string {
-	return fmt.Sprintf(`imposter-cli %v
-imposter-engine %v`,
+func init() {
+	versionCmd.Flags().StringVarP(&versionFlags.flagEngineType, "engine", "e", "", "Imposter engine type (valid: docker,jvm - default \"docker\")")
+	rootCmd.AddCommand(versionCmd)
+}
+
+func describeVersions(engineType engine.EngineType) string {
+	engineConfigVersion := cliconfig.GetFirstNonEmpty(viper.GetString("version"), "latest")
+	engineVersionOutput := getInstalledEngineVersion(engineType)
+
+	return fmt.Sprintf(`imposter-cli %[1]v
+imposter-engine %[2]v
+engine-output: %[3]v`,
 		cliconfig.Config.Version,
-		cliconfig.GetFirstNonEmpty(viper.GetString("version"), "latest"),
+		engineConfigVersion,
+		engineVersionOutput,
 	)
 }
 
-func init() {
-	rootCmd.AddCommand(versionCmd)
+func getInstalledEngineVersion(engineType engine.EngineType) string {
+	mockEngine := engine.BuildEngine(engineType, "", engine.StartOptions{
+		Version: cliconfig.GetFirstNonEmpty(viper.GetString("version"), "latest"),
+	})
+	versionString, err := mockEngine.GetVersionString()
+	if err != nil {
+		logrus.Warn(err)
+		return "error"
+	}
+	return versionString
 }

@@ -17,6 +17,7 @@ limitations under the License.
 package engine
 
 import (
+	"fmt"
 	"gatehill.io/imposter/cliconfig"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -44,26 +45,38 @@ func RegisterEngine(engineType EngineType, b func(configDir string, startOptions
 }
 
 func GetProvider(engineType EngineType, version string) Provider {
-	et := getConfiguredEngineType(engineType)
-	provider := providers[et]
+	if err := validateEngineType(engineType); err != nil {
+		logrus.Fatal(err)
+	}
+	provider := providers[engineType]
 	if provider == nil {
-		logrus.Fatalf("unsupported engine type: %v", et)
+		logrus.Fatalf("unregistered engine type: %v", engineType)
 	}
 	return provider(version)
 }
 
 func BuildEngine(engineType EngineType, configDir string, startOptions StartOptions) MockEngine {
-	et := getConfiguredEngineType(engineType)
-	eng := engines[et]
+	if err := validateEngineType(engineType); err != nil {
+		logrus.Fatal(err)
+	}
+	eng := engines[engineType]
 	if eng == nil {
-		logrus.Fatalf("unsupported engine type: %v", et)
+		logrus.Fatalf("unregistered engine type: %v", engineType)
 	}
 	return eng(configDir, startOptions)
 }
 
-func getConfiguredEngineType(engineType EngineType) EngineType {
+func validateEngineType(engineType EngineType) error {
+	switch engineType {
+	case EngineTypeDocker, EngineTypeJvm:
+		return nil
+	}
+	return fmt.Errorf("unsupported engine type: %v", engineType)
+}
+
+func GetConfiguredType(engineType string) EngineType {
 	return EngineType(cliconfig.GetFirstNonEmpty(
-		string(engineType),
+		engineType,
 		viper.GetString("engine"),
 		string(defaultEngineType),
 	))

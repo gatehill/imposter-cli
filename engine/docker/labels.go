@@ -27,6 +27,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const labelKeyManaged = "io.gatehill.imposter.managed"
+const labelKeyPort = "io.gatehill.imposter.port"
+const labelKeyDir = "io.gatehill.imposter.dir"
+const labelKeyHash = "io.gatehill.imposter.hash"
+
 func genDefaultHash(absPath string, port int) string {
 	return sha1hash(fmt.Sprintf("%v:%d", absPath, port))
 }

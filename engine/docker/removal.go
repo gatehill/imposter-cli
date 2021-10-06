@@ -26,11 +26,6 @@ import (
 	"sync"
 )
 
-const labelKeyManaged = "io.gatehill.imposter.managed"
-const labelKeyPort = "io.gatehill.imposter.port"
-const labelKeyDir = "io.gatehill.imposter.dir"
-const labelKeyHash = "io.gatehill.imposter.hash"
-
 func removeContainers(d *DockerMockEngine, containerIds []string) {
 	logrus.Tracef("removing containers: %v", containerIds)
 	wg := &sync.WaitGroup{}
