@@ -44,11 +44,11 @@ func GetProvider(version string) *EngineImageProvider {
 func (d *EngineImageProvider) Provide(policy engine.PullPolicy) error {
 	ctx, cli, err := BuildCliClient()
 	if err != nil {
-		logrus.Fatal(err)
+		return err
 	}
 	imageAndTag, err := ensureContainerImage(cli, ctx, d.Version, policy)
 	if err != nil {
-		logrus.Fatal(err)
+		return err
 	}
 	d.imageAndTag = imageAndTag
 	return nil
@@ -86,14 +86,17 @@ func ensureContainerImage(cli *client.Client, ctx context.Context, imageTag stri
 	}
 
 	err := pullImage(cli, ctx, imageTag, imageAndTag)
-	return imageAndTag, err
+	if err != nil {
+		return "", err
+	}
+	return imageAndTag, nil
 }
 
 func pullImage(cli *client.Client, ctx context.Context, imageTag string, imageAndTag string) error {
 	logrus.Infof("pulling '%v' engine image", imageTag)
 	reader, err := cli.ImagePull(ctx, "docker.io/"+imageAndTag, types.ImagePullOptions{})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	var pullLogDestination io.Writer
@@ -104,7 +107,7 @@ func pullImage(cli *client.Client, ctx context.Context, imageTag string, imageAn
 	}
 	_, err = io.Copy(pullLogDestination, reader)
 	if err != nil {
-		panic(err)
+		return err
 	}
-	return err
+	return nil
 }

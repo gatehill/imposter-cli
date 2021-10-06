@@ -124,7 +124,7 @@ func (d *DockerMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.S
 		},
 	}, nil, nil, "")
 	if err != nil {
-		panic(err)
+		logrus.Fatal(err)
 	}
 
 	containerId := resp.ID
