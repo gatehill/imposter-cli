@@ -24,7 +24,6 @@ import (
 	"gatehill.io/imposter/impostermodel"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -69,7 +68,7 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 		}
 		startOptions := engine.StartOptions{
 			Port:           upFlags.flagPort,
-			Version:        cliconfig.GetFirstNonEmpty(upFlags.flagEngineVersion, viper.GetString("version"), "latest"),
+			Version:        engine.GetConfiguredVersion(upFlags.flagEngineVersion),
 			PullPolicy:     pullPolicy,
 			LogLevel:       cliconfig.Config.LogLevel,
 			ReplaceRunning: true,

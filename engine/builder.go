@@ -21,6 +21,7 @@ import (
 	"gatehill.io/imposter/cliconfig"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"strings"
 )
 
 type EngineType string
@@ -74,10 +75,29 @@ func validateEngineType(engineType EngineType) error {
 	return fmt.Errorf("unsupported engine type: %v", engineType)
 }
 
-func GetConfiguredType(engineType string) EngineType {
+func GetConfiguredType(override string) EngineType {
 	return EngineType(cliconfig.GetFirstNonEmpty(
-		engineType,
+		override,
 		viper.GetString("engine"),
 		string(defaultEngineType),
 	))
+}
+
+func GetConfiguredVersion(override string) string {
+	return cliconfig.GetFirstNonEmpty(
+		override,
+		viper.GetString("version"),
+		"latest",
+	)
+}
+
+func SanitiseVersionOutput(s string) string {
+	var remove = []string{
+		"Version:",
+		"WARNING: sun.reflect.Reflection.getCallerClass is not supported. This will impact performance.",
+	}
+	for _, r := range remove {
+		s = strings.ReplaceAll(s, r, "")
+	}
+	return strings.TrimSpace(s)
 }

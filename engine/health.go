@@ -22,7 +22,6 @@ import (
 	"github.com/spf13/viper"
 	"io"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -69,8 +68,4 @@ func WaitUntilUp(port int) {
 	case <-startedC:
 		logrus.Tracef("engine started")
 	}
-}
-
-func SanitiseVersionOutput(s string) string {
-	return strings.TrimSpace(strings.ReplaceAll(strings.ReplaceAll(s, "Version:", ""), "WARNING: sun.reflect.Reflection.getCallerClass is not supported. This will impact performance.", ""))
 }

@@ -17,11 +17,9 @@ limitations under the License.
 package cmd
 
 import (
-	"gatehill.io/imposter/cliconfig"
 	"gatehill.io/imposter/engine"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var pullFlags = struct {
@@ -45,7 +43,7 @@ If version is not specified, it defaults to 'latest'.`,
 		} else {
 			pullPolicy = engine.PullIfNotPresent
 		}
-		version := cliconfig.GetFirstNonEmpty(pullFlags.flagEngineVersion, viper.GetString("version"), "latest")
+		version := engine.GetConfiguredVersion(pullFlags.flagEngineVersion)
 		downloader := engine.GetProvider(engine.GetConfiguredType(pullFlags.flagEngineType), version)
 		err := downloader.Provide(pullPolicy)
 		if err != nil {

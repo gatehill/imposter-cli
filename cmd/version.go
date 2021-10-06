@@ -22,7 +22,6 @@ import (
 	"gatehill.io/imposter/engine"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var versionFlags = struct {
@@ -46,12 +45,12 @@ func init() {
 }
 
 func describeVersions(engineType engine.EngineType) string {
-	engineConfigVersion := cliconfig.GetFirstNonEmpty(viper.GetString("version"), "latest")
+	engineConfigVersion := engine.GetConfiguredVersion("")
 	engineVersionOutput := getInstalledEngineVersion(engineType)
 
 	return fmt.Sprintf(`imposter-cli %[1]v
 imposter-engine %[2]v
-engine-output: %[3]v`,
+engine-output %[3]v`,
 		cliconfig.Config.Version,
 		engineConfigVersion,
 		engineVersionOutput,
@@ -60,7 +59,7 @@ engine-output: %[3]v`,
 
 func getInstalledEngineVersion(engineType engine.EngineType) string {
 	mockEngine := engine.BuildEngine(engineType, "", engine.StartOptions{
-		Version: cliconfig.GetFirstNonEmpty(viper.GetString("version"), "latest"),
+		Version: engine.GetConfiguredVersion(""),
 	})
 	versionString, err := mockEngine.GetVersionString()
 	if err != nil {
