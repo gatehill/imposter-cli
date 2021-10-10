@@ -65,13 +65,13 @@ Usage:
   imposter [command]
 
 Available Commands:
-  up          Start live mocks of APIs
-  scaffold    Create Imposter configuration from OpenAPI specs
-  pull        Pull the engine into the cache
-  doctor      Check prerequisites for running Imposter
-  down        Stop running mocks
-  version     Print CLI version
-  help        Help about any command
+  up            Start live mocks of APIs
+  scaffold      Create Imposter configuration from OpenAPI specs
+  engine pull   Pull the engine into the cache
+  doctor        Check prerequisites for running Imposter
+  down          Stop running mocks
+  version       Print CLI version
+  help          Help about any command
 ```
 
 #### Create and start mocks
