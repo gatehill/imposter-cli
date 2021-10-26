@@ -44,12 +44,13 @@ If version is not specified, it defaults to 'latest'.`,
 			pullPolicy = engine.PullIfNotPresent
 		}
 		version := engine.GetConfiguredVersion(pullFlags.flagEngineVersion)
-		pull(version, pullPolicy)
+		engineType := engine.GetConfiguredType(pullFlags.flagEngineType)
+		pull(version, engineType, pullPolicy)
 	},
 }
 
-func pull(version string, pullPolicy engine.PullPolicy) {
-	downloader := engine.GetProvider(engine.GetConfiguredType(pullFlags.flagEngineType), version)
+func pull(version string, engineType engine.EngineType, pullPolicy engine.PullPolicy) {
+	downloader := engine.GetProvider(engineType, version)
 	err := downloader.Provide(pullPolicy)
 	if err != nil {
 		logrus.Fatal(err)

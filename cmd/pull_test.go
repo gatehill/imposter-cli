@@ -8,28 +8,47 @@ import (
 func Test_pull(t *testing.T) {
 	type args struct {
 		version    string
+		engineType engine.EngineType
 		pullPolicy engine.PullPolicy
 	}
 	tests := []struct {
 		name string
 		args args
 	}{
-		{name: "pull latest always", args: args{
+		{name: "pull latest docker always", args: args{
 			version:    "latest",
+			engineType: engine.EngineTypeDocker,
 			pullPolicy: engine.PullAlways,
 		}},
-		{name: "pull specific version always", args: args{
+		{name: "pull specific docker version always", args: args{
 			version:    "1.22.0",
+			engineType: engine.EngineTypeDocker,
 			pullPolicy: engine.PullAlways,
 		}},
-		{name: "pull specific version if not present", args: args{
+		{name: "pull specific docker version if not present", args: args{
 			version:    "1.22.0",
+			engineType: engine.EngineTypeDocker,
+			pullPolicy: engine.PullIfNotPresent,
+		}},
+		{name: "pull latest jvm always", args: args{
+			version:    "latest",
+			engineType: engine.EngineTypeJvm,
+			pullPolicy: engine.PullAlways,
+		}},
+		{name: "pull specific jvm version always", args: args{
+			version:    "1.22.0",
+			engineType: engine.EngineTypeJvm,
+			pullPolicy: engine.PullAlways,
+		}},
+		{name: "pull specific jvm version if not present", args: args{
+			version:    "1.22.0",
+			engineType: engine.EngineTypeJvm,
 			pullPolicy: engine.PullIfNotPresent,
 		}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pull(tt.args.version, tt.args.pullPolicy)
+			pull(tt.args.version, tt.args.engineType, tt.args.pullPolicy)
 		})
 	}
 }
