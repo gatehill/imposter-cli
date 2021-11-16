@@ -36,7 +36,7 @@ Mocks are configured using files with the following suffixes:
 
 These files control behaviour such as responses, validation, scripting and more.
 
-Learn about [Imposter mock configuration](https://outofcoffee.github.io/imposter/configuration.html) files.
+Learn about [Imposter mock configuration](https://docs.imposter.sh/configuration/) files.
 
 ## CLI Configuration file
 

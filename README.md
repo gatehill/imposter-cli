@@ -27,7 +27,7 @@ Send dynamic responses:
 - Power users can control mock responses with JavaScript or Java/Groovy script engines.
 - Advanced users can write their own plugins in a JVM language of their choice.
 
-> This project is the CLI tool for the [Imposter mock engine](https://github.com/outofcoffee/imposter).
+> This project is the CLI tool for the [Imposter mock engine](https://www.imposter.sh).
 
 You can also generate Imposter configuration from OpenAPI files:
 
@@ -35,7 +35,7 @@ You can also generate Imposter configuration from OpenAPI files:
 
 ## Getting started & documentation
 
-You must have [Docker](https://docs.docker.com/get-docker/) installed and running.
+You must have [Docker](https://docs.docker.com/get-docker/) installed and running, or if Docker is not available, you can run on the [JVM](./docs/jvm_engine.md).
 
 ### Installation
 
@@ -198,13 +198,13 @@ Learn more about [configuration](./docs/config.md).
 
 ## About Imposter
 
-[Imposter](https://github.com/outofcoffee/imposter) is a reliable, scriptable and extensible mock server for REST APIs, OpenAPI (and Swagger) specifications, Salesforce and HBase APIs.
+[Imposter](https://www.imposter.sh) is a reliable, scriptable and extensible mock server for REST APIs, OpenAPI (and Swagger) specifications, Salesforce and HBase APIs.
 
 Scripting support for both JavaScript or Groovy/Java.
 
 ### User documentation
 
-**[Read the user documentation here](https://outofcoffee.github.io/imposter/)**
+**[Read the user documentation here](https://docs.imposter.sh)**
 
 ---
 

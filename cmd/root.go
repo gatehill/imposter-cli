@@ -48,7 +48,7 @@ Capture data and use response templates to provide conditional responses.
 Power users can control mock responses with JavaScript or Java/Groovy script engines.
 Advanced users can write their own plugins in a JVM language of their choice.
 
-Learn more at github.com/outofcoffee/imposter`,
+Learn more at www.imposter.sh`,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
