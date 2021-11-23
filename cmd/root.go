@@ -23,6 +23,7 @@ import (
 	"github.com/spf13/viper"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 var rootFlags = struct {
@@ -80,6 +81,7 @@ func initConfig() {
 		}
 	}
 
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.SetEnvPrefix("IMPOSTER")
 	viper.AutomaticEnv() // read in environment variables that match
 

@@ -28,8 +28,8 @@ const defaultLogLevel = "debug"
 var version string
 
 func main() {
-	lvl, ok := os.LookupEnv("LOG_LEVEL")
-	if !ok {
+	lvl := cliconfig.GetFirstNonEmpty(os.Getenv("LOG_LEVEL"), os.Getenv("IMPOSTER_CLI_LOG_LEVEL"))
+	if lvl == "" {
 		lvl = defaultLogLevel
 	}
 	ll, err := logrus.ParseLevel(lvl)

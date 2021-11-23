@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"gatehill.io/imposter/engine"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"io"
 	"net/http"
 	"os"
@@ -65,7 +66,15 @@ func (d *EngineJarProvider) GetEngineType() engine.EngineType {
 }
 
 func ensureBinary(version string, policy engine.PullPolicy) (string, error) {
-	err, binCachePath := ensureBinCache()
+	if envJarFile := viper.GetString("jvm.jarFile"); envJarFile != "" {
+		logrus.Debugf("using JAR file: %v", envJarFile)
+		return envJarFile, nil
+	}
+	return checkOrDownloadBinary(version, policy)
+}
+
+func checkOrDownloadBinary(version string, policy engine.PullPolicy) (string, error) {
+	binCachePath, err := ensureBinCache()
 	if err != nil {
 		logrus.Fatal(err)
 	}
@@ -94,27 +103,34 @@ func ensureBinary(version string, policy engine.PullPolicy) (string, error) {
 	return binFilePath, nil
 }
 
-func ensureBinCache() (error, string) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return fmt.Errorf("failed to get home directory: %v", err), ""
-	}
-
-	binCachePath := filepath.Join(homeDir, binCacheDir)
+func ensureBinCache() (string, error) {
+	binCachePath, err := getBinCachePath()
 	if _, err = os.Stat(binCachePath); err != nil {
 		if os.IsNotExist(err) {
 			logrus.Tracef("creating cache directory: %v", binCachePath)
 			err := os.MkdirAll(binCachePath, 0700)
 			if err != nil {
-				return fmt.Errorf("failed to create cache directory: %v: %v", binCachePath, err), ""
+				return "", fmt.Errorf("failed to create cache directory: %v: %v", binCachePath, err)
 			}
 		} else {
-			return fmt.Errorf("failed to stat: %v: %v", binCachePath, err), ""
+			return "", fmt.Errorf("failed to stat: %v: %v", binCachePath, err)
 		}
 	}
 
 	logrus.Tracef("ensured binary cache directory: %v", binCachePath)
-	return nil, binCachePath
+	return binCachePath, nil
+}
+
+func getBinCachePath() (string, error) {
+	if envBinCache := viper.GetString("jvm.binCache"); envBinCache != "" {
+		return envBinCache, nil
+	}
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get home directory: %v", err)
+	}
+	return filepath.Join(homeDir, binCacheDir), nil
 }
 
 func downloadBinary(localPath string, version string) error {

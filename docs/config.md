@@ -50,10 +50,28 @@ The currently supported elements are as follows:
 # the engine type - valid values are "docker" or "jvm"
 engine: "docker"
 
-# the engine version - valid values are "latest", or a binary release such as "1.21.0"
+# the engine version - valid values are "latest", or a binary release such as "2.0.1"
 # see: https://github.com/outofcoffee/imposter/releases
 version: "latest"
+
+# JVM engine specific configuration
+jvm:
+  # override the path to the Imposter JAR file to use (default: automatically generated)
+  jarFile: "/path/to/imposter.jar"
+  
+  # directory holding the JAR file cache (default: "$HOME/.imposter/cache")
+  binCache: "/path/to/dir"
 ```
+
+## Environment variables
+
+Some configuration elements can be specified as environment variables:
+
+* IMPOSTER_CLI_LOG_LEVEL
+* IMPOSTER_ENGINE
+* IMPOSTER_VERSION
+* IMPOSTER_JVM_JARFILE
+* IMPOSTER_JVM_BINCACHE
 
 ### Engine types
 
