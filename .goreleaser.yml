@@ -68,7 +68,7 @@ brews:
 
     # Your app's homepage.
     # Default is empty.
-    homepage: "https://github.com/gatehill/imposter-cli"
+    homepage: "https://www.imposter.sh"
 
     # Template of your app's description.
     # Default is empty.
