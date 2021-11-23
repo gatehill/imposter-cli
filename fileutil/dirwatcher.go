@@ -36,7 +36,7 @@ func WatchDir(dir string) (dirUpdated chan bool) {
 	}
 
 	go func() {
-		logrus.Debugf("watching for changes to: %v", dir)
+		logrus.Infof("watching for changes to: %v", dir)
 		for {
 			select {
 			case <-w.Event:
