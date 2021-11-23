@@ -99,9 +99,7 @@ func (d *DockerMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.S
 			"--configDir=" + containerConfigDir,
 			fmt.Sprintf("--listenPort=%d", options.Port),
 		},
-		Env: []string{
-			"IMPOSTER_LOG_LEVEL=" + strings.ToUpper(options.LogLevel),
-		},
+		Env: engine.BuildEnv(options),
 		ExposedPorts: nat.PortSet{
 			containerPort: {},
 		},

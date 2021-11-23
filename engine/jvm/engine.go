@@ -78,9 +78,7 @@ func (j *JvmMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.Star
 		fmt.Sprintf("--listenPort=%d", options.Port),
 	}
 	command := exec.Command(j.javaCmd, args...)
-	command.Env = []string{
-		"IMPOSTER_LOG_LEVEL=" + strings.ToUpper(options.LogLevel),
-	}
+	command.Env = engine.BuildEnv(options)
 	command.Stdout = os.Stdout
 	command.Stderr = os.Stderr
 	err := command.Start()

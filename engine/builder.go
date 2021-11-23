@@ -21,6 +21,7 @@ import (
 	"gatehill.io/imposter/cliconfig"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"os"
 	"strings"
 )
 
@@ -100,4 +101,24 @@ func SanitiseVersionOutput(s string) string {
 		s = strings.ReplaceAll(s, r, "")
 	}
 	return strings.TrimSpace(s)
+}
+
+func BuildEnv(options StartOptions) []string {
+	var env []string
+
+	logLevelSet := false
+	for _, e := range os.Environ() {
+		if strings.HasPrefix(e, "IMPOSTER_") {
+			env = append(env, e)
+
+			if strings.HasPrefix(e, "IMPOSTER_LOG_LEVEL=") {
+				logLevelSet = true
+			}
+		}
+	}
+	if !logLevelSet {
+		env = append(env, "IMPOSTER_LOG_LEVEL="+strings.ToUpper(options.LogLevel))
+	}
+
+	return env
 }
