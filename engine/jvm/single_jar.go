@@ -1,19 +1,3 @@
-/*
-Copyright © 2021 Pete Cornish <outofcoffee@gmail.com>
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package jvm
 
 import (
@@ -30,43 +14,77 @@ import (
 	"strings"
 )
 
+type SingleJarProvider struct {
+	engine.ProviderOptions
+	distroPath string
+}
+
 const binCacheDir = ".imposter/cache/"
 const latestUrl = "https://github.com/outofcoffee/imposter/releases/latest/download/imposter.jar"
 const versionedBaseUrlTemplate = "https://github.com/outofcoffee/imposter/releases/download/v%v/"
 
-type EngineJarProvider struct {
-	engine.ProviderOptions
-	jarPath string
+func init() {
+	engine.RegisterProvider(engine.EngineTypeJvmSingleJar, func(version string) engine.Provider {
+		return newSingleJarProvider(version)
+	})
+	engine.RegisterEngine(engine.EngineTypeJvmSingleJar, func(configDir string, startOptions engine.StartOptions) engine.MockEngine {
+		provider := newSingleJarProvider(startOptions.Version)
+		return buildEngine(configDir, &provider, startOptions)
+	})
 }
 
-func GetProvider(version string) *EngineJarProvider {
-	return &EngineJarProvider{
+func newSingleJarProvider(version string) JvmProvider {
+	return &SingleJarProvider{
 		ProviderOptions: engine.ProviderOptions{
-			EngineType: engine.EngineTypeJvm,
+			EngineType: engine.EngineTypeJvmSingleJar,
 			Version:    version,
 		},
 	}
 }
 
-func (d *EngineJarProvider) Provide(policy engine.PullPolicy) error {
+func (d *SingleJarProvider) GetStartCommand(jvmMockEngine *JvmMockEngine, args []string) *exec.Cmd {
+	if jvmMockEngine.javaCmd == "" {
+		javaCmd, err := GetJavaCmdPath()
+		if err != nil {
+			logrus.Fatal(err)
+		}
+		jvmMockEngine.javaCmd = javaCmd
+	}
+	if !d.Satisfied() {
+		if err := d.Provide(engine.PullIfNotPresent); err != nil {
+			logrus.Fatal(err)
+		}
+	}
+	allArgs := append(
+		[]string{"-jar", d.distroPath},
+		args...,
+	)
+	command := exec.Command(jvmMockEngine.javaCmd, allArgs...)
+	return command
+}
+
+func (d *SingleJarProvider) Provide(policy engine.PullPolicy) error {
 	jarPath, err := ensureBinary(d.Version, policy)
 	if err != nil {
 		return err
 	}
-	d.jarPath = jarPath
+	d.distroPath = jarPath
 	return nil
 }
 
-func (d *EngineJarProvider) Satisfied() bool {
-	return d.jarPath != ""
+func (d *SingleJarProvider) Satisfied() bool {
+	return d.distroPath != ""
 }
 
-func (d *EngineJarProvider) GetEngineType() engine.EngineType {
+func (d *SingleJarProvider) GetEngineType() engine.EngineType {
 	return d.EngineType
 }
 
 func ensureBinary(version string, policy engine.PullPolicy) (string, error) {
 	if envJarFile := viper.GetString("jvm.jarFile"); envJarFile != "" {
+		if _, err := os.Stat(envJarFile); err != nil {
+			return "", fmt.Errorf("could not stat JAR file: %v: %v", envJarFile, err)
+		}
 		logrus.Debugf("using JAR file: %v", envJarFile)
 		return envJarFile, nil
 	}

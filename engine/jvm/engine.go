@@ -22,68 +22,27 @@ import (
 	"gatehill.io/imposter/engine"
 	"github.com/sirupsen/logrus"
 	"os"
-	"os/exec"
 	"strconv"
 	"strings"
 	"sync"
 )
-
-type JvmMockEngine struct {
-	configDir string
-	options   engine.StartOptions
-	provider  *EngineJarProvider
-	javaCmd   string
-	command   *exec.Cmd
-	debouncer debounce.Debouncer
-}
-
-func init() {
-	engine.RegisterProvider(engine.EngineTypeJvm, func(version string) engine.Provider {
-		return GetProvider(version)
-	})
-	engine.RegisterEngine(engine.EngineTypeJvm, func(configDir string, startOptions engine.StartOptions) engine.MockEngine {
-		return BuildEngine(configDir, startOptions)
-	})
-}
-
-func BuildEngine(configDir string, options engine.StartOptions) engine.MockEngine {
-	return &JvmMockEngine{
-		configDir: configDir,
-		options:   options,
-		provider:  GetProvider(options.Version),
-		debouncer: debounce.Build(),
-	}
-}
 
 func (j *JvmMockEngine) Start(wg *sync.WaitGroup) {
 	j.startWithOptions(wg, j.options)
 }
 
 func (j *JvmMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.StartOptions) {
-	if j.javaCmd == "" {
-		javaCmd, err := GetJavaCmdPath()
-		if err != nil {
-			logrus.Fatal(err)
-		}
-		j.javaCmd = javaCmd
-	}
-	if !j.provider.Satisfied() {
-		if err := j.provider.Provide(engine.PullIfNotPresent); err != nil {
-			logrus.Fatal(err)
-		}
-	}
 	args := []string{
-		"-jar", j.provider.jarPath,
 		"--configDir=" + j.configDir,
 		fmt.Sprintf("--listenPort=%d", options.Port),
 	}
-	command := exec.Command(j.javaCmd, args...)
+	command := (*j.provider).GetStartCommand(j, args)
 	command.Env = engine.BuildEnv(options)
 	command.Stdout = os.Stdout
 	command.Stderr = os.Stderr
 	err := command.Start()
 	if err != nil {
-		logrus.Fatalf("failed to exec: %v %v: %v", j.javaCmd, args, err)
+		logrus.Fatalf("failed to exec: %v %v: %v", command.Path, command.Args, err)
 	}
 	j.debouncer.Register(wg, strconv.Itoa(command.Process.Pid))
 	logrus.Info("mock engine started - press ctrl+c to stop")
@@ -173,8 +132,8 @@ func (j *JvmMockEngine) StopAllManaged() int {
 }
 
 func (j *JvmMockEngine) GetVersionString() (string, error) {
-	if !j.provider.Satisfied() {
-		if err := j.provider.Provide(engine.PullIfNotPresent); err != nil {
+	if !(*j.provider).Satisfied() {
+		if err := (*j.provider).Provide(engine.PullIfNotPresent); err != nil {
 			return "", err
 		}
 	}
@@ -182,18 +141,10 @@ func (j *JvmMockEngine) GetVersionString() (string, error) {
 	output := new(strings.Builder)
 	errOutput := new(strings.Builder)
 
-	if j.javaCmd == "" {
-		javaCmd, err := GetJavaCmdPath()
-		if err != nil {
-			return "", err
-		}
-		j.javaCmd = javaCmd
-	}
 	args := []string{
-		"-jar", j.provider.jarPath,
 		"--version",
 	}
-	command := exec.Command(j.javaCmd, args...)
+	command := (*j.provider).GetStartCommand(j, args)
 	command.Stdout = output
 	command.Stderr = errOutput
 	err := command.Run()

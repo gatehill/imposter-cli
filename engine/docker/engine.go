@@ -41,32 +41,6 @@ const engineDockerImage = "outofcoffee/imposter"
 const containerConfigDir = "/opt/imposter/config"
 const removalTimeoutSec = 5
 
-type DockerMockEngine struct {
-	configDir   string
-	options     engine.StartOptions
-	provider    *EngineImageProvider
-	containerId string
-	debouncer   debounce.Debouncer
-}
-
-func init() {
-	engine.RegisterProvider("docker", func(version string) engine.Provider {
-		return GetProvider(version)
-	})
-	engine.RegisterEngine("docker", func(configDir string, startOptions engine.StartOptions) engine.MockEngine {
-		return BuildEngine(configDir, startOptions)
-	})
-}
-
-func BuildEngine(configDir string, options engine.StartOptions) engine.MockEngine {
-	return &DockerMockEngine{
-		configDir: configDir,
-		options:   options,
-		provider:  GetProvider(options.Version),
-		debouncer: debounce.Build(),
-	}
-}
-
 func (d *DockerMockEngine) Start(wg *sync.WaitGroup) {
 	d.startWithOptions(wg, d.options)
 }

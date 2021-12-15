@@ -28,8 +28,9 @@ import (
 type EngineType string
 
 const (
-	EngineTypeDocker EngineType = "docker"
-	EngineTypeJvm    EngineType = "jvm"
+	EngineTypeDocker       EngineType = "docker"
+	EngineTypeJvmSingleJar EngineType = "jvm"
+	EngineTypeJvmUnpacked  EngineType = "unpacked"
 )
 const defaultEngineType = EngineTypeDocker
 
@@ -70,7 +71,7 @@ func BuildEngine(engineType EngineType, configDir string, startOptions StartOpti
 
 func validateEngineType(engineType EngineType) error {
 	switch engineType {
-	case EngineTypeDocker, EngineTypeJvm:
+	case EngineTypeDocker, EngineTypeJvmSingleJar, EngineTypeJvmUnpacked:
 		return nil
 	}
 	return fmt.Errorf("unsupported engine type: %v", engineType)

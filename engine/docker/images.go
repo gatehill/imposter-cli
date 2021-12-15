@@ -32,7 +32,7 @@ type EngineImageProvider struct {
 	imageAndTag string
 }
 
-func GetProvider(version string) *EngineImageProvider {
+func getProvider(version string) *EngineImageProvider {
 	return &EngineImageProvider{
 		ProviderOptions: engine.ProviderOptions{
 			EngineType: engine.EngineTypeDocker,

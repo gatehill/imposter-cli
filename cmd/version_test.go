@@ -43,7 +43,7 @@ func Test_describeVersions(t *testing.T) {
 		{
 			name: "print version with jvm engine",
 			args: args{
-				engineType: engine.EngineTypeJvm,
+				engineType: engine.EngineTypeJvmSingleJar,
 			},
 		},
 	}

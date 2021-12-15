@@ -32,17 +32,17 @@ func Test_pull(t *testing.T) {
 		}},
 		{name: "pull latest jvm always", args: args{
 			version:    "latest",
-			engineType: engine.EngineTypeJvm,
+			engineType: engine.EngineTypeJvmSingleJar,
 			pullPolicy: engine.PullAlways,
 		}},
 		{name: "pull specific jvm version always", args: args{
 			version:    "2.0.2",
-			engineType: engine.EngineTypeJvm,
+			engineType: engine.EngineTypeJvmSingleJar,
 			pullPolicy: engine.PullAlways,
 		}},
 		{name: "pull specific jvm version if not present", args: args{
 			version:    "2.0.2",
-			engineType: engine.EngineTypeJvm,
+			engineType: engine.EngineTypeJvmSingleJar,
 			pullPolicy: engine.PullIfNotPresent,
 		}},
 	}
