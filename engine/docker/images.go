@@ -27,6 +27,8 @@ import (
 	"os"
 )
 
+const engineDockerImage = "outofcoffee/imposter"
+
 type EngineImageProvider struct {
 	engine.ProviderOptions
 	imageAndTag string

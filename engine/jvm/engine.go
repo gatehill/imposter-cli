@@ -36,8 +36,8 @@ func (j *JvmMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.Star
 		"--configDir=" + j.configDir,
 		fmt.Sprintf("--listenPort=%d", options.Port),
 	}
-	command := (*j.provider).GetStartCommand(j, args)
-	command.Env = engine.BuildEnv(options)
+	env := engine.BuildEnv(options)
+	command := (*j.provider).GetStartCommand(args, env)
 	command.Stdout = os.Stdout
 	command.Stderr = os.Stderr
 	err := command.Start()
@@ -144,7 +144,7 @@ func (j *JvmMockEngine) GetVersionString() (string, error) {
 	args := []string{
 		"--version",
 	}
-	command := (*j.provider).GetStartCommand(j, args)
+	command := (*j.provider).GetStartCommand(args, engine.BuildEnv(j.options))
 	command.Stdout = output
 	command.Stderr = errOutput
 	err := command.Run()

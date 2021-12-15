@@ -10,13 +10,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
-	"strings"
 )
 
 type SingleJarProvider struct {
-	engine.ProviderOptions
-	distroPath string
+	JvmProviderOptions
+	javaCmd string
+	jarPath string
 }
 
 const binCacheDir = ".imposter/cache/"
@@ -35,49 +34,48 @@ func init() {
 
 func newSingleJarProvider(version string) JvmProvider {
 	return &SingleJarProvider{
-		ProviderOptions: engine.ProviderOptions{
-			EngineType: engine.EngineTypeJvmSingleJar,
-			Version:    version,
+		JvmProviderOptions: JvmProviderOptions{
+			ProviderOptions: engine.ProviderOptions{
+				EngineType: engine.EngineTypeJvmSingleJar,
+				Version:    version,
+			},
 		},
 	}
 }
 
-func (d *SingleJarProvider) GetStartCommand(jvmMockEngine *JvmMockEngine, args []string) *exec.Cmd {
-	if jvmMockEngine.javaCmd == "" {
+func (p *SingleJarProvider) GetStartCommand(args []string, env []string) *exec.Cmd {
+	if p.javaCmd == "" {
 		javaCmd, err := GetJavaCmdPath()
 		if err != nil {
 			logrus.Fatal(err)
 		}
-		jvmMockEngine.javaCmd = javaCmd
+		p.javaCmd = javaCmd
 	}
-	if !d.Satisfied() {
-		if err := d.Provide(engine.PullIfNotPresent); err != nil {
+	if !p.Satisfied() {
+		if err := p.Provide(engine.PullIfNotPresent); err != nil {
 			logrus.Fatal(err)
 		}
 	}
 	allArgs := append(
-		[]string{"-jar", d.distroPath},
+		[]string{"-jar", p.jarPath},
 		args...,
 	)
-	command := exec.Command(jvmMockEngine.javaCmd, allArgs...)
+	command := exec.Command(p.javaCmd, allArgs...)
+	command.Env = env
 	return command
 }
 
-func (d *SingleJarProvider) Provide(policy engine.PullPolicy) error {
-	jarPath, err := ensureBinary(d.Version, policy)
+func (p *SingleJarProvider) Provide(policy engine.PullPolicy) error {
+	jarPath, err := ensureBinary(p.Version, policy)
 	if err != nil {
 		return err
 	}
-	d.distroPath = jarPath
+	p.jarPath = jarPath
 	return nil
 }
 
-func (d *SingleJarProvider) Satisfied() bool {
-	return d.distroPath != ""
-}
-
-func (d *SingleJarProvider) GetEngineType() engine.EngineType {
-	return d.EngineType
+func (p *SingleJarProvider) Satisfied() bool {
+	return p.jarPath != ""
 }
 
 func ensureBinary(version string, policy engine.PullPolicy) (string, error) {
@@ -202,40 +200,4 @@ func makeHttpRequest(url string, err error) (*http.Response, error) {
 		return nil, fmt.Errorf("error downloading from: %v: %v", url, err)
 	}
 	return resp, nil
-}
-
-func GetJavaCmdPath() (string, error) {
-	var binaryPathSuffix string
-	if runtime.GOOS == "Windows" {
-		binaryPathSuffix = ".exe"
-	} else {
-		binaryPathSuffix = ""
-	}
-
-	// prefer JAVA_HOME environment variable
-	if javaHomeEnv, found := os.LookupEnv("JAVA_HOME"); found {
-		return filepath.Join(javaHomeEnv, "/bin/java"+binaryPathSuffix), nil
-	}
-
-	if runtime.GOOS == "darwin" {
-		command, stdout := exec.Command("/usr/libexec/java_home"), new(strings.Builder)
-		command.Stdout = stdout
-		err := command.Run()
-		if err != nil {
-			return "", fmt.Errorf("error determining JAVA_HOME: %v", err)
-		}
-		if command.ProcessState.Success() {
-			return filepath.Join(strings.TrimSpace(stdout.String()), "/bin/java"+binaryPathSuffix), nil
-		} else {
-			return "", fmt.Errorf("failed to determine JAVA_HOME using libexec")
-		}
-	}
-
-	// search for 'java' in the PATH
-	javaPath, err := exec.LookPath("java")
-	if err != nil {
-		return "", fmt.Errorf("could not find 'java' in PATH: %v", err)
-	}
-	logrus.Tracef("using java: %v", javaPath)
-	return javaPath, nil
 }

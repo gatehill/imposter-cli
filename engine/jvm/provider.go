@@ -26,14 +26,17 @@ type JvmMockEngine struct {
 	configDir string
 	options   engine.StartOptions
 	provider  *JvmProvider
-	javaCmd   string
 	command   *exec.Cmd
 	debouncer debounce.Debouncer
 }
 
 type JvmProvider interface {
 	engine.Provider
-	GetStartCommand(jvmMockEngine *JvmMockEngine, args []string) *exec.Cmd
+	GetStartCommand(args []string, env []string) *exec.Cmd
+}
+
+type JvmProviderOptions struct {
+	engine.ProviderOptions
 }
 
 func buildEngine(configDir string, provider *JvmProvider, options engine.StartOptions) engine.MockEngine {
@@ -43,4 +46,8 @@ func buildEngine(configDir string, provider *JvmProvider, options engine.StartOp
 		provider:  provider,
 		debouncer: debounce.Build(),
 	}
+}
+
+func (p *JvmProviderOptions) GetEngineType() engine.EngineType {
+	return p.EngineType
 }

@@ -11,8 +11,9 @@ import (
 )
 
 type UnpackedDistroProvider struct {
-	engine.ProviderOptions
-	distroPath string
+	JvmProviderOptions
+	javaHome  string
+	distroDir string
 }
 
 func init() {
@@ -27,25 +28,35 @@ func init() {
 
 func newUnpackedDistroProvider(version string) JvmProvider {
 	return &UnpackedDistroProvider{
-		ProviderOptions: engine.ProviderOptions{
-			EngineType: engine.EngineTypeJvmUnpacked,
-			Version:    version,
+		JvmProviderOptions: JvmProviderOptions{
+			ProviderOptions: engine.ProviderOptions{
+				EngineType: engine.EngineTypeJvmUnpacked,
+				Version:    version,
+			},
 		},
 	}
 }
 
-func (u *UnpackedDistroProvider) GetStartCommand(jvmMockEngine *JvmMockEngine, args []string) *exec.Cmd {
-	if !u.Satisfied() {
-		if err := u.Provide(engine.PullIfNotPresent); err != nil {
+func (p *UnpackedDistroProvider) GetStartCommand(args []string, env []string) *exec.Cmd {
+	if p.javaHome == "" {
+		javaHome, err := getJavaHome()
+		if err != nil {
+			logrus.Fatal(err)
+		}
+		p.javaHome = javaHome
+	}
+	if !p.Satisfied() {
+		if err := p.Provide(engine.PullIfNotPresent); err != nil {
 			logrus.Fatal(err)
 		}
 	}
-	startScript := filepath.Join(u.distroPath, "bin", "imposter")
+	startScript := filepath.Join(p.distroDir, "bin", "imposter")
 	command := exec.Command(startScript, args...)
+	command.Env = append(env, "JAVA_HOME="+p.javaHome)
 	return command
 }
 
-func (u *UnpackedDistroProvider) Provide(policy engine.PullPolicy) error {
+func (p *UnpackedDistroProvider) Provide(engine.PullPolicy) error {
 	envDistroDir := viper.GetString("jvm.distroDir")
 	if envDistroDir != "" {
 		fileInfo, err := os.Stat(envDistroDir)
@@ -55,16 +66,12 @@ func (u *UnpackedDistroProvider) Provide(policy engine.PullPolicy) error {
 			return fmt.Errorf("distribution path is not a directory: %v", envDistroDir)
 		}
 		logrus.Debugf("using distribution at: %v", envDistroDir)
-		u.distroPath = envDistroDir
+		p.distroDir = envDistroDir
 		return nil
 	}
 	return fmt.Errorf("no distribution directory set")
 }
 
-func (u *UnpackedDistroProvider) Satisfied() bool {
-	return u.distroPath != ""
-}
-
-func (u *UnpackedDistroProvider) GetEngineType() engine.EngineType {
-	return u.EngineType
+func (p *UnpackedDistroProvider) Satisfied() bool {
+	return p.distroDir != ""
 }

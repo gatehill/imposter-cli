@@ -37,7 +37,6 @@ import (
 	"time"
 )
 
-const engineDockerImage = "outofcoffee/imposter"
 const containerConfigDir = "/opt/imposter/config"
 const removalTimeoutSec = 5
 

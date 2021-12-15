@@ -87,6 +87,6 @@ func initConfig() {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		logrus.Tracef("Using config file: %v", viper.ConfigFileUsed())
+		logrus.Tracef("using CLI config file: %v", viper.ConfigFileUsed())
 	}
 }

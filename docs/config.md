@@ -61,6 +61,10 @@ jvm:
   
   # directory holding the JAR file cache (default: "$HOME/.imposter/cache")
   binCache: "/path/to/dir"
+
+  # directory containing an unpacked Imposter distribution
+  # note: this is generally only used by other tools
+  distroDir: "/path/to/unpacked/distro"
 ```
 
 ## Environment variables
@@ -72,6 +76,7 @@ Some configuration elements can be specified as environment variables:
 * IMPOSTER_VERSION
 * IMPOSTER_JVM_JARFILE
 * IMPOSTER_JVM_BINCACHE
+* IMPOSTER_JVM_DISTRODIR
 
 ### Engine types
 

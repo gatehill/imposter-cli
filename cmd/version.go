@@ -60,6 +60,7 @@ engine-output %[3]v`,
 func getInstalledEngineVersion(engineType engine.EngineType) string {
 	mockEngine := engine.BuildEngine(engineType, "", engine.StartOptions{
 		Version: engine.GetConfiguredVersion(""),
+		LogLevel: "INFO",
 	})
 	versionString, err := mockEngine.GetVersionString()
 	if err != nil {
