@@ -109,7 +109,7 @@ func BuildEnv(options StartOptions) []string {
 
 	logLevelSet := false
 	for _, e := range os.Environ() {
-		if strings.HasPrefix(e, "IMPOSTER_") {
+		if strings.HasPrefix(e, "IMPOSTER_") || strings.HasPrefix(e, "JAVA_OPTS=") {
 			env = append(env, e)
 
 			if strings.HasPrefix(e, "IMPOSTER_LOG_LEVEL=") {
