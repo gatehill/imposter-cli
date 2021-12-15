@@ -58,12 +58,14 @@ func (d *registrations) Register(wg *sync.WaitGroup, id string) {
 }
 
 func (d *registrations) Notify(wg *sync.WaitGroup, event AtMostOnceEvent) {
+	var removed = false
+	d.mutex.Lock()
 	if d.ids[event.Id] {
-		d.mutex.Lock()
-		if d.ids[event.Id] { // double-guard
-			delete(d.ids, event.Id)
-			wg.Done()
-		}
-		d.mutex.Unlock()
+		delete(d.ids, event.Id)
+		removed = true
+	}
+	d.mutex.Unlock()
+	if removed {
+		wg.Done()
 	}
 }
