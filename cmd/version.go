@@ -31,8 +31,8 @@ var versionFlags = struct {
 // versionCmd represents the up command
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: "Print CLI version",
-	Long:  `Prints the version of the CLI.`,
+	Short: "Prints version information",
+	Long:  `Prints the version of the CLI and engine, if available.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		engineType := engine.GetConfiguredType(versionFlags.flagEngineType)
 		println(describeVersions(engineType))
@@ -59,7 +59,7 @@ engine-output %[3]v`,
 
 func getInstalledEngineVersion(engineType engine.EngineType) string {
 	mockEngine := engine.BuildEngine(engineType, "", engine.StartOptions{
-		Version: engine.GetConfiguredVersion(""),
+		Version:  engine.GetConfiguredVersion(""),
 		LogLevel: "INFO",
 	})
 	versionString, err := mockEngine.GetVersionString()

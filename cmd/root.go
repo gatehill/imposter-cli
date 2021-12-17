@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"gatehill.io/imposter/engine"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -27,7 +28,8 @@ import (
 )
 
 var rootFlags = struct {
-	cfgFile string
+	cfgFile          string
+	flagPrintVersion bool
 }{}
 
 // rootCmd represents the base command when called without any subcommands
@@ -50,6 +52,12 @@ Power users can control mock responses with JavaScript or Java/Groovy script eng
 Advanced users can write their own plugins in a JVM language of their choice.
 
 Learn more at www.imposter.sh`,
+	Run: func(cmd *cobra.Command, args []string) {
+		if rootFlags.flagPrintVersion {
+			engineType := engine.GetConfiguredType(versionFlags.flagEngineType)
+			println(describeVersions(engineType))
+		}
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -60,6 +68,9 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
+
+	// syntactic sugar to support common `<app> --version` usage
+	rootCmd.Flags().BoolVar(&rootFlags.flagPrintVersion, "version", false, "Print version information")
 
 	// Global flags.
 	rootCmd.PersistentFlags().StringVar(&rootFlags.cfgFile, "config", "", "config file (default is $HOME/.imposter/config.yaml)")
