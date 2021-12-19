@@ -28,6 +28,7 @@ type JvmMockEngine struct {
 	provider  *JvmProvider
 	command   *exec.Cmd
 	debouncer debounce.Debouncer
+	shutDownC chan bool
 }
 
 type JvmProvider interface {
@@ -45,6 +46,7 @@ func buildEngine(configDir string, provider *JvmProvider, options engine.StartOp
 		options:   options,
 		provider:  provider,
 		debouncer: debounce.Build(),
+		shutDownC: make(chan bool),
 	}
 }
 

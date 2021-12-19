@@ -19,6 +19,8 @@ package main
 import (
 	"gatehill.io/imposter/cliconfig"
 	"gatehill.io/imposter/cmd"
+	"gatehill.io/imposter/engine/docker"
+	"gatehill.io/imposter/engine/jvm"
 	"github.com/sirupsen/logrus"
 	"os"
 )
@@ -43,6 +45,10 @@ func main() {
 		LogLevel: lvl,
 		Version:  version,
 	}
+
+	docker.EnableEngine()
+	jvm.EnableEngine()
+	jvm.EnableUnpackedDistroEngine()
 
 	cmd.Execute()
 }

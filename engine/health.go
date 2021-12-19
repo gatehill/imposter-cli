@@ -35,7 +35,7 @@ func getStartTimeout() time.Duration {
 	return time.Duration(startTimeout) * time.Second
 }
 
-func WaitUntilUp(port int) {
+func WaitUntilUp(port int, shutDownC chan bool) {
 	url := fmt.Sprintf("http://localhost:%d/system/status", port)
 	logrus.Tracef("waiting for mock engine to come up at %v", url)
 
@@ -61,11 +61,20 @@ func WaitUntilUp(port int) {
 		}
 	}()
 
+	finished := false
 	select {
 	case <-max.C:
+		finished = true
 		logrus.Fatal("timed out waiting for engine to start")
 		break
 	case <-startedC:
+		finished = true
 		logrus.Tracef("engine started")
+		break
+	case <-shutDownC:
+		if !finished {
+			logrus.Fatal("stopping engine immediately")
+		}
+		break
 	}
 }

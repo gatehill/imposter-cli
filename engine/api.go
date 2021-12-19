@@ -38,6 +38,7 @@ const (
 type MockEngine interface {
 	Start(wg *sync.WaitGroup)
 	Stop(wg *sync.WaitGroup)
+	StopImmediately(wg *sync.WaitGroup)
 	Restart(wg *sync.WaitGroup)
 	StopAllManaged() int
 	GetVersionString() (string, error)

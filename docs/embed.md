@@ -34,7 +34,7 @@ func main() {
 
     mockEngine := engine.BuildEngine(engineType, configDir, startOptions)
 
-	// block until the engine is terminated
+    // block until the engine is terminated
     wg := &sync.WaitGroup{}
     mockEngine.Start(wg)
     wg.Wait()

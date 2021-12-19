@@ -45,7 +45,7 @@ func (d *DockerMockEngine) Start(wg *sync.WaitGroup) {
 }
 
 func (d *DockerMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.StartOptions) {
-	logrus.Infof("starting mock engine on port %d", options.Port)
+	logrus.Infof("starting mock engine on port %d - press ctrl+c to stop", options.Port)
 	ctx, cli, err := BuildCliClient()
 	if err != nil {
 		logrus.Fatal(err)
@@ -103,13 +103,13 @@ func (d *DockerMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.S
 	if err := cli.ContainerStart(ctx, containerId, types.ContainerStartOptions{}); err != nil {
 		logrus.Fatalf("error starting mock engine container: %v", err)
 	}
-	logrus.Info("mock engine started - press ctrl+c to stop")
+	logrus.Trace("starting Docker mock engine")
 
 	d.containerId = containerId
 	if err = streamLogsToStdIo(cli, ctx, containerId); err != nil {
 		logrus.Warn(err)
 	}
-	engine.WaitUntilUp(options.Port)
+	engine.WaitUntilUp(options.Port, d.shutDownC)
 
 	// watch in case container stops
 	go func() {
@@ -164,6 +164,11 @@ func BuildCliClient() (context.Context, *client.Client, error) {
 		return nil, nil, err
 	}
 	return ctx, cli, nil
+}
+
+func (d *DockerMockEngine) StopImmediately(wg *sync.WaitGroup) {
+	d.shutDownC <- true
+	d.Stop(wg)
 }
 
 func (d *DockerMockEngine) Stop(wg *sync.WaitGroup) {

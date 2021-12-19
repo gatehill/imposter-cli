@@ -27,6 +27,7 @@ type DockerMockEngine struct {
 	provider    *EngineImageProvider
 	containerId string
 	debouncer   debounce.Debouncer
+	shutDownC   chan bool
 }
 
 var initialised = false
@@ -51,5 +52,6 @@ func buildEngine(configDir string, options engine.StartOptions) engine.MockEngin
 		options:   options,
 		provider:  getProvider(options.Version),
 		debouncer: debounce.Build(),
+		shutDownC: make(chan bool),
 	}
 }

@@ -45,15 +45,20 @@ func (j *JvmMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.Star
 		logrus.Fatalf("failed to exec: %v %v: %v", command.Path, command.Args, err)
 	}
 	j.debouncer.Register(wg, strconv.Itoa(command.Process.Pid))
-	logrus.Info("mock engine started - press ctrl+c to stop")
+	logrus.Trace("starting JVM mock engine")
 	j.command = command
 
-	engine.WaitUntilUp(options.Port)
+	engine.WaitUntilUp(options.Port, j.shutDownC)
 
 	// watch in case container stops
 	go func() {
 		j.notifyOnStopBlocking(wg)
 	}()
+}
+
+func (j *JvmMockEngine) StopImmediately(wg *sync.WaitGroup) {
+	j.shutDownC <- true
+	j.Stop(wg)
 }
 
 func (j *JvmMockEngine) Stop(wg *sync.WaitGroup) {
