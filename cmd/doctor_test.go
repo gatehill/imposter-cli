@@ -17,9 +17,17 @@ limitations under the License.
 package cmd
 
 import (
+	"gatehill.io/imposter/engine/docker"
+	"gatehill.io/imposter/engine/jvm"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
+
+func init() {
+	docker.EnableEngine()
+	jvm.EnableSingleJarEngine()
+	jvm.EnableUnpackedDistroEngine()
+}
 
 func Test_checkPrereqs(t *testing.T) {
 	t.Run("check prereqs", func(t *testing.T) {

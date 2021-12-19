@@ -31,6 +31,7 @@ var engineBuilder = func(tt enginetests.EngineTestScenario) engine.MockEngine {
 
 func init() {
 	logrus.SetLevel(logrus.TraceLevel)
+	EnableEngine()
 }
 
 func TestEngine_StartStop(t *testing.T) {

@@ -29,13 +29,20 @@ type DockerMockEngine struct {
 	debouncer   debounce.Debouncer
 }
 
-func init() {
-	engine.RegisterProvider(engine.EngineTypeDocker, func(version string) engine.Provider {
-		return getProvider(version)
-	})
-	engine.RegisterEngine(engine.EngineTypeDocker, func(configDir string, startOptions engine.StartOptions) engine.MockEngine {
-		return buildEngine(configDir, startOptions)
-	})
+var initialised = false
+
+func EnableEngine() engine.EngineType {
+	if !initialised {
+		initialised = true
+
+		engine.RegisterProvider(engine.EngineTypeDocker, func(version string) engine.Provider {
+			return getProvider(version)
+		})
+		engine.RegisterEngine(engine.EngineTypeDocker, func(configDir string, startOptions engine.StartOptions) engine.MockEngine {
+			return buildEngine(configDir, startOptions)
+		})
+	}
+	return engine.EngineTypeDocker
 }
 
 func buildEngine(configDir string, options engine.StartOptions) engine.MockEngine {

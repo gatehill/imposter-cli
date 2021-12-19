@@ -18,6 +18,8 @@ package cmd
 
 import (
 	"gatehill.io/imposter/engine"
+	"gatehill.io/imposter/engine/docker"
+	"gatehill.io/imposter/engine/jvm"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -53,6 +55,10 @@ Advanced users can write their own plugins in a JVM language of their choice.
 
 Learn more at www.imposter.sh`,
 	Run: func(cmd *cobra.Command, args []string) {
+		docker.EnableEngine()
+		jvm.EnableEngine()
+		jvm.EnableUnpackedDistroEngine()
+
 		if rootFlags.flagPrintVersion {
 			engineType := engine.GetConfiguredType(versionFlags.flagEngineType)
 			println(describeVersions(engineType))

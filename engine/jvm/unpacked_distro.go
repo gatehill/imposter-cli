@@ -16,14 +16,21 @@ type UnpackedDistroProvider struct {
 	distroDir string
 }
 
-func init() {
-	engine.RegisterProvider(engine.EngineTypeJvmUnpacked, func(version string) engine.Provider {
-		return newUnpackedDistroProvider(version)
-	})
-	engine.RegisterEngine(engine.EngineTypeJvmUnpacked, func(configDir string, startOptions engine.StartOptions) engine.MockEngine {
-		provider := newUnpackedDistroProvider(startOptions.Version)
-		return buildEngine(configDir, &provider, startOptions)
-	})
+var unpackedDistroInitialised = false
+
+func EnableUnpackedDistroEngine() engine.EngineType {
+	if !unpackedDistroInitialised {
+		unpackedDistroInitialised = true
+
+		engine.RegisterProvider(engine.EngineTypeJvmUnpacked, func(version string) engine.Provider {
+			return newUnpackedDistroProvider(version)
+		})
+		engine.RegisterEngine(engine.EngineTypeJvmUnpacked, func(configDir string, startOptions engine.StartOptions) engine.MockEngine {
+			provider := newUnpackedDistroProvider(startOptions.Version)
+			return buildEngine(configDir, &provider, startOptions)
+		})
+	}
+	return engine.EngineTypeJvmUnpacked
 }
 
 func newUnpackedDistroProvider(version string) JvmProvider {

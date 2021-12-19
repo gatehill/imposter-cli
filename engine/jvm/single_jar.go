@@ -22,14 +22,26 @@ const binCacheDir = ".imposter/cache/"
 const latestUrl = "https://github.com/outofcoffee/imposter/releases/latest/download/imposter.jar"
 const versionedBaseUrlTemplate = "https://github.com/outofcoffee/imposter/releases/download/v%v/"
 
-func init() {
-	engine.RegisterProvider(engine.EngineTypeJvmSingleJar, func(version string) engine.Provider {
-		return newSingleJarProvider(version)
-	})
-	engine.RegisterEngine(engine.EngineTypeJvmSingleJar, func(configDir string, startOptions engine.StartOptions) engine.MockEngine {
-		provider := newSingleJarProvider(startOptions.Version)
-		return buildEngine(configDir, &provider, startOptions)
-	})
+var singleJarInitialised = false
+
+// EnableEngine is a convenience function that delegates to EnableSingleJarEngine.
+func EnableEngine() engine.EngineType {
+	return EnableSingleJarEngine()
+}
+
+func EnableSingleJarEngine() engine.EngineType {
+	if !singleJarInitialised {
+		singleJarInitialised = true
+
+		engine.RegisterProvider(engine.EngineTypeJvmSingleJar, func(version string) engine.Provider {
+			return newSingleJarProvider(version)
+		})
+		engine.RegisterEngine(engine.EngineTypeJvmSingleJar, func(configDir string, startOptions engine.StartOptions) engine.MockEngine {
+			provider := newSingleJarProvider(startOptions.Version)
+			return buildEngine(configDir, &provider, startOptions)
+		})
+	}
+	return engine.EngineTypeJvmSingleJar
 }
 
 func newSingleJarProvider(version string) JvmProvider {
