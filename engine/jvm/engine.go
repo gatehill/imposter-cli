@@ -27,11 +27,11 @@ import (
 	"sync"
 )
 
-func (j *JvmMockEngine) Start(wg *sync.WaitGroup) {
-	j.startWithOptions(wg, j.options)
+func (j *JvmMockEngine) Start(wg *sync.WaitGroup) bool {
+	return j.startWithOptions(wg, j.options)
 }
 
-func (j *JvmMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.StartOptions) {
+func (j *JvmMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.StartOptions) (success bool) {
 	args := []string{
 		"--configDir=" + j.configDir,
 		fmt.Sprintf("--listenPort=%d", options.Port),
@@ -48,16 +48,18 @@ func (j *JvmMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.Star
 	logrus.Trace("starting JVM mock engine")
 	j.command = command
 
-	engine.WaitUntilUp(options.Port, j.shutDownC)
+	up := engine.WaitUntilUp(options.Port, j.shutDownC)
 
 	// watch in case container stops
 	go func() {
 		j.notifyOnStopBlocking(wg)
 	}()
+
+	return up
 }
 
 func (j *JvmMockEngine) StopImmediately(wg *sync.WaitGroup) {
-	j.shutDownC <- true
+	go func() { j.shutDownC <- true }()
 	j.Stop(wg)
 }
 

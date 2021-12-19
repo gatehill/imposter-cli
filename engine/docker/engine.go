@@ -40,11 +40,11 @@ import (
 const containerConfigDir = "/opt/imposter/config"
 const removalTimeoutSec = 5
 
-func (d *DockerMockEngine) Start(wg *sync.WaitGroup) {
-	d.startWithOptions(wg, d.options)
+func (d *DockerMockEngine) Start(wg *sync.WaitGroup) bool {
+	return d.startWithOptions(wg, d.options)
 }
 
-func (d *DockerMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.StartOptions) {
+func (d *DockerMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.StartOptions) (success bool) {
 	logrus.Infof("starting mock engine on port %d - press ctrl+c to stop", options.Port)
 	ctx, cli, err := BuildCliClient()
 	if err != nil {
@@ -109,12 +109,14 @@ func (d *DockerMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.S
 	if err = streamLogsToStdIo(cli, ctx, containerId); err != nil {
 		logrus.Warn(err)
 	}
-	engine.WaitUntilUp(options.Port, d.shutDownC)
+	up := engine.WaitUntilUp(options.Port, d.shutDownC)
 
 	// watch in case container stops
 	go func() {
 		notifyOnStopBlocking(d, wg, containerId, cli, ctx)
 	}()
+
+	return up
 }
 
 func generateMetadata(d *DockerMockEngine, options engine.StartOptions) (string, map[string]string) {
@@ -167,7 +169,7 @@ func BuildCliClient() (context.Context, *client.Client, error) {
 }
 
 func (d *DockerMockEngine) StopImmediately(wg *sync.WaitGroup) {
-	d.shutDownC <- true
+	go func() { d.shutDownC <- true }()
 	d.Stop(wg)
 }
 

@@ -41,7 +41,10 @@ func StartStop(t *testing.T, tests []EngineTestScenario, builder func(scenario E
 		t.Run(tt.Name, func(t *testing.T) {
 			wg := &sync.WaitGroup{}
 			mockEngine := builder(tt)
-			mockEngine.Start(wg)
+			success := mockEngine.Start(wg)
+			if !success {
+				t.Fatalf("engine did not start successfully")
+			}
 
 			defer func() {
 				mockEngine.Stop(wg)
@@ -72,7 +75,10 @@ func Restart(t *testing.T, tests []EngineTestScenario, builder func(scenario Eng
 		t.Run(tt.Name, func(t *testing.T) {
 			wg := &sync.WaitGroup{}
 			mockEngine := builder(tt)
-			mockEngine.Start(wg)
+			success := mockEngine.Start(wg)
+			if !success {
+				t.Fatalf("engine did not start successfully")
+			}
 
 			defer func() {
 				mockEngine.Stop(wg)

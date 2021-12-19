@@ -137,9 +137,9 @@ func trapExit(mockEngine engine.MockEngine, wg *sync.WaitGroup) {
 }
 
 func start(mockEngine engine.MockEngine, wg *sync.WaitGroup, configDir string, restartOnChange bool) {
-	mockEngine.Start(wg)
+	success := mockEngine.Start(wg)
 
-	if restartOnChange {
+	if success && restartOnChange {
 		dirUpdated := fileutil.WatchDir(configDir)
 		go func() {
 			for {

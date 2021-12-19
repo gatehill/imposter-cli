@@ -36,7 +36,7 @@ const (
 )
 
 type MockEngine interface {
-	Start(wg *sync.WaitGroup)
+	Start(wg *sync.WaitGroup) (success bool)
 	Stop(wg *sync.WaitGroup)
 	StopImmediately(wg *sync.WaitGroup)
 	Restart(wg *sync.WaitGroup)
