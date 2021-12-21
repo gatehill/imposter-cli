@@ -41,13 +41,16 @@ func main() {
 	// set global log level
 	logrus.SetLevel(ll)
 
+	if version == "" {
+		version = "dev"
+	}
 	cliconfig.Config = cliconfig.CliConfig{
 		LogLevel: lvl,
 		Version:  version,
 	}
 
 	docker.EnableEngine()
-	jvm.EnableEngine()
+	jvm.EnableSingleJarEngine()
 	jvm.EnableUnpackedDistroEngine()
 
 	cmd.Execute()
