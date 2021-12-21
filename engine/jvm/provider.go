@@ -38,6 +38,7 @@ type JvmProvider interface {
 
 type JvmProviderOptions struct {
 	engine.ProviderOptions
+	javaCmd string
 }
 
 func buildEngine(configDir string, provider *JvmProvider, options engine.StartOptions) engine.MockEngine {

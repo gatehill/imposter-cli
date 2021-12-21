@@ -14,7 +14,6 @@ import (
 
 type SingleJarProvider struct {
 	JvmProviderOptions
-	javaCmd string
 	jarPath string
 }
 

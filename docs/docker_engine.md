@@ -26,9 +26,15 @@ Set the `engine` key to `docker`:
 engine: docker
 ```
 
+### Environment variable
+
+If you don't want to set your user defaults you can set the following environment variable:
+
+    IMPOSTER_ENGINE=docker
+
 ### Command line argument
 
-If you don't want to set your user defaults you can provide the `--engine` (or `-e`) argument to the `imposter up` command:
+You can also provide the `--engine` (or `-e`) command line argument to the `imposter up` command:
 
 Example:
 

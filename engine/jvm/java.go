@@ -47,12 +47,3 @@ func GetJavaCmdPath() (string, error) {
 	logrus.Tracef("using java: %v", javaPath)
 	return javaPath, nil
 }
-
-// getJavaHome returns the JAVA_HOME path
-func getJavaHome() (string, error) {
-	javaCmd, err := GetJavaCmdPath()
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSuffix(javaCmd, "bin/java"), nil
-}

@@ -12,9 +12,10 @@ import (
 
 type UnpackedDistroProvider struct {
 	JvmProviderOptions
-	javaHome  string
 	distroDir string
 }
+
+const mainClass = "io.gatehill.imposter.cmd.ImposterLauncher"
 
 var unpackedDistroInitialised = false
 
@@ -45,21 +46,24 @@ func newUnpackedDistroProvider(version string) JvmProvider {
 }
 
 func (p *UnpackedDistroProvider) GetStartCommand(args []string, env []string) *exec.Cmd {
-	if p.javaHome == "" {
-		javaHome, err := getJavaHome()
+	if p.javaCmd == "" {
+		javaCmd, err := GetJavaCmdPath()
 		if err != nil {
 			logrus.Fatal(err)
 		}
-		p.javaHome = javaHome
+		p.javaCmd = javaCmd
 	}
 	if !p.Satisfied() {
 		if err := p.Provide(engine.PullIfNotPresent); err != nil {
 			logrus.Fatal(err)
 		}
 	}
-	startScript := filepath.Join(p.distroDir, "bin", "imposter")
-	command := exec.Command(startScript, args...)
-	command.Env = append(env, "JAVA_HOME="+p.javaHome)
+	allArgs := append(
+		[]string{"-classpath", filepath.Join(p.distroDir, "lib") + "/*", mainClass},
+		args...,
+	)
+	command := exec.Command(p.javaCmd, allArgs...)
+	command.Env = env
 	return command
 }
 
