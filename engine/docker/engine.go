@@ -23,11 +23,11 @@ import (
 	"gatehill.io/imposter/engine"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/go-connections/nat"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"io"
 	"os"
 	"path/filepath"
@@ -65,6 +65,8 @@ func (d *DockerMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.S
 
 	containerPort := nat.Port(fmt.Sprintf("%d/tcp", options.Port))
 	hostPort := fmt.Sprintf("%d", options.Port)
+	configBind := d.configDir + ":" + containerConfigDir + viper.GetString("docker.bindFlags")
+	logrus.Tracef("using config bind: %s", configBind)
 
 	resp, err := cli.ContainerCreate(ctx, &container.Config{
 		Image: d.provider.imageAndTag,
@@ -78,12 +80,8 @@ func (d *DockerMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.S
 		},
 		Labels: containerLabels,
 	}, &container.HostConfig{
-		Mounts: []mount.Mount{
-			{
-				Type:   mount.TypeBind,
-				Source: d.configDir,
-				Target: containerConfigDir,
-			},
+		Binds: []string{
+			configBind,
 		},
 		PortBindings: nat.PortMap{
 			containerPort: []nat.PortBinding{

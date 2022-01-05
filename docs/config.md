@@ -54,6 +54,12 @@ engine: "docker"
 # see: https://github.com/outofcoffee/imposter/releases
 version: "latest"
 
+# Docker engine specific configuration
+docker:
+  # bind mount flags
+  # see: https://docs.docker.com/storage/bind-mounts
+  bindFlags: ":z"
+
 # JVM engine specific configuration
 jvm:
   # override the path to the Imposter JAR file to use (default: automatically generated)
@@ -74,6 +80,7 @@ Some configuration elements can be specified as environment variables:
 * IMPOSTER_CLI_LOG_LEVEL
 * IMPOSTER_ENGINE
 * IMPOSTER_VERSION
+* IMPOSTER_DOCKER_BINDFLAGS
 * IMPOSTER_JVM_JARFILE
 * IMPOSTER_JVM_BINCACHE
 * IMPOSTER_JVM_DISTRODIR
