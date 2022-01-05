@@ -65,8 +65,13 @@ func (d *DockerMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.S
 
 	containerPort := nat.Port(fmt.Sprintf("%d/tcp", options.Port))
 	hostPort := fmt.Sprintf("%d", options.Port)
+
 	configBind := d.configDir + ":" + containerConfigDir + viper.GetString("docker.bindFlags")
 	logrus.Tracef("using config bind: %s", configBind)
+
+	// if not specified, falls back to default in container image
+	containerUser := viper.GetString("docker.containerUser")
+	logrus.Tracef("container user: %s", containerUser)
 
 	resp, err := cli.ContainerCreate(ctx, &container.Config{
 		Image: d.provider.imageAndTag,
@@ -79,6 +84,7 @@ func (d *DockerMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.S
 			containerPort: {},
 		},
 		Labels: containerLabels,
+		User:   containerUser,
 	}, &container.HostConfig{
 		Binds: []string{
 			configBind,

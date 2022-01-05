@@ -60,6 +60,9 @@ docker:
   # see: https://docs.docker.com/storage/bind-mounts
   bindFlags: ":z"
 
+  # the container user (username or uid)
+  containerUser: "imposter"
+
 # JVM engine specific configuration
 jvm:
   # override the path to the Imposter JAR file to use (default: automatically generated)
@@ -81,6 +84,7 @@ Some configuration elements can be specified as environment variables:
 * IMPOSTER_ENGINE
 * IMPOSTER_VERSION
 * IMPOSTER_DOCKER_BINDFLAGS
+* IMPOSTER_DOCKER_CONTAINERUSER
 * IMPOSTER_JVM_JARFILE
 * IMPOSTER_JVM_BINCACHE
 * IMPOSTER_JVM_DISTRODIR
