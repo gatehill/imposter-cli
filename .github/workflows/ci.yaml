@@ -6,8 +6,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-    env:
-      IMPOSTER_DOCKER_BINDFLAGS: ":z"
     steps:
       - uses: actions/checkout@v2
         with:
