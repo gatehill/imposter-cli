@@ -30,13 +30,13 @@ import (
 const engineDockerImage = "outofcoffee/imposter"
 
 type EngineImageProvider struct {
-	engine.ProviderOptions
+	engine.EngineMetadata
 	imageAndTag string
 }
 
 func getProvider(version string) *EngineImageProvider {
 	return &EngineImageProvider{
-		ProviderOptions: engine.ProviderOptions{
+		EngineMetadata: engine.EngineMetadata{
 			EngineType: engine.EngineTypeDocker,
 			Version:    version,
 		},

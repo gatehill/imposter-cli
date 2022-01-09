@@ -44,7 +44,7 @@ type MockEngine interface {
 	GetVersionString() (string, error)
 }
 
-type ProviderOptions struct {
+type EngineMetadata struct {
 	EngineType EngineType
 	Version    string
 }
@@ -53,4 +53,10 @@ type Provider interface {
 	Satisfied() bool
 	Provide(policy PullPolicy) error
 	GetEngineType() EngineType
+}
+
+type EngineLibrary interface {
+	CheckPrereqs() (bool, []string)
+	List() ([]EngineMetadata, error)
+	GetProvider(version string) Provider
 }

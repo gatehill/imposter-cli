@@ -37,7 +37,7 @@ type JvmProvider interface {
 }
 
 type JvmProviderOptions struct {
-	engine.ProviderOptions
+	engine.EngineMetadata
 	javaCmd string
 }
 

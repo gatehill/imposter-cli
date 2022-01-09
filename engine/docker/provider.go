@@ -36,6 +36,9 @@ func EnableEngine() engine.EngineType {
 	if !initialised {
 		initialised = true
 
+		engine.RegisterLibrary(engine.EngineTypeDocker, func() engine.EngineLibrary {
+			return getLibrary()
+		})
 		engine.RegisterProvider(engine.EngineTypeDocker, func(version string) engine.Provider {
 			return getProvider(version)
 		})

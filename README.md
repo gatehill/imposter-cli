@@ -145,6 +145,27 @@ Flags:
   -v, --version string   Imposter engine version (default "latest")
 ```
 
+#### List installed engines
+
+Example:
+
+    imposter engine list
+
+Usage:
+
+```
+Lists all versions of engine binaries/images in the cache.
+
+If engine type is not specified, it defaults to all.
+
+Usage:
+  imposter engine list [flags]
+
+Flags:
+  -e, --engine string   Imposter engine type (valid: docker,jvm - default is all
+  -h, --help            help for list
+```
+
 #### Doctor
 
 ```

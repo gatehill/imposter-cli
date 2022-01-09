@@ -28,6 +28,7 @@ import (
 type EngineType string
 
 const (
+	EngineTypeNone         EngineType = ""
 	EngineTypeDocker       EngineType = "docker"
 	EngineTypeJvmSingleJar EngineType = "jvm"
 	EngineTypeJvmUnpacked  EngineType = "unpacked"
@@ -35,9 +36,14 @@ const (
 const defaultEngineType = EngineTypeDocker
 
 var (
+	libraries = make(map[EngineType]func() EngineLibrary)
 	providers = make(map[EngineType]func(version string) Provider)
 	engines   = make(map[EngineType]func(configDir string, startOptions StartOptions) MockEngine)
 )
+
+func RegisterLibrary(engineType EngineType, b func() EngineLibrary) {
+	libraries[engineType] = b
+}
 
 func RegisterProvider(engineType EngineType, b func(version string) Provider) {
 	providers[engineType] = b
@@ -45,6 +51,25 @@ func RegisterProvider(engineType EngineType, b func(version string) Provider) {
 
 func RegisterEngine(engineType EngineType, b func(configDir string, startOptions StartOptions) MockEngine) {
 	engines[engineType] = b
+}
+
+func EnumerateLibraries() []EngineType {
+	var all []EngineType
+	for key := range libraries {
+		all = append(all, key)
+	}
+	return all
+}
+
+func GetLibrary(engineType EngineType) EngineLibrary {
+	if err := validateEngineType(engineType); err != nil {
+		logrus.Fatal(err)
+	}
+	library := libraries[engineType]
+	if library == nil {
+		logrus.Fatalf("unregistered engine type: %v", engineType)
+	}
+	return library()
 }
 
 func GetProvider(engineType EngineType, version string) Provider {
@@ -78,10 +103,14 @@ func validateEngineType(engineType EngineType) error {
 }
 
 func GetConfiguredType(override string) EngineType {
+	return GetConfiguredTypeWithDefault(override, defaultEngineType)
+}
+
+func GetConfiguredTypeWithDefault(override string, defaultType EngineType) EngineType {
 	return EngineType(cliconfig.GetFirstNonEmpty(
 		override,
 		viper.GetString("engine"),
-		string(defaultEngineType),
+		string(defaultType),
 	))
 }
 

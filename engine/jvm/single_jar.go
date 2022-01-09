@@ -32,6 +32,9 @@ func EnableSingleJarEngine() engine.EngineType {
 	if !singleJarInitialised {
 		singleJarInitialised = true
 
+		engine.RegisterLibrary(engine.EngineTypeJvmSingleJar, func() engine.EngineLibrary {
+			return getSingleJarLibrary()
+		})
 		engine.RegisterProvider(engine.EngineTypeJvmSingleJar, func(version string) engine.Provider {
 			return newSingleJarProvider(version)
 		})
@@ -46,7 +49,7 @@ func EnableSingleJarEngine() engine.EngineType {
 func newSingleJarProvider(version string) JvmProvider {
 	return &SingleJarProvider{
 		JvmProviderOptions: JvmProviderOptions{
-			ProviderOptions: engine.ProviderOptions{
+			EngineMetadata: engine.EngineMetadata{
 				EngineType: engine.EngineTypeJvmSingleJar,
 				Version:    version,
 			},

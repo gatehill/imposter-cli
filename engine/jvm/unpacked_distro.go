@@ -37,7 +37,7 @@ func EnableUnpackedDistroEngine() engine.EngineType {
 func newUnpackedDistroProvider(version string) JvmProvider {
 	return &UnpackedDistroProvider{
 		JvmProviderOptions: JvmProviderOptions{
-			ProviderOptions: engine.ProviderOptions{
+			EngineMetadata: engine.EngineMetadata{
 				EngineType: engine.EngineTypeJvmUnpacked,
 				Version:    version,
 			},

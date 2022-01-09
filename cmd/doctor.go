@@ -18,12 +18,9 @@ package cmd
 
 import (
 	"fmt"
-	"gatehill.io/imposter/engine/docker"
-	"gatehill.io/imposter/engine/jvm"
-	"github.com/docker/docker/client"
+	"gatehill.io/imposter/engine"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"os/exec"
 	"strings"
 )
 
@@ -51,8 +48,8 @@ by the engines.`,
 }
 
 func checkPrereqs() string {
-	dockerOk, dockerMsgs := checkDocker()
-	jvmOk, jvmMsgs := checkJvm()
+	dockerOk, dockerMsgs := engine.GetLibrary(engine.EngineTypeDocker).CheckPrereqs()
+	jvmOk, jvmMsgs := engine.GetLibrary(engine.EngineTypeJvmSingleJar).CheckPrereqs()
 
 	var summary string
 	if dockerOk || jvmOk {
@@ -61,49 +58,6 @@ func checkPrereqs() string {
 		summary = "😭 You may not be able to run Imposter, as you do not have support for at least one engine."
 	}
 	return fmt.Sprintf(reportTemplate, summary, strings.Join(dockerMsgs, "\n"), strings.Join(jvmMsgs, "\n"))
-}
-
-func checkDocker() (bool, []string) {
-	var msgs []string
-	ctx, cli, err := docker.BuildCliClient()
-	if err != nil {
-		msgs = append(msgs, fmt.Sprintf("❌ Failed to build Docker client: %v", err))
-		return false, msgs
-	}
-
-	version, err := cli.ServerVersion(ctx)
-	if err != nil {
-		if client.IsErrConnectionFailed(err) {
-			msgs = append(msgs, fmt.Sprintf("❌ Failed to connect to Docker: %v", err))
-			return false, msgs
-		} else {
-			msgs = append(msgs, fmt.Sprintf("❌ Failed to get Docker version: %v", err))
-			return false, msgs
-		}
-	}
-	msgs = append(msgs, "✅ Connected to Docker", fmt.Sprintf("✅ Docker version installed: %v", version.Version))
-
-	return true, msgs
-}
-
-func checkJvm() (bool, []string) {
-	var msgs []string
-	javaCmdPath, err := jvm.GetJavaCmdPath()
-	if err != nil {
-		msgs = append(msgs, fmt.Sprintf("❌ Failed to find JVM installation: %v", err))
-		return false, msgs
-	}
-	msgs = append(msgs, fmt.Sprintf("✅ Found JVM installation: %v", javaCmdPath))
-
-	cmd := exec.Command(javaCmdPath, "-version")
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		msgs = append(msgs, fmt.Sprintf("❌ Failed to determine java version: %v", err))
-		return false, msgs
-	}
-	msgs = append(msgs, fmt.Sprintf("✅ Java version installed: %v", string(output)))
-
-	return true, msgs
 }
 
 func init() {
