@@ -26,6 +26,7 @@ type StartOptions struct {
 	ReplaceRunning bool
 	Deduplicate    string
 	EnablePlugins  bool
+	Environment    []string
 }
 
 type PullPolicy int

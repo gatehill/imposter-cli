@@ -40,7 +40,7 @@ var versionCmd = &cobra.Command{
 }
 
 func init() {
-	versionCmd.Flags().StringVarP(&versionFlags.flagEngineType, "engine", "e", "", "Imposter engine type (valid: docker,jvm - default \"docker\")")
+	versionCmd.Flags().StringVarP(&versionFlags.flagEngineType, "engine-type", "t", "", "Imposter engine type (valid: docker,jvm - default \"docker\")")
 	rootCmd.AddCommand(versionCmd)
 }
 

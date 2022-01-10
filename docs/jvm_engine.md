@@ -34,12 +34,12 @@ If you don't want to set your user defaults you can set the following environmen
 
 ### Command line argument
 
-You can also provide the `--engine` (or `-e`) command line argument to the `imposter up` command:
+You can also provide the `--engine-type` (or `-t`) command line argument to the `imposter up` command:
 
 Example:
 
-    imposter up --engine jvm
+    imposter up --engine-type jvm
 
 Or:
 
-    imposter up -e jvm
+    imposter up -t jvm

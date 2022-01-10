@@ -135,15 +135,17 @@ func SanitiseVersionOutput(s string) string {
 
 func BuildEnv(options StartOptions) []string {
 	var env []string
-
 	logLevelSet := false
+
 	for _, e := range os.Environ() {
 		if strings.HasPrefix(e, "IMPOSTER_") || strings.HasPrefix(e, "JAVA_TOOL_OPTIONS=") {
 			env = append(env, e)
-
-			if strings.HasPrefix(e, "IMPOSTER_LOG_LEVEL=") {
-				logLevelSet = true
-			}
+		}
+	}
+	for _, e := range options.Environment {
+		env = append(env, e)
+		if strings.HasPrefix(e, "IMPOSTER_LOG_LEVEL=") {
+			logLevelSet = true
 		}
 	}
 	if !logLevelSet {

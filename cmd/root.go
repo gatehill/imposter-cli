@@ -54,7 +54,7 @@ Advanced users can write their own plugins in a JVM language of their choice.
 Learn more at www.imposter.sh`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if rootFlags.flagPrintVersion {
-			engineType := engine.GetConfiguredType(versionFlags.flagEngineType)
+			engineType := engine.GetConfiguredType("")
 			println(describeVersions(engineType))
 		} else {
 			// show usage

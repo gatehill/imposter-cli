@@ -58,7 +58,7 @@ func pull(version string, engineType engine.EngineType, pullPolicy engine.PullPo
 }
 
 func init() {
-	pullCmd.Flags().StringVarP(&pullFlags.flagEngineType, "engine", "e", "", "Imposter engine type (valid: docker,jvm - default \"docker\")")
+	pullCmd.Flags().StringVarP(&pullFlags.flagEngineType, "engine-type", "t", "", "Imposter engine type (valid: docker,jvm - default \"docker\")")
 	pullCmd.Flags().StringVarP(&pullFlags.flagEngineVersion, "version", "v", "", "Imposter engine version (default \"latest\")")
 	pullCmd.Flags().BoolVarP(&pullFlags.flagForcePull, "force", "f", false, "Force engine pull")
 	engineCmd.AddCommand(pullCmd)

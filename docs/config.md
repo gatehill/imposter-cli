@@ -16,12 +16,16 @@ Usage:
   imposter up [CONFIG_DIR] [flags]
 
 Flags:
-      --auto-restart     Automatically restart when config dir contents change (default true)
-  -e, --engine string    Imposter engine type (docker|jvm - default docker)
-  -h, --help             help for up
-  -p, --port int         Port on which to listen (default 8080)
-      --pull             Force engine pull
-  -v, --version string   Imposter engine version (default "latest")
+      --auto-restart         Automatically restart when config dir contents change (default true)
+      --deduplicate string   Override deduplication ID for replacement of containers
+      --enable-plugins       Whether to enable plugins (default true)
+  -t, --engine-type string   Imposter engine type (valid: docker,jvm - default "docker")
+  -e, --env stringArray      Explicit environment variables to set
+  -h, --help                 help for up
+  -p, --port int             Port on which to listen (default 8080)
+      --pull                 Force engine pull
+  -s, --scaffold             Scaffold Imposter configuration for all OpenAPI files
+  -v, --version string       Imposter engine version (default "latest")
 ```
 
 ## Mock configuration files

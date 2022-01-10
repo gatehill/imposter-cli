@@ -65,13 +65,15 @@ Usage:
   imposter [command]
 
 Available Commands:
-  up            Start live mocks of APIs
-  scaffold      Create Imposter configuration from OpenAPI specs
-  engine pull   Pull the engine into the cache
-  doctor        Check prerequisites for running Imposter
-  down          Stop running mocks
-  version       Print CLI version
-  help          Help about any command
+  up              Start live mocks of APIs
+  scaffold        Create Imposter configuration from OpenAPI specs
+  engine pull     Pull the engine into the cache
+  engine list     List the engines in the cache
+  doctor          Check prerequisites for running Imposter
+  down            Stop running mocks
+  version         Print CLI version
+  plugin install  Install plugin
+  help            Help about any command
 ```
 
 #### Create and start mocks
@@ -91,12 +93,16 @@ Usage:
   imposter up [CONFIG_DIR] [flags]
 
 Flags:
-      --auto-restart     Automatically restart when config dir contents change (default true)
-  -e, --engine string    Imposter engine type (valid: docker,jvm - default "docker")
-  -p, --port int         Port on which to listen (default 8080)
-      --pull             Force engine pull
-  -s, --scaffold         Scaffold Imposter configuration for all OpenAPI files
-  -v, --version string   Imposter engine version (default "latest")
+      --auto-restart         Automatically restart when config dir contents change (default true)
+      --deduplicate string   Override deduplication ID for replacement of containers
+      --enable-plugins       Whether to enable plugins (default true)
+  -t, --engine-type string   Imposter engine type (valid: docker,jvm - default "docker")
+  -e, --env stringArray      Explicit environment variables to set
+  -h, --help                 help for up
+  -p, --port int             Port on which to listen (default 8080)
+      --pull                 Force engine pull
+  -s, --scaffold             Scaffold Imposter configuration for all OpenAPI files
+  -v, --version string       Imposter engine version (default "latest")
 ```
 
 #### Generate Imposter configuration from OpenAPI specification files
@@ -139,10 +145,10 @@ Usage:
   imposter engine pull [flags]
 
 Flags:
-  -e, --engine string    Imposter engine type (valid: docker,jvm - default "docker")
-  -h, --help             help for pull
-  -f, --force            Force engine pull
-  -v, --version string   Imposter engine version (default "latest")
+  -t, --engine-type string    Imposter engine type (valid: docker,jvm - default "docker")
+  -h, --help                  help for pull
+  -f, --force                 Force engine pull
+  -v, --version string        Imposter engine version (default "latest")
 ```
 
 #### List installed engines
@@ -162,8 +168,8 @@ Usage:
   imposter engine list [flags]
 
 Flags:
-  -e, --engine string   Imposter engine type (valid: docker,jvm - default is all
-  -h, --help            help for list
+  -t, --engine-type string   Imposter engine type (valid: docker,jvm - default is all
+  -h, --help                 help for list
 ```
 
 #### Diagnose engine problems
@@ -191,8 +197,8 @@ Usage:
   imposter down [flags]
 
 Flags:
-  -e, --engine string   Imposter engine type (valid: docker,jvm - default "docker")
-  -h, --help            help for down
+  -t, --engine-type string   Imposter engine type (valid: docker,jvm - default "docker")
+  -h, --help                 help for down
 ```
 
 #### Install plugin

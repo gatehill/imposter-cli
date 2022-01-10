@@ -44,14 +44,14 @@ If you don't want to set your user defaults you can set the following environmen
 
 ### Command line argument
 
-You can also provide the `--engine` (or `-e`) command line argument to the `imposter up` command.
+You can also provide the `--engine-type` (or `-t`) command line argument to the `imposter up` command.
 
 > **Important** You must also set the distribution directory using either the configuration or environment variables described above.
 
 Example:
 
-    imposter up --engine unpacked
+    imposter up --engine-type unpacked
 
 Or:
 
-    imposter up -e unpacked
+    imposter up -t unpacked

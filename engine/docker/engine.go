@@ -78,7 +78,7 @@ func (d *DockerMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.S
 			"--configDir=" + containerConfigDir,
 			fmt.Sprintf("--listenPort=%d", options.Port),
 		},
-		Env: engine.BuildEnv(options),
+		Env: buildEnv(options),
 		ExposedPorts: nat.PortSet{
 			containerPort: {},
 		},
@@ -118,6 +118,12 @@ func (d *DockerMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.S
 	}()
 
 	return up
+}
+
+func buildEnv(options engine.StartOptions) []string {
+	env := engine.BuildEnv(options)
+	logrus.Tracef("engine environment: %v", env)
+	return env
 }
 
 func buildBinds(d *DockerMockEngine, options engine.StartOptions) []string {

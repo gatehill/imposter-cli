@@ -40,6 +40,7 @@ var upFlags = struct {
 	flagRestartOnChange bool
 	flagScaffoldMissing bool
 	flagEnablePlugins   bool
+	flagEnvironment     []string
 }{}
 
 // upCmd represents the up command
@@ -75,8 +76,10 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 			ReplaceRunning: true,
 			Deduplicate:    upFlags.flagDeduplicate,
 			EnablePlugins:  upFlags.flagEnablePlugins,
+			Environment:    upFlags.flagEnvironment,
 		}
-		mockEngine := engine.BuildEngine(engine.GetConfiguredType(upFlags.flagEngineType), configDir, startOptions)
+		engineType := engine.GetConfiguredType(upFlags.flagEngineType)
+		mockEngine := engine.BuildEngine(engineType, configDir, startOptions)
 
 		wg := &sync.WaitGroup{}
 		trapExit(mockEngine, wg)
@@ -88,7 +91,7 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 }
 
 func init() {
-	upCmd.Flags().StringVarP(&upFlags.flagEngineType, "engine", "e", "", "Imposter engine type (valid: docker,jvm - default \"docker\")")
+	upCmd.Flags().StringVarP(&upFlags.flagEngineType, "engine-type", "t", "", "Imposter engine type (valid: docker,jvm - default \"docker\")")
 	upCmd.Flags().StringVarP(&upFlags.flagEngineVersion, "version", "v", "", "Imposter engine version (default \"latest\")")
 	upCmd.Flags().IntVarP(&upFlags.flagPort, "port", "p", 8080, "Port on which to listen")
 	upCmd.Flags().BoolVar(&upFlags.flagForcePull, "pull", false, "Force engine pull")
@@ -96,6 +99,7 @@ func init() {
 	upCmd.Flags().BoolVarP(&upFlags.flagScaffoldMissing, "scaffold", "s", false, "Scaffold Imposter configuration for all OpenAPI files")
 	upCmd.Flags().StringVar(&upFlags.flagDeduplicate, "deduplicate", "", "Override deduplication ID for replacement of containers")
 	upCmd.Flags().BoolVar(&upFlags.flagEnablePlugins, "enable-plugins", true, "Whether to enable plugins")
+	upCmd.Flags().StringArrayVarP(&upFlags.flagEnvironment, "env", "e", []string{}, "Explicit environment variables to set")
 	rootCmd.AddCommand(upCmd)
 }
 

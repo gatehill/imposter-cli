@@ -79,6 +79,6 @@ func render(rows [][]string) {
 }
 
 func init() {
-	listCmd.Flags().StringVarP(&listFlags.flagEngineType, "engine", "e", "", "Imposter engine type (valid: docker,jvm - default is all")
+	listCmd.Flags().StringVarP(&listFlags.flagEngineType, "engine-type", "t", "", "Imposter engine type (valid: docker,jvm - default is all")
 	engineCmd.AddCommand(listCmd)
 }

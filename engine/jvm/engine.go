@@ -69,6 +69,7 @@ func buildEnv(options engine.StartOptions) []string {
 		}
 		env = append(env, "IMPOSTER_PLUGIN_DIR="+pluginDir)
 	}
+	logrus.Tracef("engine environment: %v", env)
 	return env
 }
 
