@@ -3,10 +3,9 @@ package jvm
 import (
 	"fmt"
 	"gatehill.io/imposter/engine"
+	"gatehill.io/imposter/library"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"io"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -18,8 +17,6 @@ type SingleJarProvider struct {
 }
 
 const binCacheDir = ".imposter/cache/"
-const latestUrl = "https://github.com/outofcoffee/imposter/releases/latest/download/imposter.jar"
-const versionedBaseUrlTemplate = "https://github.com/outofcoffee/imposter/releases/download/v%v/"
 
 var singleJarInitialised = false
 
@@ -134,84 +131,9 @@ func checkOrDownloadBinary(version string, policy engine.PullPolicy) (string, er
 }
 
 func ensureBinCache() (string, error) {
-	binCachePath, err := getBinCachePath()
-	if _, err = os.Stat(binCachePath); err != nil {
-		if os.IsNotExist(err) {
-			logrus.Tracef("creating cache directory: %v", binCachePath)
-			err := os.MkdirAll(binCachePath, 0700)
-			if err != nil {
-				return "", fmt.Errorf("failed to create cache directory: %v: %v", binCachePath, err)
-			}
-		} else {
-			return "", fmt.Errorf("failed to stat: %v: %v", binCachePath, err)
-		}
-	}
-
-	logrus.Tracef("ensured binary cache directory: %v", binCachePath)
-	return binCachePath, nil
-}
-
-func getBinCachePath() (string, error) {
-	if envBinCache := viper.GetString("jvm.binCache"); envBinCache != "" {
-		return envBinCache, nil
-	}
-
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("failed to get home directory: %v", err)
-	}
-	return filepath.Join(homeDir, binCacheDir), nil
+	return library.EnsureCache("jvm.binCache", binCacheDir)
 }
 
 func downloadBinary(localPath string, version string) error {
-	file, err := os.Create(localPath)
-	if err != nil {
-		return fmt.Errorf("error creating file: %v: %v", localPath, err)
-	}
-	defer file.Close()
-
-	var url string
-	var resp *http.Response
-	if version == "latest" {
-		url = latestUrl
-		resp, err = makeHttpRequest(url, err)
-		if err != nil {
-			return err
-		}
-
-	} else {
-		versionedBaseUrl := fmt.Sprintf(versionedBaseUrlTemplate, version)
-
-		url := versionedBaseUrl + "imposter.jar"
-		resp, err = makeHttpRequest(url, err)
-		if err != nil {
-			return err
-		}
-
-		// fallback to versioned binary filename
-		if resp.StatusCode == 404 {
-			logrus.Tracef("binary not found at: %v - retrying with versioned filename", url)
-			url = versionedBaseUrl + fmt.Sprintf("imposter-%v.jar", version)
-			resp, err = makeHttpRequest(url, err)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return fmt.Errorf("error downloading from: %v: status code: %d", url, resp.StatusCode)
-	}
-	defer resp.Body.Close()
-	_, err = io.Copy(file, resp.Body)
-	return err
-}
-
-func makeHttpRequest(url string, err error) (*http.Response, error) {
-	logrus.Debugf("downloading %v", url)
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, fmt.Errorf("error downloading from: %v: %v", url, err)
-	}
-	return resp, nil
+	return library.DownloadBinary(localPath, "imposter.jar", version, true)
 }
