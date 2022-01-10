@@ -35,7 +35,6 @@ var pullCmd = &cobra.Command{
 	Long: `Pulls a specified version of the engine binary/image into the cache.
 
 If version is not specified, it defaults to 'latest'.`,
-	Args: cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
 		var pullPolicy engine.PullPolicy
 		if pullFlags.flagForcePull {

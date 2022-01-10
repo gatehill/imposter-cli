@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"gatehill.io/imposter/debounce"
 	"gatehill.io/imposter/engine"
+	"gatehill.io/imposter/plugin"
 	"github.com/sirupsen/logrus"
 	"os"
 	"strconv"
@@ -36,7 +37,7 @@ func (j *JvmMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.Star
 		"--configDir=" + j.configDir,
 		fmt.Sprintf("--listenPort=%d", options.Port),
 	}
-	env := engine.BuildEnv(options)
+	env := buildEnv(options)
 	command := (*j.provider).GetStartCommand(args, env)
 	command.Stdout = os.Stdout
 	command.Stderr = os.Stderr
@@ -56,6 +57,19 @@ func (j *JvmMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.Star
 	}()
 
 	return up
+}
+
+func buildEnv(options engine.StartOptions) []string {
+	env := engine.BuildEnv(options)
+	if options.EnablePlugins {
+		logrus.Tracef("plugins are enabled")
+		pluginDir, err := plugin.EnsurePluginCache(options.Version)
+		if err != nil {
+			logrus.Fatal(err)
+		}
+		env = append(env, "IMPOSTER_PLUGIN_DIR="+pluginDir)
+	}
+	return env
 }
 
 func (j *JvmMockEngine) StopImmediately(wg *sync.WaitGroup) {

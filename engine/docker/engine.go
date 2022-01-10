@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"gatehill.io/imposter/debounce"
 	"gatehill.io/imposter/engine"
+	"gatehill.io/imposter/plugin"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
@@ -38,6 +39,7 @@ import (
 )
 
 const containerConfigDir = "/opt/imposter/config"
+const containerPluginDir = "/opt/imposter/plugins"
 const removalTimeoutSec = 5
 
 func (d *DockerMockEngine) Start(wg *sync.WaitGroup) bool {
@@ -66,9 +68,6 @@ func (d *DockerMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.S
 	containerPort := nat.Port(fmt.Sprintf("%d/tcp", options.Port))
 	hostPort := fmt.Sprintf("%d", options.Port)
 
-	configBind := d.configDir + ":" + containerConfigDir + viper.GetString("docker.bindFlags")
-	logrus.Tracef("using config bind: %s", configBind)
-
 	// if not specified, falls back to default in container image
 	containerUser := viper.GetString("docker.containerUser")
 	logrus.Tracef("container user: %s", containerUser)
@@ -86,9 +85,7 @@ func (d *DockerMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.S
 		Labels: containerLabels,
 		User:   containerUser,
 	}, &container.HostConfig{
-		Binds: []string{
-			configBind,
-		},
+		Binds: buildBinds(d, options),
 		PortBindings: nat.PortMap{
 			containerPort: []nat.PortBinding{
 				{
@@ -121,6 +118,22 @@ func (d *DockerMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.S
 	}()
 
 	return up
+}
+
+func buildBinds(d *DockerMockEngine, options engine.StartOptions) []string {
+	binds := []string{
+		d.configDir + ":" + containerConfigDir + viper.GetString("docker.bindFlags"),
+	}
+	if options.EnablePlugins {
+		logrus.Tracef("plugins are enabled")
+		pluginDir, err := plugin.EnsurePluginCache(options.Version)
+		if err != nil {
+			logrus.Fatal(err)
+		}
+		binds = append(binds, pluginDir+":"+containerPluginDir)
+	}
+	logrus.Tracef("using binds: %v", binds)
+	return binds
 }
 
 func generateMetadata(d *DockerMockEngine, options engine.StartOptions) (string, map[string]string) {

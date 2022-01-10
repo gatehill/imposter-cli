@@ -25,6 +25,7 @@ type StartOptions struct {
 	LogLevel       string
 	ReplaceRunning bool
 	Deduplicate    string
+	EnablePlugins  bool
 }
 
 type PullPolicy int

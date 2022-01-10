@@ -35,7 +35,6 @@ var listCmd = &cobra.Command{
 	Long: `Lists all versions of engine binaries/images in the cache.
 
 If engine type is not specified, it defaults to all.`,
-	Args: cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
 		// unspecified type is valid
 		engineType := engine.GetConfiguredTypeWithDefault(listFlags.flagEngineType, engine.EngineTypeNone)

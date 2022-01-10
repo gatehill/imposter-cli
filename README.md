@@ -166,7 +166,7 @@ Flags:
   -h, --help            help for list
 ```
 
-#### Doctor
+#### Diagnose engine problems
 
 ```
 Checks prerequisites for running Imposter, including those needed
@@ -176,7 +176,7 @@ Usage:
   imposter doctor
 ```
 
-#### Down
+#### Stop all running mocks
 
 Example:
 
@@ -193,6 +193,27 @@ Usage:
 Flags:
   -e, --engine string   Imposter engine type (valid: docker,jvm - default "docker")
   -h, --help            help for down
+```
+
+#### Install plugin
+
+Example:
+
+    imposter plugin install [PLUGIN_NAME]
+
+Usage:
+
+```
+Installs the plugin for use with a given engine version.
+
+If version is not specified, it defaults to 'latest'.
+
+Usage:
+  imposter plugin install [PLUGIN_NAME] [flags]
+
+Flags:
+  -h, --help             help for install
+  -v, --version string   Imposter engine version (default "latest")
 ```
 
 #### Help

@@ -39,6 +39,7 @@ var upFlags = struct {
 	flagPort            int
 	flagRestartOnChange bool
 	flagScaffoldMissing bool
+	flagEnablePlugins   bool
 }{}
 
 // upCmd represents the up command
@@ -73,6 +74,7 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 			LogLevel:       cliconfig.Config.LogLevel,
 			ReplaceRunning: true,
 			Deduplicate:    upFlags.flagDeduplicate,
+			EnablePlugins:  upFlags.flagEnablePlugins,
 		}
 		mockEngine := engine.BuildEngine(engine.GetConfiguredType(upFlags.flagEngineType), configDir, startOptions)
 
@@ -93,6 +95,7 @@ func init() {
 	upCmd.Flags().BoolVar(&upFlags.flagRestartOnChange, "auto-restart", true, "Automatically restart when config dir contents change")
 	upCmd.Flags().BoolVarP(&upFlags.flagScaffoldMissing, "scaffold", "s", false, "Scaffold Imposter configuration for all OpenAPI files")
 	upCmd.Flags().StringVar(&upFlags.flagDeduplicate, "deduplicate", "", "Override deduplication ID for replacement of containers")
+	upCmd.Flags().BoolVar(&upFlags.flagEnablePlugins, "enable-plugins", true, "Whether to enable plugins")
 	rootCmd.AddCommand(upCmd)
 }
 
