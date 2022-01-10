@@ -56,6 +56,9 @@ Learn more at www.imposter.sh`,
 		if rootFlags.flagPrintVersion {
 			engineType := engine.GetConfiguredType(versionFlags.flagEngineType)
 			println(describeVersions(engineType))
+		} else {
+			// show usage
+			cobra.CheckErr(cmd.Help())
 		}
 	},
 }
