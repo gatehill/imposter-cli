@@ -70,7 +70,7 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 		}
 		startOptions := engine.StartOptions{
 			Port:           upFlags.flagPort,
-			Version:        engine.GetConfiguredVersion(upFlags.flagEngineVersion),
+			Version:        engine.GetConfiguredVersion(upFlags.flagEngineVersion, pullPolicy != engine.PullAlways),
 			PullPolicy:     pullPolicy,
 			LogLevel:       cliconfig.Config.LogLevel,
 			ReplaceRunning: true,

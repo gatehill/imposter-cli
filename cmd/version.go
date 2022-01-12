@@ -45,8 +45,8 @@ func init() {
 }
 
 func describeVersions(engineType engine.EngineType) string {
-	engineConfigVersion := engine.GetConfiguredVersion("")
-	engineVersionOutput := getInstalledEngineVersion(engineType)
+	engineConfigVersion := engine.GetConfiguredVersion("", true)
+	engineVersionOutput := getInstalledEngineVersion(engineType, engineConfigVersion)
 
 	return fmt.Sprintf(`imposter-cli %[1]v
 imposter-engine %[2]v
@@ -57,9 +57,9 @@ engine-output %[3]v`,
 	)
 }
 
-func getInstalledEngineVersion(engineType engine.EngineType) string {
+func getInstalledEngineVersion(engineType engine.EngineType, version string) string {
 	mockEngine := engine.BuildEngine(engineType, "", engine.StartOptions{
-		Version:  engine.GetConfiguredVersion(""),
+		Version:  version,
 		LogLevel: "INFO",
 	})
 	versionString, err := mockEngine.GetVersionString()

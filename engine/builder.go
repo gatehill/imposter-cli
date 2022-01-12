@@ -98,12 +98,20 @@ func GetConfiguredTypeWithDefault(override string, defaultType EngineType) Engin
 	))
 }
 
-func GetConfiguredVersion(override string) string {
-	return cliconfig.GetFirstNonEmpty(
+func GetConfiguredVersion(override string, allowCached bool) string {
+	version := cliconfig.GetFirstNonEmpty(
 		override,
 		viper.GetString("version"),
 		"latest",
 	)
+	if version == "latest" {
+		latest, err := ResolveLatestToVersion(allowCached)
+		if err != nil {
+			panic(err)
+		}
+		version = latest
+	}
+	return version
 }
 
 func SanitiseVersionOutput(s string) string {

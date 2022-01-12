@@ -36,7 +36,7 @@ var pluginInstallCmd = &cobra.Command{
 If version is not specified, it defaults to 'latest'.`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		version := engine.GetConfiguredVersion(pluginInstallFlags.flagEngineVersion)
+		version := engine.GetConfiguredVersion(pluginInstallFlags.flagEngineVersion, true)
 		pluginName := args[0]
 		installPlugin(pluginName, version)
 	},
