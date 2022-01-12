@@ -81,8 +81,12 @@ jvm:
 
 # Plugin configuration
 plugin:
-  # base directory holding plugin files (default: "$HOME/.imposter/plugins")
-  baseDir: "/path/to/dir"
+  # directory holding plugin files
+  dir: "/path/to/dir"
+
+  # base directory holding versioned directories for plugin files (default: "$HOME/.imposter/plugins")
+  # ignored if plugin.dir is set
+  baseDir: "/path/to/base/dir"
 ```
 
 ## Environment variables
@@ -98,6 +102,7 @@ Some configuration elements can be specified as environment variables:
 * IMPOSTER_JVM_BINCACHE
 * IMPOSTER_JVM_DISTRODIR
 * IMPOSTER_PLUGIN_BASEDIR
+* IMPOSTER_PLUGIN_DIR
 
 ### Engine types
 

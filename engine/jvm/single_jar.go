@@ -128,7 +128,7 @@ func checkOrDownloadBinary(version string, policy engine.PullPolicy) (string, er
 }
 
 func ensureBinCache() (string, error) {
-	return library.EnsureCache("jvm.binCache", binCacheDir)
+	return library.EnsureDirUsingConfig("jvm.binCache", binCacheDir)
 }
 
 func downloadBinary(localPath string, version string) error {

@@ -4,23 +4,36 @@ import (
 	"fmt"
 	"gatehill.io/imposter/library"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"path/filepath"
 )
 
 const pluginBaseDir = ".imposter/plugins/"
 
 func EnsurePluginDir(version string) (string, error) {
-	cachePath, err := library.EnsureCache("plugin.baseDir", pluginBaseDir)
+	fullPluginDir, err := getPluginDir(version)
 	if err != nil {
 		return "", err
 	}
-	versionedPluginDir := filepath.Join(cachePath, version)
-	err = library.EnsurePath(versionedPluginDir)
+	err = library.EnsureDir(fullPluginDir)
 	if err != nil {
 		return "", err
 	}
-	logrus.Tracef("ensured plugin directory: %v", versionedPluginDir)
-	return versionedPluginDir, nil
+	logrus.Tracef("ensured plugin directory: %v", fullPluginDir)
+	return fullPluginDir, nil
+}
+
+func getPluginDir(version string) (dir string, err error) {
+	// use IMPOSTER_PLUGIN_DIR directly, if set
+	fullPluginDir := viper.GetString("plugin.dir")
+	if fullPluginDir == "" {
+		basePluginDir, err := library.EnsureDirUsingConfig("plugin.baseDir", pluginBaseDir)
+		if err != nil {
+			return "", err
+		}
+		fullPluginDir = filepath.Join(basePluginDir, version)
+	}
+	return fullPluginDir, nil
 }
 
 func DownloadPlugin(pluginName string, engineVersion string) error {
