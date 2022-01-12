@@ -39,9 +39,6 @@ func EnableEngine() engine.EngineType {
 		engine.RegisterLibrary(engine.EngineTypeDocker, func() engine.EngineLibrary {
 			return getLibrary()
 		})
-		engine.RegisterProvider(engine.EngineTypeDocker, func(version string) engine.Provider {
-			return getProvider(version)
-		})
 		engine.RegisterEngine(engine.EngineTypeDocker, func(configDir string, startOptions engine.StartOptions) engine.MockEngine {
 			return buildEngine(configDir, startOptions)
 		})

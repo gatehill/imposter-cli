@@ -32,9 +32,6 @@ func EnableSingleJarEngine() engine.EngineType {
 		engine.RegisterLibrary(engine.EngineTypeJvmSingleJar, func() engine.EngineLibrary {
 			return getSingleJarLibrary()
 		})
-		engine.RegisterProvider(engine.EngineTypeJvmSingleJar, func(version string) engine.Provider {
-			return newSingleJarProvider(version)
-		})
 		engine.RegisterEngine(engine.EngineTypeJvmSingleJar, func(configDir string, startOptions engine.StartOptions) engine.MockEngine {
 			provider := newSingleJarProvider(startOptions.Version)
 			return buildEngine(configDir, &provider, startOptions)

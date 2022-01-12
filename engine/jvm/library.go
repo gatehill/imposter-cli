@@ -58,5 +58,5 @@ func (JvmEngineLibrary) List() ([]engine.EngineMetadata, error) {
 }
 
 func (JvmEngineLibrary) GetProvider(version string) engine.Provider {
-	return engine.GetProvider(engine.EngineTypeJvmSingleJar, version)
+	return newSingleJarProvider(version)
 }

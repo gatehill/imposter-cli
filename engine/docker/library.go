@@ -62,5 +62,5 @@ func (DockerEngineLibrary) List() ([]engine.EngineMetadata, error) {
 }
 
 func (l DockerEngineLibrary) GetProvider(version string) engine.Provider {
-	return engine.GetProvider(engine.EngineTypeDocker, version)
+	return getProvider(version)
 }

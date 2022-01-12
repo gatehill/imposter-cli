@@ -49,7 +49,7 @@ If version is not specified, it defaults to 'latest'.`,
 }
 
 func pull(version string, engineType engine.EngineType, pullPolicy engine.PullPolicy) {
-	downloader := engine.GetProvider(engineType, version)
+	downloader := engine.GetLibrary(engineType).GetProvider(version)
 	err := downloader.Provide(pullPolicy)
 	if err != nil {
 		logrus.Fatal(err)

@@ -37,16 +37,11 @@ const defaultEngineType = EngineTypeDocker
 
 var (
 	libraries = make(map[EngineType]func() EngineLibrary)
-	providers = make(map[EngineType]func(version string) Provider)
 	engines   = make(map[EngineType]func(configDir string, startOptions StartOptions) MockEngine)
 )
 
 func RegisterLibrary(engineType EngineType, b func() EngineLibrary) {
 	libraries[engineType] = b
-}
-
-func RegisterProvider(engineType EngineType, b func(version string) Provider) {
-	providers[engineType] = b
 }
 
 func RegisterEngine(engineType EngineType, b func(configDir string, startOptions StartOptions) MockEngine) {
@@ -70,17 +65,6 @@ func GetLibrary(engineType EngineType) EngineLibrary {
 		logrus.Fatalf("unregistered engine type: %v", engineType)
 	}
 	return library()
-}
-
-func GetProvider(engineType EngineType, version string) Provider {
-	if err := validateEngineType(engineType); err != nil {
-		logrus.Fatal(err)
-	}
-	provider := providers[engineType]
-	if provider == nil {
-		logrus.Fatalf("unregistered engine type: %v", engineType)
-	}
-	return provider(version)
 }
 
 func BuildEngine(engineType EngineType, configDir string, startOptions StartOptions) MockEngine {
