@@ -121,7 +121,7 @@ func (d *DockerMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.S
 }
 
 func buildEnv(options engine.StartOptions) []string {
-	env := engine.BuildEnv(options)
+	env := engine.BuildEnv(options, false)
 	logrus.Tracef("engine environment: %v", env)
 	return env
 }
