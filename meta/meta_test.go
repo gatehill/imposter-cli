@@ -8,13 +8,17 @@ import (
 	"testing"
 )
 
-func init() {
+func setup() {
 	tmpMetaDir, err := os.MkdirTemp(os.TempDir(), "imposter-meta")
 	if err != nil {
 		panic(fmt.Errorf("unable to create test meta dir: %s", err))
 	}
 	fmt.Printf("using test meta dir: %s\n", tmpMetaDir)
 	viper.Set("meta.dir", tmpMetaDir)
+}
+
+func cleanup() {
+	viper.Set("meta.dir", nil)
 }
 
 func TestReadMetaProperty(t *testing.T) {
@@ -31,6 +35,8 @@ func TestReadMetaProperty(t *testing.T) {
 		{name: "read missing property", writeTestProp: nil, args: args{key: "foo"}, want: nil, wantErr: false},
 		{name: "read existing property", writeTestProp: "baz", args: args{key: "bar"}, want: "baz", wantErr: false},
 	}
+	setup()
+	t.Cleanup(cleanup)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.writeTestProp != nil {
@@ -65,6 +71,8 @@ func TestReadMetaPropertyString(t *testing.T) {
 		{name: "read missing string", writeTestProp: "", args: args{key: "foo"}, want: "", wantErr: false},
 		{name: "read existing string", writeTestProp: "baz", args: args{key: "bar"}, want: "baz", wantErr: false},
 	}
+	setup()
+	t.Cleanup(cleanup)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.writeTestProp != "" {
@@ -99,6 +107,8 @@ func TestReadMetaPropertyInt(t *testing.T) {
 		{name: "read missing int", writeTestProp: 0, args: args{key: "foo"}, want: 0, wantErr: false},
 		{name: "read existing int", writeTestProp: 1, args: args{key: "bar"}, want: 1, wantErr: false},
 	}
+	setup()
+	t.Cleanup(cleanup)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.writeTestProp != 0 {
@@ -132,6 +142,8 @@ func TestWriteMetaProperty(t *testing.T) {
 		{name: "write string", args: args{key: "qux", value: "corge"}, wantErr: false},
 		{name: "write int", args: args{key: "grault", value: 7}, wantErr: false},
 	}
+	setup()
+	t.Cleanup(cleanup)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := WriteMetaProperty(tt.args.key, tt.args.value); (err != nil) != tt.wantErr {
