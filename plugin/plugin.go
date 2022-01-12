@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 )
 
-const pluginCacheDir = ".imposter/plugins/"
+const pluginBaseDir = ".imposter/plugins/"
 
-func EnsurePluginCache(version string) (string, error) {
-	cachePath, err := library.EnsureCache("plugin.binCache", pluginCacheDir)
+func EnsurePluginDir(version string) (string, error) {
+	cachePath, err := library.EnsureCache("plugin.baseDir", pluginBaseDir)
 	if err != nil {
 		return "", err
 	}
@@ -24,7 +24,7 @@ func EnsurePluginCache(version string) (string, error) {
 }
 
 func DownloadPlugin(pluginName string, engineVersion string) error {
-	pluginDir, err := EnsurePluginCache(engineVersion)
+	pluginDir, err := EnsurePluginDir(engineVersion)
 	if err != nil {
 		return err
 	}

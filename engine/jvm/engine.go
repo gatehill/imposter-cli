@@ -63,7 +63,7 @@ func buildEnv(options engine.StartOptions) []string {
 	env := engine.BuildEnv(options)
 	if options.EnablePlugins {
 		logrus.Tracef("plugins are enabled")
-		pluginDir, err := plugin.EnsurePluginCache(options.Version)
+		pluginDir, err := plugin.EnsurePluginDir(options.Version)
 		if err != nil {
 			logrus.Fatal(err)
 		}

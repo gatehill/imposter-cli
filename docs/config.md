@@ -78,6 +78,11 @@ jvm:
   # directory containing an unpacked Imposter distribution
   # note: this is generally only used by other tools
   distroDir: "/path/to/unpacked/distro"
+
+# Plugin configuration
+plugin:
+  # base directory holding plugin files (default: "$HOME/.imposter/plugins")
+  baseDir: "/path/to/dir"
 ```
 
 ## Environment variables
@@ -92,6 +97,7 @@ Some configuration elements can be specified as environment variables:
 * IMPOSTER_JVM_JARFILE
 * IMPOSTER_JVM_BINCACHE
 * IMPOSTER_JVM_DISTRODIR
+* IMPOSTER_PLUGIN_BASEDIR
 
 ### Engine types
 

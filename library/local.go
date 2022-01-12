@@ -21,6 +21,18 @@ func EnsureCache(settingsKey string, homeSubDirPath string) (string, error) {
 	return cachePath, nil
 }
 
+func GetCachePath(settingsKey string, homeSubDirPath string) (string, error) {
+	if envCachePath := viper.GetString(settingsKey); envCachePath != "" {
+		return envCachePath, nil
+	}
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get home directory: %v", err)
+	}
+	return filepath.Join(homeDir, homeSubDirPath), nil
+}
+
 func EnsurePath(cachePath string) error {
 	if _, err := os.Stat(cachePath); err != nil {
 		if os.IsNotExist(err) {
@@ -34,16 +46,4 @@ func EnsurePath(cachePath string) error {
 		}
 	}
 	return nil
-}
-
-func GetCachePath(settingsKey string, homeSubDirPath string) (string, error) {
-	if envCachePath := viper.GetString(settingsKey); envCachePath != "" {
-		return envCachePath, nil
-	}
-
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("failed to get home directory: %v", err)
-	}
-	return filepath.Join(homeDir, homeSubDirPath), nil
 }
