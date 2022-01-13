@@ -126,10 +126,14 @@ func SanitiseVersionOutput(s string) string {
 }
 
 func BuildEnv(options StartOptions, includeHome bool) []string {
+	return buildEnvFromParent(os.Environ(), options, includeHome)
+}
+
+func buildEnvFromParent(parentEnv []string, options StartOptions, includeHome bool) []string {
 	var env []string
 	logLevelSet := false
 
-	for _, e := range os.Environ() {
+	for _, e := range parentEnv {
 		if strings.HasPrefix(e, "IMPOSTER_") ||
 			strings.HasPrefix(e, "JAVA_TOOL_OPTIONS=") ||
 			(includeHome && strings.HasPrefix(e, "HOME=")) {
