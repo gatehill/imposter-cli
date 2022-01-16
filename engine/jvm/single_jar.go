@@ -16,7 +16,7 @@ type SingleJarProvider struct {
 	jarPath string
 }
 
-const binCacheDir = ".imposter/cache/"
+const binCacheDir = ".imposter/engines/"
 
 var singleJarInitialised = false
 
