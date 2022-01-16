@@ -132,5 +132,6 @@ func ensureBinCache() (string, error) {
 }
 
 func downloadBinary(localPath string, version string) error {
-	return library.DownloadBinary(localPath, "imposter.jar", version, true)
+	fallbackRemoteFileName := fmt.Sprintf("imposter-%v.jar", version)
+	return library.DownloadBinaryWithFallback(localPath, "imposter.jar", version, fallbackRemoteFileName)
 }

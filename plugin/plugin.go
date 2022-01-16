@@ -44,7 +44,7 @@ func DownloadPlugin(pluginName string, engineVersion string) error {
 	fullPluginFileName := fmt.Sprintf("imposter-plugin-%s.jar", pluginName)
 	pluginFilePath := filepath.Join(pluginDir, fullPluginFileName)
 
-	err = library.DownloadBinary(pluginFilePath, fullPluginFileName, engineVersion, false)
+	err = library.DownloadBinary(pluginFilePath, fullPluginFileName, engineVersion)
 	if err != nil {
 		return err
 	}

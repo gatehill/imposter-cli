@@ -11,7 +11,11 @@ import (
 const latestBaseUrl = "https://github.com/outofcoffee/imposter/releases/latest/download/"
 const versionedBaseUrlTemplate = "https://github.com/outofcoffee/imposter/releases/download/v%v/"
 
-func DownloadBinary(localPath string, remoteFileName string, version string, fallbackToVersionedFilename bool) error {
+func DownloadBinary(localPath string, remoteFileName string, version string) error {
+	return DownloadBinaryWithFallback(localPath, remoteFileName, version, "")
+}
+
+func DownloadBinaryWithFallback(localPath string, remoteFileName string, version string, fallbackRemoteFileName string) error {
 	logrus.Tracef("attempting to download %s version %s to %s", remoteFileName, version, localPath)
 	file, err := os.Create(localPath)
 	if err != nil {
@@ -38,9 +42,9 @@ func DownloadBinary(localPath string, remoteFileName string, version string, fal
 		}
 
 		// fallback to versioned binary filename
-		if resp.StatusCode == 404 && fallbackToVersionedFilename {
-			logrus.Tracef("binary not found at: %v - retrying with versioned filename", url)
-			url = versionedBaseUrl + fmt.Sprintf("imposter-%v.jar", version)
+		if resp.StatusCode == 404 && fallbackRemoteFileName != "" {
+			logrus.Tracef("binary not found at: %v - retrying with fallback filename", url)
+			url = versionedBaseUrl + fallbackRemoteFileName
 			resp, err = makeHttpRequest(url, err)
 			if err != nil {
 				return err
