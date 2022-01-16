@@ -5,15 +5,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const cacheBaseDir = ".imposter/filecache/"
+const fileCacheDir = ".imposter/filecache/"
 
 func EnsureFileCacheDir() (string, error) {
 	// use IMPOSTER_CACHE_DIR directly, if set
-	fileCacheDir, err := library.EnsureDirUsingConfig("cache.dir", cacheBaseDir)
-	if err != nil {
-		return "", err
-	}
-	err = library.EnsureDir(fileCacheDir)
+	fileCacheDir, err := library.EnsureDirUsingConfig("cache.dir", fileCacheDir)
 	if err != nil {
 		return "", err
 	}

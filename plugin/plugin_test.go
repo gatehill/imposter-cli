@@ -32,6 +32,14 @@ func TestEnsurePluginDir(t *testing.T) {
 			if got != tt.want {
 				t.Errorf("EnsurePluginDir() got = %v, want %v", got, tt.want)
 			}
+			stat, err := os.Stat(got)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("EnsurePluginDir() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !stat.IsDir() {
+				t.Errorf("EnsurePluginDir() path '%s' is not a directory", got)
+			}
 		})
 	}
 }

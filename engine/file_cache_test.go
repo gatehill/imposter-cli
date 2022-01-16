@@ -16,7 +16,7 @@ func TestEnsureFileCacheDir(t *testing.T) {
 		want    string
 		wantErr bool
 	}{
-		{name: "ensure file cache dir", want: filepath.Join(homeDir, cacheBaseDir), wantErr: false},
+		{name: "ensure file cache dir", want: filepath.Join(homeDir, fileCacheDir), wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -27,6 +27,14 @@ func TestEnsureFileCacheDir(t *testing.T) {
 			}
 			if got != tt.want {
 				t.Errorf("EnsureFileCacheDir() got = %v, want %v", got, tt.want)
+			}
+			stat, err := os.Stat(got)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("EnsureFileCacheDir() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !stat.IsDir() {
+				t.Errorf("EnsureFileCacheDir() path '%s' is not a directory", got)
 			}
 		})
 	}
