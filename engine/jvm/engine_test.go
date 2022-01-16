@@ -49,7 +49,7 @@ func TestEngine_StartStop(t *testing.T) {
 				ConfigDir: testConfigPath,
 				Options: engine.StartOptions{
 					Port:       8061,
-					Version:    "2.4.13",
+					Version:    "2.6.0",
 					PullPolicy: engine.PullIfNotPresent,
 					LogLevel:   "DEBUG",
 				},
@@ -74,7 +74,7 @@ func TestEngine_Restart(t *testing.T) {
 				ConfigDir: testConfigPath,
 				Options: engine.StartOptions{
 					Port:       8062,
-					Version:    "2.4.13",
+					Version:    "2.6.0",
 					PullPolicy: engine.PullIfNotPresent,
 					LogLevel:   "DEBUG",
 				},

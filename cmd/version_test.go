@@ -25,7 +25,7 @@ import (
 
 func Test_describeVersions(t *testing.T) {
 	// set an explicit version
-	viper.Set("version", "2.4.13")
+	viper.Set("version", "2.6.0")
 
 	type args struct {
 		engineType engine.EngineType
@@ -50,8 +50,8 @@ func Test_describeVersions(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			want := `imposter-cli dev
-imposter-engine 2.4.13
-engine-output 2.4.13`
+imposter-engine 2.6.0
+engine-output 2.6.0`
 
 			got := describeVersions(tt.args.engineType)
 			require.Equal(t, want, got, "version should match")
