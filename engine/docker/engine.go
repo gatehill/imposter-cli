@@ -40,6 +40,7 @@ import (
 
 const containerConfigDir = "/opt/imposter/config"
 const containerPluginDir = "/opt/imposter/plugins"
+const containerFileCacheDir = "/tmp/imposter-cache"
 const removalTimeoutSec = 5
 
 func (d *DockerMockEngine) Start(wg *sync.WaitGroup) bool {
@@ -122,6 +123,9 @@ func (d *DockerMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.S
 
 func buildEnv(options engine.StartOptions) []string {
 	env := engine.BuildEnv(options, false)
+	if options.EnableFileCache {
+		env = append(env, "IMPOSTER_CACHE_DIR=/tmp/imposter-cache", "IMPOSTER_OPENAPI_REMOTE_FILE_CACHE=true")
+	}
 	logrus.Tracef("engine environment: %v", env)
 	return env
 }
@@ -137,6 +141,14 @@ func buildBinds(d *DockerMockEngine, options engine.StartOptions) []string {
 			logrus.Fatal(err)
 		}
 		binds = append(binds, pluginDir+":"+containerPluginDir)
+	}
+	if options.EnableFileCache {
+		logrus.Tracef("file cache enabled")
+		fileCacheDir, err := engine.EnsureFileCacheDir()
+		if err != nil {
+			logrus.Fatal(err)
+		}
+		binds = append(binds, fileCacheDir+":"+containerFileCacheDir)
 	}
 	logrus.Tracef("using binds: %v", binds)
 	return binds

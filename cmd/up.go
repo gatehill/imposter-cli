@@ -40,6 +40,7 @@ var upFlags = struct {
 	flagRestartOnChange bool
 	flagScaffoldMissing bool
 	flagEnablePlugins   bool
+	flagEnableFileCache bool
 	flagEnvironment     []string
 }{}
 
@@ -69,14 +70,15 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 			pullPolicy = engine.PullIfNotPresent
 		}
 		startOptions := engine.StartOptions{
-			Port:           upFlags.flagPort,
-			Version:        engine.GetConfiguredVersion(upFlags.flagEngineVersion, pullPolicy != engine.PullAlways),
-			PullPolicy:     pullPolicy,
-			LogLevel:       cliconfig.Config.LogLevel,
-			ReplaceRunning: true,
-			Deduplicate:    upFlags.flagDeduplicate,
-			EnablePlugins:  upFlags.flagEnablePlugins,
-			Environment:    upFlags.flagEnvironment,
+			Port:            upFlags.flagPort,
+			Version:         engine.GetConfiguredVersion(upFlags.flagEngineVersion, pullPolicy != engine.PullAlways),
+			PullPolicy:      pullPolicy,
+			LogLevel:        cliconfig.Config.LogLevel,
+			ReplaceRunning:  true,
+			Deduplicate:     upFlags.flagDeduplicate,
+			EnablePlugins:   upFlags.flagEnablePlugins,
+			EnableFileCache: upFlags.flagEnableFileCache,
+			Environment:     upFlags.flagEnvironment,
 		}
 		engineType := engine.GetConfiguredType(upFlags.flagEngineType)
 		mockEngine := engine.BuildEngine(engineType, configDir, startOptions)
@@ -99,6 +101,7 @@ func init() {
 	upCmd.Flags().BoolVarP(&upFlags.flagScaffoldMissing, "scaffold", "s", false, "Scaffold Imposter configuration for all OpenAPI files")
 	upCmd.Flags().StringVar(&upFlags.flagDeduplicate, "deduplicate", "", "Override deduplication ID for replacement of containers")
 	upCmd.Flags().BoolVar(&upFlags.flagEnablePlugins, "enable-plugins", true, "Whether to enable plugins")
+	upCmd.Flags().BoolVar(&upFlags.flagEnableFileCache, "enable-file-cache", true, "Whether to enable file cache")
 	upCmd.Flags().StringArrayVarP(&upFlags.flagEnvironment, "env", "e", []string{}, "Explicit environment variables to set")
 	rootCmd.AddCommand(upCmd)
 }

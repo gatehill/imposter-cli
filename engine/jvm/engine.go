@@ -69,6 +69,14 @@ func buildEnv(options engine.StartOptions) []string {
 		}
 		env = append(env, "IMPOSTER_PLUGIN_DIR="+pluginDir)
 	}
+	if options.EnableFileCache {
+		logrus.Tracef("file cache enabled")
+		fileCacheDir, err := engine.EnsureFileCacheDir()
+		if err != nil {
+			logrus.Fatal(err)
+		}
+		env = append(env, "IMPOSTER_CACHE_DIR="+fileCacheDir, "IMPOSTER_OPENAPI_REMOTE_FILE_CACHE=true")
+	}
 	logrus.Tracef("engine environment: %v", env)
 	return env
 }

@@ -19,14 +19,15 @@ package engine
 import "sync"
 
 type StartOptions struct {
-	Port           int
-	Version        string
-	PullPolicy     PullPolicy
-	LogLevel       string
-	ReplaceRunning bool
-	Deduplicate    string
-	EnablePlugins  bool
-	Environment    []string
+	Port            int
+	Version         string
+	PullPolicy      PullPolicy
+	LogLevel        string
+	ReplaceRunning  bool
+	Deduplicate     string
+	EnablePlugins   bool
+	EnableFileCache bool
+	Environment     []string
 }
 
 type PullPolicy int
