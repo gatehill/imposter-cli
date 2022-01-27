@@ -79,9 +79,14 @@ jvm:
   # note: this is generally only used by other tools
   distroDir: "/path/to/unpacked/distro"
 
+# List of plugins to install
+plugins:
+- store-dynamodb
+- store-redis
+
 # Plugin configuration
 plugin:
-  # directory holding plugin files
+  # override the directory holding plugin files
   dir: "/path/to/dir"
 
   # base directory holding versioned directories for plugin files (default: "$HOME/.imposter/plugins")
@@ -93,16 +98,17 @@ plugin:
 
 Some configuration elements can be specified as environment variables:
 
-* IMPOSTER_CLI_LOG_LEVEL
-* IMPOSTER_ENGINE
-* IMPOSTER_VERSION
-* IMPOSTER_DOCKER_BINDFLAGS
-* IMPOSTER_DOCKER_CONTAINERUSER
-* IMPOSTER_JVM_JARFILE
-* IMPOSTER_JVM_BINCACHE
-* IMPOSTER_JVM_DISTRODIR
-* IMPOSTER_PLUGIN_BASEDIR
-* IMPOSTER_PLUGIN_DIR
+- IMPOSTER_CLI_LOG_LEVEL
+- IMPOSTER_ENGINE
+- IMPOSTER_VERSION
+- IMPOSTER_DOCKER_BINDFLAGS
+- IMPOSTER_DOCKER_CONTAINERUSER
+- IMPOSTER_JVM_JARFILE
+- IMPOSTER_JVM_BINCACHE
+- IMPOSTER_JVM_DISTRODIR
+- IMPOSTER_PLUGIN_BASEDIR
+- IMPOSTER_PLUGIN_DIR
+- IMPOSTER_PLUGINS
 
 ### Engine types
 
