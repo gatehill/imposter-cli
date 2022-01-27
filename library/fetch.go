@@ -21,7 +21,13 @@ func DownloadBinaryWithFallback(localPath string, remoteFileName string, version
 	if err != nil {
 		return fmt.Errorf("error creating file: %v: %v", localPath, err)
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+		if stat, err := os.Stat(localPath); err == nil && stat.Size() == 0 {
+			logrus.Tracef("removing empty file: %s", localPath)
+			_ = os.Remove(localPath)
+		}
+	}()
 
 	var url string
 	var resp *http.Response
