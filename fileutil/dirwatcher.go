@@ -22,25 +22,25 @@ import (
 	"time"
 )
 
-const checkIntervalMs = 250
+const watchDebounceMs = 1000
 
 // WatchDir observes changes to the given directory
 // and notifies on a channel when they occur.
-func WatchDir(dir string) (dirUpdated chan bool) {
-	dirUpdated = make(chan bool)
+func WatchDir(dir string) (updatedC chan bool) {
+	updatedC = make(chan bool)
 
 	w := watcher.New()
-
 	if err := w.AddRecursive(dir); err != nil {
 		logrus.Warnln(err)
 	}
 
+	dirUpdated := false
 	go func() {
 		logrus.Infof("watching for changes to: %v", dir)
 		for {
 			select {
 			case <-w.Event:
-				dirUpdated <- true
+				dirUpdated = true
 				break
 			case err := <-w.Error:
 				logrus.Warnln(err)
@@ -51,10 +51,23 @@ func WatchDir(dir string) (dirUpdated chan bool) {
 	}()
 
 	go func() {
-		if err := w.Start(time.Millisecond * checkIntervalMs); err != nil {
+		if err := w.Start(time.Millisecond * 500); err != nil {
 			logrus.Warnln(err)
 		}
 	}()
 
-	return dirUpdated
+	// debounce multiple events
+	go func() {
+		ticker := time.NewTicker(time.Millisecond * watchDebounceMs)
+		defer ticker.Stop()
+		for {
+			<-ticker.C
+			if dirUpdated {
+				updatedC <- true
+			}
+			dirUpdated = false
+		}
+	}()
+
+	return updatedC
 }
