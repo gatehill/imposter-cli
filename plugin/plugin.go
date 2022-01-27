@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/viper"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 const pluginBaseDir = ".imposter/plugins/"
@@ -26,6 +27,25 @@ func EnsurePlugins(plugins []string, version string) (int, error) {
 	return len(plugins), nil
 }
 
+func EnsureDefaultPlugins(version string) (int, error) {
+	var plugins []string
+
+	configPlugins := viper.GetStringSlice("default.plugins")
+	for _, configPlugin := range configPlugins {
+		// work-around for https://github.com/spf13/viper/issues/380
+		if strings.Contains(configPlugin, ",") {
+			for _, p := range strings.Split(configPlugin, ",") {
+				plugins = append(plugins, p)
+			}
+		} else {
+			plugins = append(plugins, configPlugin)
+		}
+	}
+
+	logrus.Tracef("found %d default plugin(s): %v", len(plugins), plugins)
+	return EnsurePlugins(plugins, version)
+}
+
 func EnsurePlugin(pluginName string, version string) error {
 	_, pluginFilePath, err := getPluginFilePath(pluginName, version)
 	if err != nil {
@@ -36,9 +56,10 @@ func EnsurePlugin(pluginName string, version string) error {
 			return fmt.Errorf("unable to stat plugin file: %s: %s", pluginFilePath, err)
 		}
 	} else {
-		logrus.Tracef("plugin %s already exists at: %s", pluginName, pluginFilePath)
+		logrus.Tracef("plugin %s version %s already exists at: %s", pluginName, version, pluginFilePath)
 		return nil
 	}
+	logrus.Debugf("plugin %s version %s is not installed", pluginName, version)
 	err = downloadPlugin(pluginName, version)
 	if err != nil {
 		return err

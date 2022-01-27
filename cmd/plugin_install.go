@@ -21,8 +21,6 @@ import (
 	"gatehill.io/imposter/plugin"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"strings"
 )
 
 var pluginInstallFlags = struct {
@@ -33,7 +31,7 @@ var pluginInstallFlags = struct {
 var pluginInstallCmd = &cobra.Command{
 	Use:   "install [PLUGIN_NAME_1] [PLUGIN_NAME_N...]",
 	Short: "Install plugins",
-	Long: `Installs the plugins for use with a given engine version.
+	Long: `Installs plugins for a specific engine version.
 
 If version is not specified, it defaults to 'latest'.
 
@@ -52,20 +50,13 @@ Example 2: Install all plugins in config file
 }
 
 func installPlugins(plugins []string, version string) {
+	var ensured int
+	var err error
 	if len(plugins) == 0 {
-		configPlugins := viper.GetStringSlice("plugins")
-		for _, configPlugin := range configPlugins {
-			// work-around for https://github.com/spf13/viper/issues/380
-			if strings.Contains(configPlugin, ",") {
-				for _, p := range strings.Split(configPlugin, ",") {
-					plugins = append(plugins, p)
-				}
-			} else {
-				plugins = append(plugins, configPlugin)
-			}
-		}
+		ensured, err = plugin.EnsureDefaultPlugins(version)
+	} else {
+		ensured, err = plugin.EnsurePlugins(plugins, version)
 	}
-	ensured, err := plugin.EnsurePlugins(plugins, version)
 	if err != nil {
 		logrus.Fatal(err)
 	}

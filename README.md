@@ -93,16 +93,18 @@ Usage:
   imposter up [CONFIG_DIR] [flags]
 
 Flags:
-      --auto-restart         Automatically restart when config dir contents change (default true)
-      --deduplicate string   Override deduplication ID for replacement of containers
-      --enable-plugins       Whether to enable plugins (default true)
-  -t, --engine-type string   Imposter engine type (valid: docker,jvm - default "docker")
-  -e, --env stringArray      Explicit environment variables to set
-  -h, --help                 help for up
-  -p, --port int             Port on which to listen (default 8080)
-      --pull                 Force engine pull
-  -s, --scaffold             Scaffold Imposter configuration for all OpenAPI files
-  -v, --version string       Imposter engine version (default "latest")
+      --auto-restart              Automatically restart when config dir contents change (default true)
+      --deduplicate string        Override deduplication ID for replacement of containers
+      --enable-file-cache         Whether to enable file cache (default true)
+      --enable-plugins            Whether to enable plugins (default true)
+  -t, --engine-type string        Imposter engine type (valid: docker,jvm - default "docker")
+  -e, --env stringArray           Explicit environment variables to set
+  -h, --help                      help for up
+      --install-default-plugins   Whether to install missing default plugins (default true)
+  -p, --port int                  Port on which to listen (default 8080)
+      --pull                      Force engine pull
+  -s, --scaffold                  Scaffold Imposter configuration for all OpenAPI files
+  -v, --version string            Imposter engine version (default "latest")
 ```
 
 #### Generate Imposter configuration from OpenAPI specification files
@@ -210,7 +212,7 @@ Example:
 Usage:
 
 ```
-Installs the plugins for use with a given engine version.
+Installs plugins for a specific engine version.
 
 If version is not specified, it defaults to 'latest'.
 

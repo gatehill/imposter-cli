@@ -22,6 +22,7 @@ import (
 	"gatehill.io/imposter/engine"
 	"gatehill.io/imposter/fileutil"
 	"gatehill.io/imposter/impostermodel"
+	"gatehill.io/imposter/plugin"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -44,6 +45,7 @@ var upFlags = struct {
 	flagEnablePlugins   bool
 	flagEnableFileCache bool
 	flagEnvironment     []string
+	flagEnsurePlugins   bool
 }{}
 
 // upCmd represents the up command
@@ -57,6 +59,21 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		injectExplicitEnvironment()
 
+		var pullPolicy engine.PullPolicy
+		if upFlags.flagForcePull {
+			pullPolicy = engine.PullAlways
+		} else {
+			pullPolicy = engine.PullIfNotPresent
+		}
+		version := engine.GetConfiguredVersion(upFlags.flagEngineVersion, pullPolicy != engine.PullAlways)
+
+		if upFlags.flagEnsurePlugins {
+			_, err := plugin.EnsureDefaultPlugins(version)
+			if err != nil {
+				logrus.Fatal(err)
+			}
+		}
+
 		var configDir string
 		if len(args) == 0 {
 			configDir, _ = os.Getwd()
@@ -67,15 +84,9 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 			logrus.Fatal(err)
 		}
 
-		var pullPolicy engine.PullPolicy
-		if upFlags.flagForcePull {
-			pullPolicy = engine.PullAlways
-		} else {
-			pullPolicy = engine.PullIfNotPresent
-		}
 		startOptions := engine.StartOptions{
 			Port:            upFlags.flagPort,
-			Version:         engine.GetConfiguredVersion(upFlags.flagEngineVersion, pullPolicy != engine.PullAlways),
+			Version:         version,
 			PullPolicy:      pullPolicy,
 			LogLevel:        config.Config.LogLevel,
 			ReplaceRunning:  true,
@@ -112,6 +123,7 @@ func init() {
 	upCmd.Flags().BoolVarP(&upFlags.flagScaffoldMissing, "scaffold", "s", false, "Scaffold Imposter configuration for all OpenAPI files")
 	upCmd.Flags().StringVar(&upFlags.flagDeduplicate, "deduplicate", "", "Override deduplication ID for replacement of containers")
 	upCmd.Flags().BoolVar(&upFlags.flagEnablePlugins, "enable-plugins", true, "Whether to enable plugins")
+	upCmd.Flags().BoolVar(&upFlags.flagEnsurePlugins, "install-default-plugins", true, "Whether to install missing default plugins")
 	upCmd.Flags().BoolVar(&upFlags.flagEnableFileCache, "enable-file-cache", true, "Whether to enable file cache")
 	upCmd.Flags().StringArrayVarP(&upFlags.flagEnvironment, "env", "e", []string{}, "Explicit environment variables to set")
 	rootCmd.AddCommand(upCmd)

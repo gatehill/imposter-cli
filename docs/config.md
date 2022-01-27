@@ -16,16 +16,18 @@ Usage:
   imposter up [CONFIG_DIR] [flags]
 
 Flags:
-      --auto-restart         Automatically restart when config dir contents change (default true)
-      --deduplicate string   Override deduplication ID for replacement of containers
-      --enable-plugins       Whether to enable plugins (default true)
-  -t, --engine-type string   Imposter engine type (valid: docker,jvm - default "docker")
-  -e, --env stringArray      Explicit environment variables to set
-  -h, --help                 help for up
-  -p, --port int             Port on which to listen (default 8080)
-      --pull                 Force engine pull
-  -s, --scaffold             Scaffold Imposter configuration for all OpenAPI files
-  -v, --version string       Imposter engine version (default "latest")
+      --auto-restart              Automatically restart when config dir contents change (default true)
+      --deduplicate string        Override deduplication ID for replacement of containers
+      --enable-file-cache         Whether to enable file cache (default true)
+      --enable-plugins            Whether to enable plugins (default true)
+  -t, --engine-type string        Imposter engine type (valid: docker,jvm - default "docker")
+  -e, --env stringArray           Explicit environment variables to set
+  -h, --help                      help for up
+      --install-default-plugins   Whether to install missing default plugins (default true)
+  -p, --port int                  Port on which to listen (default 8080)
+      --pull                      Force engine pull
+  -s, --scaffold                  Scaffold Imposter configuration for all OpenAPI files
+  -v, --version string            Imposter engine version (default "latest")
 ```
 
 ## Mock configuration files
@@ -79,11 +81,6 @@ jvm:
   # note: this is generally only used by other tools
   distroDir: "/path/to/unpacked/distro"
 
-# List of plugins to install
-plugins:
-- store-dynamodb
-- store-redis
-
 # Plugin configuration
 plugin:
   # override the directory holding plugin files
@@ -92,6 +89,13 @@ plugin:
   # base directory holding versioned directories for plugin files (default: "$HOME/.imposter/plugins")
   # ignored if plugin.dir is set
   baseDir: "/path/to/base/dir"
+
+# Default configuration regardless of engine version
+default:
+  # List of plugins to install
+  plugins:
+    - store-dynamodb
+    - store-redis
 ```
 
 ## Environment variables
@@ -101,6 +105,7 @@ Some configuration elements can be specified as environment variables:
 - IMPOSTER_CLI_LOG_LEVEL
 - IMPOSTER_ENGINE
 - IMPOSTER_VERSION
+- IMPOSTER_DEFAULT_PLUGINS
 - IMPOSTER_DOCKER_BINDFLAGS
 - IMPOSTER_DOCKER_CONTAINERUSER
 - IMPOSTER_JVM_JARFILE
@@ -108,7 +113,6 @@ Some configuration elements can be specified as environment variables:
 - IMPOSTER_JVM_DISTRODIR
 - IMPOSTER_PLUGIN_BASEDIR
 - IMPOSTER_PLUGIN_DIR
-- IMPOSTER_PLUGINS
 
 ### Engine types
 
