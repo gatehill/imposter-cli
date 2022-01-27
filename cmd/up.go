@@ -27,6 +27,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"sync"
 	"syscall"
 )
@@ -53,6 +54,8 @@ var upCmd = &cobra.Command{
 If CONFIG_DIR is not specified, the current working directory is used.`,
 	Args: cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
+		injectExplicitEnvironment()
+
 		var configDir string
 		if len(args) == 0 {
 			configDir, _ = os.Getwd()
@@ -90,6 +93,13 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 		wg.Wait()
 		logrus.Debug("shutting down")
 	},
+}
+
+func injectExplicitEnvironment() {
+	for _, env := range upFlags.flagEnvironment {
+		envParts := strings.Split(env, "=")
+		_ = os.Setenv(envParts[0], envParts[1])
+	}
 }
 
 func init() {
