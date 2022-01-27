@@ -22,6 +22,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"strings"
 )
 
 var pluginInstallFlags = struct {
@@ -51,10 +52,20 @@ Example 2: Install all plugins in config file
 }
 
 func installPlugins(plugins []string, version string) {
-	if len(plugins) > 0 {
-		viper.Set("plugins", plugins)
+	if len(plugins) == 0 {
+		configPlugins := viper.GetStringSlice("plugins")
+		for _, configPlugin := range configPlugins {
+			// work-around for https://github.com/spf13/viper/issues/380
+			if strings.Contains(configPlugin, ",") {
+				for _, p := range strings.Split(configPlugin, ",") {
+					plugins = append(plugins, p)
+				}
+			} else {
+				plugins = append(plugins, configPlugin)
+			}
+		}
 	}
-	ensured, err := plugin.EnsurePlugins(version)
+	ensured, err := plugin.EnsurePlugins(plugins, version)
 	if err != nil {
 		logrus.Fatal(err)
 	}

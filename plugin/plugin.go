@@ -11,8 +11,7 @@ import (
 
 const pluginBaseDir = ".imposter/plugins/"
 
-func EnsurePlugins(version string) (int, error) {
-	plugins := viper.GetStringSlice("plugins")
+func EnsurePlugins(plugins []string, version string) (int, error) {
 	logrus.Tracef("ensuring %d plugins: %v", len(plugins), plugins)
 	if len(plugins) == 0 {
 		return 0, nil
@@ -22,6 +21,7 @@ func EnsurePlugins(version string) (int, error) {
 		if err != nil {
 			return 0, fmt.Errorf("error ensuring plugin %s: %s", plugin, err)
 		}
+		logrus.Debugf("plugin %s version %s is installed", plugin, version)
 	}
 	return len(plugins), nil
 }
@@ -43,7 +43,6 @@ func EnsurePlugin(pluginName string, version string) error {
 	if err != nil {
 		return err
 	}
-	logrus.Debugf("downloaded plugin %s", pluginName)
 	return nil
 }
 
@@ -82,7 +81,7 @@ func downloadPlugin(pluginName string, version string) error {
 	if err != nil {
 		return err
 	}
-	logrus.Infof("downloaded plugin '%s' version %s", pluginName, version)
+	logrus.Infof("downloaded plugin %s version %s", pluginName, version)
 	return nil
 }
 
