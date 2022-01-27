@@ -21,6 +21,7 @@ import (
 	"gatehill.io/imposter/plugin"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var pluginInstallFlags = struct {
@@ -29,25 +30,39 @@ var pluginInstallFlags = struct {
 
 // pluginInstallCmd represents the pluginInstall command
 var pluginInstallCmd = &cobra.Command{
-	Use:   "install [PLUGIN_NAME]",
-	Short: "Install plugin",
-	Long: `Installs the plugin for use with a given engine version.
+	Use:   "install [PLUGIN_NAME_1] [PLUGIN_NAME_N...]",
+	Short: "Install plugins",
+	Long: `Installs the plugins for use with a given engine version.
 
-If version is not specified, it defaults to 'latest'.`,
-	Args: cobra.ExactArgs(1),
+If version is not specified, it defaults to 'latest'.
+
+Example 1: Install named plugin
+
+	imposter plugin install store-redis
+
+Example 2: Install all plugins in config file
+
+	imposter plugin install`,
+	Args: cobra.ArbitraryArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		version := engine.GetConfiguredVersion(pluginInstallFlags.flagEngineVersion, true)
-		pluginName := args[0]
-		installPlugin(pluginName, version)
+		installPlugins(args, version)
 	},
 }
 
-func installPlugin(pluginName string, version string) {
-	err := plugin.DownloadPlugin(pluginName, version)
+func installPlugins(plugins []string, version string) {
+	if len(plugins) > 0 {
+		viper.Set("plugins", plugins)
+	}
+	ensured, err := plugin.EnsurePlugins(version)
 	if err != nil {
 		logrus.Fatal(err)
 	}
-	logrus.Infof("installed plugin '%s' version %s", pluginName, version)
+	if ensured == 0 {
+		logrus.Infof("no plugins to install")
+	} else {
+		logrus.Infof("%d plugin(s) installed", ensured)
+	}
 }
 
 func init() {

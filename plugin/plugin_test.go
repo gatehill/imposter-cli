@@ -1,10 +1,16 @@
 package plugin
 
 import (
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"os"
 	"path/filepath"
 	"testing"
 )
+
+func init() {
+	logrus.SetLevel(logrus.TraceLevel)
+}
 
 func TestEnsurePluginDir(t *testing.T) {
 	homeDir, err := os.UserHomeDir()
@@ -39,6 +45,58 @@ func TestEnsurePluginDir(t *testing.T) {
 			}
 			if !stat.IsDir() {
 				t.Errorf("EnsurePluginDir() path '%s' is not a directory", got)
+			}
+		})
+	}
+}
+
+func TestEnsurePlugin(t *testing.T) {
+	type args struct {
+		pluginName string
+		version    string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{name: "fetch plugin", args: args{pluginName: "store-redis", version: "2.6.0"}, wantErr: false},
+		{name: "fetch nonexistent plugin version", args: args{pluginName: "store-redis", version: "0.0.0"}, wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := EnsurePlugin(tt.args.pluginName, tt.args.version); (err != nil) != tt.wantErr {
+				t.Errorf("EnsurePlugin() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestEnsurePlugins(t *testing.T) {
+	type args struct {
+		version string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		plugins []string
+		wantErr bool
+	}{
+		{name: "no op if no plugins configured", args: args{version: "2.6.0"}, plugins: nil, wantErr: false},
+		{name: "fetch configured plugins", args: args{version: "2.6.0"}, plugins: []string{"store-redis"}, wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			viper.Set("plugins", tt.plugins)
+			t.Cleanup(func() {
+				viper.Set("plugins", nil)
+			})
+			ensured, err := EnsurePlugins(tt.args.version)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("EnsurePlugins() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if ensured != len(tt.plugins) {
+				t.Errorf("EnsurePlugins() wanted %d plugins, ensured: %d", len(tt.plugins), ensured)
 			}
 		})
 	}
