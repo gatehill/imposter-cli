@@ -18,7 +18,7 @@ package cmd
 
 import (
 	"fmt"
-	"gatehill.io/imposter/cliconfig"
+	"gatehill.io/imposter/config"
 	"gatehill.io/imposter/engine"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -51,7 +51,7 @@ func describeVersions(engineType engine.EngineType) string {
 	return fmt.Sprintf(`imposter-cli %[1]v
 imposter-engine %[2]v
 engine-output %[3]v`,
-		cliconfig.Config.Version,
+		config.Config.Version,
 		engineConfigVersion,
 		engineVersionOutput,
 	)

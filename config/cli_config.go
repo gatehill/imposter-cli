@@ -14,12 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cliconfig
-
-import (
-	"os"
-	"strings"
-)
+package config
 
 type CliConfig struct {
 	Version  string
@@ -42,21 +37,4 @@ func GetFirstNonEmpty(candidates ...string) string {
 		}
 	}
 	return ""
-}
-
-func MatchesConfigFileFmt(file os.DirEntry) bool {
-	for _, configFileSuffix := range getConfigFileSuffixes() {
-		if strings.HasSuffix(file.Name(), configFileSuffix) {
-			return true
-		}
-	}
-	return false
-}
-
-func getConfigFileSuffixes() []string {
-	return []string{
-		"-config.yaml",
-		"-config.yml",
-		"-config.json",
-	}
 }

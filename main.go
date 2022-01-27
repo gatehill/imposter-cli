@@ -17,8 +17,8 @@ limitations under the License.
 package main
 
 import (
-	"gatehill.io/imposter/cliconfig"
 	"gatehill.io/imposter/cmd"
+	"gatehill.io/imposter/config"
 	"gatehill.io/imposter/engine/docker"
 	"gatehill.io/imposter/engine/jvm"
 	"github.com/sirupsen/logrus"
@@ -30,7 +30,7 @@ const defaultLogLevel = "debug"
 var version string
 
 func main() {
-	lvl := cliconfig.GetFirstNonEmpty(os.Getenv("LOG_LEVEL"), os.Getenv("IMPOSTER_CLI_LOG_LEVEL"))
+	lvl := config.GetFirstNonEmpty(os.Getenv("LOG_LEVEL"), os.Getenv("IMPOSTER_CLI_LOG_LEVEL"))
 	if lvl == "" {
 		lvl = defaultLogLevel
 	}
@@ -44,7 +44,7 @@ func main() {
 	if version == "" {
 		version = "dev"
 	}
-	cliconfig.Config = cliconfig.CliConfig{
+	config.Config = config.CliConfig{
 		LogLevel: lvl,
 		Version:  version,
 	}

@@ -18,12 +18,13 @@ package cmd
 
 import (
 	"fmt"
-	"gatehill.io/imposter/cliconfig"
+	"gatehill.io/imposter/config"
 	"gatehill.io/imposter/engine"
 	"gatehill.io/imposter/fileutil"
 	"gatehill.io/imposter/impostermodel"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -76,7 +77,7 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 			Port:            upFlags.flagPort,
 			Version:         engine.GetConfiguredVersion(upFlags.flagEngineVersion, pullPolicy != engine.PullAlways),
 			PullPolicy:      pullPolicy,
-			LogLevel:        cliconfig.Config.LogLevel,
+			LogLevel:        config.Config.LogLevel,
 			ReplaceRunning:  true,
 			Deduplicate:     upFlags.flagDeduplicate,
 			EnablePlugins:   upFlags.flagEnablePlugins,
@@ -124,18 +125,13 @@ func validateConfigExists(configDir string, scaffoldMissing bool) error {
 	if !fileInfo.IsDir() {
 		return fmt.Errorf("path is not a directory: %v", configDir)
 	}
-	files, err := os.ReadDir(configDir)
-	if err != nil {
-		return fmt.Errorf("unable to list directory contents: %v: %v", configDir, err)
+
+	// check for IMPOSTER_CONFIG_SCAN_RECURSIVE
+	recursive := viper.GetBool("config.scan.recursive")
+	if config.ContainsConfigFile(configDir, recursive) {
+		return nil
 	}
 
-	configFileFound := false
-	for _, file := range files {
-		configFileFound = cliconfig.MatchesConfigFileFmt(file)
-		if configFileFound {
-			return nil
-		}
-	}
 	if scaffoldMissing {
 		logrus.Infof("scaffolding Imposter configuration files")
 		impostermodel.CreateFromSpecs(configDir, false, false, impostermodel.ScriptEngineNone)

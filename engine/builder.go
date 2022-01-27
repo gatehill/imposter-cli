@@ -18,7 +18,7 @@ package engine
 
 import (
 	"fmt"
-	"gatehill.io/imposter/cliconfig"
+	"gatehill.io/imposter/config"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"os"
@@ -91,7 +91,7 @@ func GetConfiguredType(override string) EngineType {
 }
 
 func GetConfiguredTypeWithDefault(override string, defaultType EngineType) EngineType {
-	return EngineType(cliconfig.GetFirstNonEmpty(
+	return EngineType(config.GetFirstNonEmpty(
 		override,
 		viper.GetString("engine"),
 		string(defaultType),
@@ -99,7 +99,7 @@ func GetConfiguredTypeWithDefault(override string, defaultType EngineType) Engin
 }
 
 func GetConfiguredVersion(override string, allowCached bool) string {
-	version := cliconfig.GetFirstNonEmpty(
+	version := config.GetFirstNonEmpty(
 		override,
 		viper.GetString("version"),
 		"latest",
