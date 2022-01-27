@@ -205,17 +205,25 @@ Flags:
 
 Example:
 
-    imposter plugin install [PLUGIN_NAME]
+    imposter plugin install [PLUGIN_NAME_1] [PLUGIN_NAME_N...]
 
 Usage:
 
 ```
-Installs the plugin for use with a given engine version.
+Installs the plugins for use with a given engine version.
 
 If version is not specified, it defaults to 'latest'.
 
+Example 1: Install named plugin
+
+        imposter plugin install store-redis
+
+Example 2: Install all plugins in config file
+
+        imposter plugin install
+
 Usage:
-  imposter plugin install [PLUGIN_NAME] [flags]
+  imposter plugin install [PLUGIN_NAME_1] [PLUGIN_NAME_N...] [flags]
 
 Flags:
   -h, --help             help for install
