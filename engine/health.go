@@ -53,7 +53,7 @@ func WaitUntilUp(port int, shutDownC chan bool) (success bool) {
 			if _, err := io.ReadAll(resp.Body); err != nil {
 				continue
 			}
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			if resp.StatusCode == 200 {
 				startedC <- true
 				break
@@ -65,7 +65,7 @@ func WaitUntilUp(port int, shutDownC chan bool) (success bool) {
 	select {
 	case <-max.C:
 		finished = true
-		logrus.Fatal("timed out waiting for engine to start")
+		logrus.Fatalf("timed out waiting for engine to start: could not reach status endpoint: %s", url)
 		return false
 	case <-startedC:
 		finished = true
