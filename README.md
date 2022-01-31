@@ -249,6 +249,10 @@ The default log level is `debug`. You can override this by setting the `LOG_LEVE
 
     export LOG_LEVEL=info
 
+...or passing the `--log-level <LEVEL>` argument, for example:
+
+    imposter up --log-level trace
+
 ### Configuration
 
 Learn more about [configuration](./docs/config.md).
