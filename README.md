@@ -94,6 +94,7 @@ Usage:
 
 Flags:
       --auto-restart              Automatically restart when config dir contents change (default true)
+      --bind-mount stringArray    (Docker engine type only) Extra bind-mounts in the form HOST_PATH:CONTAINER_PATH (e.g. $HOME/somedir:/opt/imposter/somedir)
       --deduplicate string        Override deduplication ID for replacement of containers
       --enable-file-cache         Whether to enable file cache (default true)
       --enable-plugins            Whether to enable plugins (default true)

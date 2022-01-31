@@ -150,6 +150,7 @@ func buildBinds(d *DockerMockEngine, options engine.StartOptions) []string {
 		}
 		binds = append(binds, fileCacheDir+":"+containerFileCacheDir)
 	}
+	binds = append(binds, options.BindMounts...)
 	logrus.Tracef("using binds: %v", binds)
 	return binds
 }

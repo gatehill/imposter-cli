@@ -43,9 +43,10 @@ var upFlags = struct {
 	flagRestartOnChange bool
 	flagScaffoldMissing bool
 	flagEnablePlugins   bool
+	flagEnsurePlugins   bool
 	flagEnableFileCache bool
 	flagEnvironment     []string
-	flagEnsurePlugins   bool
+	flagBindMounts      []string
 }{}
 
 // upCmd represents the up command
@@ -94,16 +95,9 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 			EnablePlugins:   upFlags.flagEnablePlugins,
 			EnableFileCache: upFlags.flagEnableFileCache,
 			Environment:     upFlags.flagEnvironment,
+			BindMounts:      upFlags.flagBindMounts,
 		}
-		engineType := engine.GetConfiguredType(upFlags.flagEngineType)
-		mockEngine := engine.BuildEngine(engineType, configDir, startOptions)
-
-		wg := &sync.WaitGroup{}
-		trapExit(mockEngine, wg)
-		start(mockEngine, wg, configDir, upFlags.flagRestartOnChange)
-
-		wg.Wait()
-		logrus.Debug("shutting down")
+		start(upFlags.flagEngineType, startOptions, configDir, upFlags.flagRestartOnChange)
 	},
 }
 
@@ -126,6 +120,7 @@ func init() {
 	upCmd.Flags().BoolVar(&upFlags.flagEnsurePlugins, "install-default-plugins", true, "Whether to install missing default plugins")
 	upCmd.Flags().BoolVar(&upFlags.flagEnableFileCache, "enable-file-cache", true, "Whether to enable file cache")
 	upCmd.Flags().StringArrayVarP(&upFlags.flagEnvironment, "env", "e", []string{}, "Explicit environment variables to set")
+	upCmd.Flags().StringArrayVar(&upFlags.flagBindMounts, "bind-mount", []string{}, "(Docker engine type only) Extra bind-mounts in the form HOST_PATH:CONTAINER_PATH (e.g. $HOME/somedir:/opt/imposter/somedir)")
 	rootCmd.AddCommand(upCmd)
 }
 
@@ -153,18 +148,12 @@ func validateConfigExists(configDir string, scaffoldMissing bool) error {
 Consider running 'imposter scaffold' first.`, configDir)
 }
 
-// listen for an interrupt from the OS, then attempt engine cleanup
-func trapExit(mockEngine engine.MockEngine, wg *sync.WaitGroup) {
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-c
-		println()
-		mockEngine.StopImmediately(wg)
-	}()
-}
+func start(engineTypeRaw string, startOptions engine.StartOptions, configDir string, restartOnChange bool) {
+	engineType := engine.GetConfiguredType(engineTypeRaw)
+	mockEngine := engine.BuildEngine(engineType, configDir, startOptions)
 
-func start(mockEngine engine.MockEngine, wg *sync.WaitGroup, configDir string, restartOnChange bool) {
+	wg := &sync.WaitGroup{}
+	trapExit(mockEngine, wg)
 	success := mockEngine.Start(wg)
 
 	if success && restartOnChange {
@@ -177,4 +166,18 @@ func start(mockEngine engine.MockEngine, wg *sync.WaitGroup, configDir string, r
 			}
 		}()
 	}
+
+	wg.Wait()
+	logrus.Debug("shutting down")
+}
+
+// listen for an interrupt from the OS, then attempt engine cleanup
+func trapExit(mockEngine engine.MockEngine, wg *sync.WaitGroup) {
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		println()
+		mockEngine.StopImmediately(wg)
+	}()
 }

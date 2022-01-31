@@ -28,6 +28,7 @@ type StartOptions struct {
 	EnablePlugins   bool
 	EnableFileCache bool
 	Environment     []string
+	BindMounts      []string
 }
 
 type PullPolicy int
