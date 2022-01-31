@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"gatehill.io/imposter/config"
 	"gatehill.io/imposter/engine"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/sirupsen/logrus"
@@ -30,6 +31,7 @@ import (
 var rootFlags = struct {
 	cfgFile          string
 	flagPrintVersion bool
+	logLevel         string
 }{}
 
 // rootCmd represents the base command when called without any subcommands
@@ -70,13 +72,16 @@ func Execute() {
 }
 
 func init() {
-	cobra.OnInitialize(initConfig)
+	cobra.OnInitialize(initConfig, initLogging)
 
 	// syntactic sugar to support common `<app> --version` usage
 	rootCmd.Flags().BoolVar(&rootFlags.flagPrintVersion, "version", false, "Print version information")
 
 	// Global flags.
 	rootCmd.PersistentFlags().StringVar(&rootFlags.cfgFile, "config", "", "config file (default is $HOME/.imposter/config.yaml)")
+
+	// Global flags.
+	rootCmd.PersistentFlags().StringVar(&rootFlags.logLevel, "log-level", "debug", "log level")
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -102,5 +107,11 @@ func initConfig() {
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
 		logrus.Tracef("using CLI config file: %v", viper.ConfigFileUsed())
+	}
+}
+
+func initLogging() {
+	if rootFlags.logLevel != "" {
+		config.SetLogLevel(rootFlags.logLevel)
 	}
 }

@@ -21,7 +21,6 @@ import (
 	"gatehill.io/imposter/config"
 	"gatehill.io/imposter/engine/docker"
 	"gatehill.io/imposter/engine/jvm"
-	"github.com/sirupsen/logrus"
 	"os"
 )
 
@@ -30,16 +29,8 @@ const defaultLogLevel = "debug"
 var version string
 
 func main() {
-	lvl := config.GetFirstNonEmpty(os.Getenv("LOG_LEVEL"), os.Getenv("IMPOSTER_CLI_LOG_LEVEL"))
-	if lvl == "" {
-		lvl = defaultLogLevel
-	}
-	ll, err := logrus.ParseLevel(lvl)
-	if err != nil {
-		ll = logrus.DebugLevel
-	}
-	// set global log level
-	logrus.SetLevel(ll)
+	lvl := config.GetFirstNonEmpty(os.Getenv("LOG_LEVEL"), os.Getenv("IMPOSTER_CLI_LOG_LEVEL"), defaultLogLevel)
+	config.SetLogLevel(lvl)
 
 	if version == "" {
 		version = "dev"

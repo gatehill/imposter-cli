@@ -16,6 +16,8 @@ limitations under the License.
 
 package config
 
+import "github.com/sirupsen/logrus"
+
 type CliConfig struct {
 	Version  string
 	LogLevel string
@@ -37,4 +39,12 @@ func GetFirstNonEmpty(candidates ...string) string {
 		}
 	}
 	return ""
+}
+
+func SetLogLevel(lvl string) {
+	ll, err := logrus.ParseLevel(lvl)
+	if err != nil {
+		ll = logrus.DebugLevel
+	}
+	logrus.SetLevel(ll)
 }
