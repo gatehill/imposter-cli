@@ -46,7 +46,7 @@ var upFlags = struct {
 	flagEnsurePlugins   bool
 	flagEnableFileCache bool
 	flagEnvironment     []string
-	flagMountDirs       []string
+	flagDirMounts       []string
 }{}
 
 // upCmd represents the up command
@@ -95,7 +95,7 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 			EnablePlugins:   upFlags.flagEnablePlugins,
 			EnableFileCache: upFlags.flagEnableFileCache,
 			Environment:     upFlags.flagEnvironment,
-			MountDirs:       upFlags.flagMountDirs,
+			DirMounts:       upFlags.flagDirMounts,
 		}
 		start(upFlags.flagEngineType, startOptions, configDir, upFlags.flagRestartOnChange)
 	},
@@ -120,7 +120,7 @@ func init() {
 	upCmd.Flags().BoolVar(&upFlags.flagEnsurePlugins, "install-default-plugins", true, "Whether to install missing default plugins")
 	upCmd.Flags().BoolVar(&upFlags.flagEnableFileCache, "enable-file-cache", true, "Whether to enable file cache")
 	upCmd.Flags().StringArrayVarP(&upFlags.flagEnvironment, "env", "e", []string{}, "Explicit environment variables to set")
-	upCmd.Flags().StringArrayVar(&upFlags.flagMountDirs, "mount-dir", []string{}, "(Docker engine type only) Extra directory bind-mounts in the form HOST_PATH:CONTAINER_PATH (e.g. $HOME/somedir:/opt/imposter/somedir) or simply HOST_PATH, which will mount the directory at /opt/imposter/<dir>")
+	upCmd.Flags().StringArrayVar(&upFlags.flagDirMounts, "mount-dir", []string{}, "(Docker engine type only) Extra directory bind-mounts in the form HOST_PATH:CONTAINER_PATH (e.g. $HOME/somedir:/opt/imposter/somedir) or simply HOST_PATH, which will mount the directory at /opt/imposter/<dir>")
 	rootCmd.AddCommand(upCmd)
 }
 

@@ -28,7 +28,7 @@ type StartOptions struct {
 	EnablePlugins   bool
 	EnableFileCache bool
 	Environment     []string
-	MountDirs       []string
+	DirMounts       []string
 }
 
 type PullPolicy int

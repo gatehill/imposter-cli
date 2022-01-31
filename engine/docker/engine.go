@@ -150,15 +150,38 @@ func buildBinds(d *DockerMockEngine, options engine.StartOptions) []string {
 		}
 		binds = append(binds, fileCacheDir+":"+containerFileCacheDir)
 	}
-	for _, mountSpec := range options.MountDirs {
-		if !strings.Contains(mountSpec, ":") {
+	binds = append(binds, parseDirMounts(options.DirMounts)...)
+	logrus.Tracef("using binds: %v", binds)
+	return binds
+}
+
+// parseDirMounts validates the directory mounts, generating
+// the container path if not provided
+func parseDirMounts(dirMounts []string) []string {
+	var binds []string
+	for _, mountSpec := range dirMounts {
+		var hostDir string
+		if strings.Contains(mountSpec, ":") {
+			splitSpec := strings.Split(mountSpec, ":")
+			hostDir = splitSpec[0]
+
+		} else {
+			hostDir = mountSpec
 			// generate container path based on last dir name
 			_, dir := filepath.Split(mountSpec)
-			mountSpec = fmt.Sprintf("%s:/opt/imposter/%s", mountSpec, dir)
+			containerDir := filepath.Join("/opt/imposter/", dir)
+			mountSpec = fmt.Sprintf("%s:%s", hostDir, containerDir)
+		}
+
+		hostDirInfo, err := os.Stat(hostDir)
+		if err != nil {
+			logrus.Fatalf("failed to stat host dir: %s", hostDir)
+		}
+		if !hostDirInfo.IsDir() {
+			logrus.Fatalf("host path: %s is not a directory", hostDir)
 		}
 		binds = append(binds, mountSpec)
 	}
-	logrus.Tracef("using binds: %v", binds)
 	return binds
 }
 

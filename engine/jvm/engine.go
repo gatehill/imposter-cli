@@ -33,7 +33,7 @@ func (j *JvmMockEngine) Start(wg *sync.WaitGroup) bool {
 }
 
 func (j *JvmMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.StartOptions) (success bool) {
-	if len(options.MountDirs) > 0 {
+	if len(options.DirMounts) > 0 {
 		logrus.Warnf("JVM engine does not support directory mounts - these will be ignored")
 	}
 
