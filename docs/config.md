@@ -17,7 +17,6 @@ Usage:
 
 Flags:
       --auto-restart              Automatically restart when config dir contents change (default true)
-      --bind-mount stringArray    (Docker engine type only) Extra bind-mounts in the form HOST_PATH:CONTAINER_PATH (e.g. $HOME/somedir:/opt/imposter/somedir)
       --deduplicate string        Override deduplication ID for replacement of containers
       --enable-file-cache         Whether to enable file cache (default true)
       --enable-plugins            Whether to enable plugins (default true)
@@ -25,6 +24,7 @@ Flags:
   -e, --env stringArray           Explicit environment variables to set
   -h, --help                      help for up
       --install-default-plugins   Whether to install missing default plugins (default true)
+      --mount-dir stringArray     (Docker engine type only) Extra directory bind-mounts in the form HOST_PATH:CONTAINER_PATH (e.g. $HOME/somedir:/opt/imposter/somedir) or simply HOST_PATH, which will mount the directory at /opt/imposter/<dir>
   -p, --port int                  Port on which to listen (default 8080)
       --pull                      Force engine pull
   -s, --scaffold                  Scaffold Imposter configuration for all OpenAPI files

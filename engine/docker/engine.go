@@ -150,7 +150,14 @@ func buildBinds(d *DockerMockEngine, options engine.StartOptions) []string {
 		}
 		binds = append(binds, fileCacheDir+":"+containerFileCacheDir)
 	}
-	binds = append(binds, options.BindMounts...)
+	for _, mountSpec := range options.MountDirs {
+		if !strings.Contains(mountSpec, ":") {
+			// generate container path based on last dir name
+			_, dir := filepath.Split(mountSpec)
+			mountSpec = fmt.Sprintf("%s:/opt/imposter/%s", mountSpec, dir)
+		}
+		binds = append(binds, mountSpec)
+	}
 	logrus.Tracef("using binds: %v", binds)
 	return binds
 }
