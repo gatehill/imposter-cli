@@ -230,6 +230,7 @@ Usage:
 
 Flags:
   -h, --help             help for install
+  -d, --save-default     Whether to save the plugin as a default
   -v, --version string   Imposter engine version (default "latest")
 ```
 
