@@ -25,6 +25,7 @@ import (
 
 var pluginInstallFlags = struct {
 	flagEngineVersion string
+	flagSaveDefault   bool
 }{}
 
 // pluginInstallCmd represents the pluginInstall command
@@ -45,17 +46,23 @@ Example 2: Install all plugins in config file
 	Args: cobra.ArbitraryArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		version := engine.GetConfiguredVersion(pluginInstallFlags.flagEngineVersion, true)
-		installPlugins(args, version)
+		installPlugins(args, version, pluginInstallFlags.flagSaveDefault)
 	},
 }
 
-func installPlugins(plugins []string, version string) {
+func init() {
+	pluginInstallCmd.Flags().StringVarP(&pluginInstallFlags.flagEngineVersion, "version", "v", "", "Imposter engine version (default \"latest\")")
+	pluginInstallCmd.Flags().BoolVarP(&pluginInstallFlags.flagSaveDefault, "save-default", "d", false, "Whether to save the plugin as a default")
+	pluginCmd.AddCommand(pluginInstallCmd)
+}
+
+func installPlugins(plugins []string, version string, saveDefault bool) {
 	var ensured int
 	var err error
 	if len(plugins) == 0 {
 		ensured, err = plugin.EnsureDefaultPlugins(version)
 	} else {
-		ensured, err = plugin.EnsurePlugins(plugins, version)
+		ensured, err = plugin.EnsurePlugins(plugins, version, saveDefault)
 	}
 	if err != nil {
 		logrus.Fatal(err)
@@ -65,9 +72,4 @@ func installPlugins(plugins []string, version string) {
 	} else {
 		logrus.Infof("%d plugin(s) installed", ensured)
 	}
-}
-
-func init() {
-	pluginInstallCmd.Flags().StringVarP(&pluginInstallFlags.flagEngineVersion, "version", "v", "", "Imposter engine version (default \"latest\")")
-	pluginCmd.AddCommand(pluginInstallCmd)
 }

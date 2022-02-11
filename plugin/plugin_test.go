@@ -86,7 +86,7 @@ func TestEnsurePlugins(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ensured, err := EnsurePlugins(tt.plugins, tt.args.version)
+			ensured, err := EnsurePlugins(tt.plugins, tt.args.version, false)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("EnsurePlugins() error = %v, wantErr %v", err, tt.wantErr)
 			}

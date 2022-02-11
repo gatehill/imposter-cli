@@ -19,12 +19,10 @@ package cmd
 import (
 	"gatehill.io/imposter/config"
 	"gatehill.io/imposter/engine"
-	homedir "github.com/mitchellh/go-homedir"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"os"
-	"path/filepath"
 	"strings"
 )
 
@@ -89,14 +87,13 @@ func initConfig() {
 	if rootFlags.cfgFile != "" {
 		viper.SetConfigFile(rootFlags.cfgFile)
 	} else {
-		home, err := homedir.Dir()
+		configDir, err := config.GetConfigDir()
 		cobra.CheckErr(err)
 
-		configDir := filepath.Join(home, ".imposter")
 		if _, err := os.Stat(configDir); err == nil {
 			// Search files in config directory with name "config" (without extension).
 			viper.AddConfigPath(configDir)
-			viper.SetConfigName("config")
+			viper.SetConfigName(config.ConfigFileName)
 		}
 	}
 

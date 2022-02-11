@@ -16,14 +16,25 @@ limitations under the License.
 
 package config
 
-import "github.com/sirupsen/logrus"
+import (
+	"fmt"
+	"github.com/sirupsen/logrus"
+	"os"
+	"path/filepath"
+)
 
 type CliConfig struct {
 	Version  string
 	LogLevel string
 }
 
-var Config CliConfig
+// The ConfigFileName is the file name without the file extension.
+const ConfigFileName = "config"
+
+var (
+	Config  CliConfig
+	DirPath string
+)
 
 func init() {
 	Config = CliConfig{
@@ -32,19 +43,26 @@ func init() {
 	}
 }
 
-func GetFirstNonEmpty(candidates ...string) string {
-	for _, candidate := range candidates {
-		if candidate != "" {
-			return candidate
-		}
-	}
-	return ""
-}
-
 func SetLogLevel(lvl string) {
 	ll, err := logrus.ParseLevel(lvl)
 	if err != nil {
 		ll = logrus.DebugLevel
 	}
 	logrus.SetLevel(ll)
+}
+
+func GetConfigDir() (string, error) {
+	if DirPath != "" {
+		return DirPath, nil
+	}
+	return getDefaultConfigDir()
+}
+
+func getDefaultConfigDir() (string, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to determine user home directory: %s", err)
+	}
+	configFile := filepath.Join(homeDir, ".imposter")
+	return configFile, nil
 }
