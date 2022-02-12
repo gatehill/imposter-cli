@@ -33,7 +33,7 @@ func GetDirPath(settingsKey string, homeSubDirPath string) (string, error) {
 }
 
 func EnsureDir(dirPath string) error {
-	if _, err := os.Stat(dirPath); err != nil {
+	if info, err := os.Stat(dirPath); err != nil {
 		if os.IsNotExist(err) {
 			logrus.Tracef("creating directory: %v", dirPath)
 			err := os.MkdirAll(dirPath, 0700)
@@ -43,6 +43,8 @@ func EnsureDir(dirPath string) error {
 		} else {
 			return fmt.Errorf("failed to stat: %v: %v", dirPath, err)
 		}
+	} else if !info.IsDir() {
+		return fmt.Errorf("path: %s is not a directory", dirPath)
 	}
 	return nil
 }
