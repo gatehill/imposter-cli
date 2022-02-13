@@ -1,4 +1,4 @@
-package meta
+package prefs
 
 import (
 	"fmt"
@@ -9,16 +9,16 @@ import (
 )
 
 func setup() {
-	tmpMetaDir, err := os.MkdirTemp(os.TempDir(), "imposter-meta")
+	tmpMetaDir, err := os.MkdirTemp(os.TempDir(), "imposter-prefs")
 	if err != nil {
-		panic(fmt.Errorf("unable to create test meta dir: %s", err))
+		panic(fmt.Errorf("unable to create test prefs dir: %s", err))
 	}
-	fmt.Printf("using test meta dir: %s\n", tmpMetaDir)
-	viper.Set("meta.dir", tmpMetaDir)
+	fmt.Printf("using test prefs dir: %s\n", tmpMetaDir)
+	viper.Set("prefs.dir", tmpMetaDir)
 }
 
 func cleanup() {
-	viper.Set("meta.dir", nil)
+	viper.Set("prefs.dir", nil)
 }
 
 func TestReadMetaProperty(t *testing.T) {
@@ -40,18 +40,18 @@ func TestReadMetaProperty(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.writeTestProp != nil {
-				err := WriteMetaProperty(tt.args.key, tt.writeTestProp)
+				err := WriteProperty(tt.args.key, tt.writeTestProp)
 				if err != nil {
 					t.Errorf("could not write test prop: %s: %s", tt.writeTestProp, err)
 				}
 			}
-			got, err := readMetaProperty(tt.args.key)
+			got, err := readProperty(tt.args.key)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("readMetaProperty() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("readProperty() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("readMetaProperty() got = %v, want %v", got, tt.want)
+				t.Errorf("readProperty() got = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -76,18 +76,18 @@ func TestReadMetaPropertyString(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.writeTestProp != "" {
-				err := WriteMetaProperty(tt.args.key, tt.writeTestProp)
+				err := WriteProperty(tt.args.key, tt.writeTestProp)
 				if err != nil {
 					t.Errorf("could not write test prop: %s: %s", tt.writeTestProp, err)
 				}
 			}
-			got, err := ReadMetaPropertyString(tt.args.key)
+			got, err := ReadPropertyString(tt.args.key)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("ReadMetaPropertyString() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("ReadPropertyString() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ReadMetaPropertyString() got = %v, want %v", got, tt.want)
+				t.Errorf("ReadPropertyString() got = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -112,12 +112,12 @@ func TestReadMetaPropertyInt(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.writeTestProp != 0 {
-				err := WriteMetaProperty(tt.args.key, tt.writeTestProp)
+				err := WriteProperty(tt.args.key, tt.writeTestProp)
 				if err != nil {
 					t.Errorf("could not write test prop: %d: %s", tt.writeTestProp, err)
 				}
 			}
-			got, err := ReadMetaPropertyInt(tt.args.key)
+			got, err := ReadPropertyInt(tt.args.key)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("TestReadMetaPropertyInt() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -146,8 +146,8 @@ func TestWriteMetaProperty(t *testing.T) {
 	t.Cleanup(cleanup)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := WriteMetaProperty(tt.args.key, tt.args.value); (err != nil) != tt.wantErr {
-				t.Errorf("WriteMetaProperty() error = %v, wantErr %v", err, tt.wantErr)
+			if err := WriteProperty(tt.args.key, tt.args.value); (err != nil) != tt.wantErr {
+				t.Errorf("WriteProperty() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

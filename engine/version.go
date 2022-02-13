@@ -3,7 +3,7 @@ package engine
 import (
 	"encoding/json"
 	"fmt"
-	"gatehill.io/imposter/meta"
+	"gatehill.io/imposter/prefs"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
@@ -39,9 +39,9 @@ func ResolveLatestToVersion(allowCached bool) (string, error) {
 func loadCached(now int64) string {
 	var latest string
 
-	lastCheck, _ := meta.ReadMetaPropertyInt("last_version_check")
+	lastCheck, _ := prefs.ReadPropertyInt("last_version_check")
 	if now-int64(lastCheck) < checkThresholdSeconds {
-		latest, _ = meta.ReadMetaPropertyString("latest")
+		latest, _ = prefs.ReadPropertyString("latest")
 	}
 
 	logrus.Tracef("latest version cached value: %s", latest)
@@ -60,16 +60,16 @@ func lookupLatest(now int64, allowFallbackToCached bool) (string, error) {
 		if latest == "" {
 			return "", fmt.Errorf("failed to resolve latest version (%s) and no cached version found", err)
 		} else {
-			// don't persist the cached version back to the meta store
+			// don't persist the cached version back to the prefs store
 			return latest, nil
 		}
 	}
 
-	err = meta.WriteMetaProperty("latest", latest)
+	err = prefs.WriteProperty("latest", latest)
 	if err != nil {
 		logrus.Warnf("failed to record latest version: %s", err)
 	}
-	err = meta.WriteMetaProperty("last_version_check", now)
+	err = prefs.WriteProperty("last_version_check", now)
 	if err != nil {
 		logrus.Warnf("failed to record last version check time: %s", err)
 	}
