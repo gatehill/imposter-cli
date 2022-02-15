@@ -8,8 +8,35 @@ import (
 	"path/filepath"
 )
 
-func loadState() (map[string]interface{}, error) {
-	prefsFile, err := ensurePrefsFile()
+type Preferences interface {
+	// ReadPropertyString attempts to read the property with the given key
+	// from the prefs store and then attempts to type assert any non-nil value
+	// as a string. If the store does not exist, or if the store cannot be parsed,
+	// or the property does not exist, the empty string is returned.
+	ReadPropertyString(key string) (string, error)
+
+	// ReadPropertyInt attempts to read the property with the given key
+	// from the prefs store and then attempts to type assert any non-nil value
+	// as an int. If the store does not exist, or if the store cannot be parsed,
+	// or the property does not exist, 0 is returned.
+	ReadPropertyInt(key string) (int, error)
+
+	// WriteProperty persists a key-value pair to the prefs store.
+	// If the store cannot be loaded, the write will fail and an error
+	// will be logged.
+	WriteProperty(key string, value interface{}) error
+}
+
+type Prefs struct {
+	fileName string
+}
+
+func Load(fileName string) Prefs {
+	return Prefs{fileName: fileName}
+}
+
+func (p Prefs) loadState() (map[string]interface{}, error) {
+	prefsFile, err := p.ensurePrefsFile()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get prefs file: %s", err)
 	}
@@ -28,15 +55,19 @@ func loadState() (map[string]interface{}, error) {
 	return data, nil
 }
 
-func ensurePrefsFile() (string, error) {
-	prefsDir, err := ensurePrefsDir()
+func (p Prefs) ensurePrefsFile() (string, error) {
+	return p.ensurePrefsFileWithName(p.fileName)
+}
+
+func (p Prefs) ensurePrefsFileWithName(fileName string) (string, error) {
+	prefsDir, err := p.ensurePrefsDir()
 	if err != nil {
 		return "", fmt.Errorf("failed to ensure prefs dir: %s", err)
 	}
-	return filepath.Join(prefsDir, "prefs.json"), nil
+	return filepath.Join(prefsDir, fileName), nil
 }
 
-func ensurePrefsDir() (string, error) {
+func (p Prefs) ensurePrefsDir() (string, error) {
 	return library.EnsureDirUsingConfig("prefs.dir", ".imposter")
 }
 
@@ -44,8 +75,8 @@ func ensurePrefsDir() (string, error) {
 // from the prefs store and then attempts to type assert any non-nil value
 // as a string. If the store does not exist, or if the store cannot be parsed,
 // or the property does not exist, the empty string is returned.
-func ReadPropertyString(key string) (string, error) {
-	value, err := readProperty(key)
+func (p Prefs) ReadPropertyString(key string) (string, error) {
+	value, err := p.readProperty(key)
 	if err != nil || value == nil {
 		return "", err
 	}
@@ -56,16 +87,16 @@ func ReadPropertyString(key string) (string, error) {
 // from the prefs store and then attempts to type assert any non-nil value
 // as an int. If the store does not exist, or if the store cannot be parsed,
 // or the property does not exist, 0 is returned.
-func ReadPropertyInt(key string) (int, error) {
-	value, err := readProperty(key)
+func (p Prefs) ReadPropertyInt(key string) (int, error) {
+	value, err := p.readProperty(key)
 	if err != nil || value == nil {
 		return 0, err
 	}
 	return int(value.(float64)), nil
 }
 
-func readProperty(key string) (interface{}, error) {
-	state, err := loadState()
+func (p Prefs) readProperty(key string) (interface{}, error) {
+	state, err := p.loadState()
 	if err != nil {
 		return "", err
 	}
@@ -75,8 +106,8 @@ func readProperty(key string) (interface{}, error) {
 // WriteProperty persists a key-value pair to the prefs store.
 // If the store cannot be loaded, the write will fail and an error
 // will be logged.
-func WriteProperty(key string, value interface{}) error {
-	state, err := loadState()
+func (p Prefs) WriteProperty(key string, value interface{}) error {
+	state, err := p.loadState()
 	if err != nil {
 		return fmt.Errorf("failed to read existing prefs: %s", err)
 	}
@@ -85,7 +116,7 @@ func WriteProperty(key string, value interface{}) error {
 	if err != nil {
 		return fmt.Errorf("failed to marshall prefs: %s", err)
 	}
-	prefsFile, err := ensurePrefsFile()
+	prefsFile, err := p.ensurePrefsFile()
 	if err != nil {
 		return fmt.Errorf("failed to get prefs file: %s", err)
 	}

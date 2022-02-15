@@ -21,6 +21,11 @@ func cleanup() {
 	viper.Set("prefs.dir", nil)
 }
 
+func createTempPrefs(t *testing.T) Prefs {
+	p := Load("prefs.json")
+	return p
+}
+
 func TestReadMetaProperty(t *testing.T) {
 	type args struct {
 		key string
@@ -39,13 +44,14 @@ func TestReadMetaProperty(t *testing.T) {
 	t.Cleanup(cleanup)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			p := createTempPrefs(t)
 			if tt.writeTestProp != nil {
-				err := WriteProperty(tt.args.key, tt.writeTestProp)
+				err := p.WriteProperty(tt.args.key, tt.writeTestProp)
 				if err != nil {
 					t.Errorf("could not write test prop: %s: %s", tt.writeTestProp, err)
 				}
 			}
-			got, err := readProperty(tt.args.key)
+			got, err := p.readProperty(tt.args.key)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("readProperty() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -75,13 +81,14 @@ func TestReadMetaPropertyString(t *testing.T) {
 	t.Cleanup(cleanup)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			p := createTempPrefs(t)
 			if tt.writeTestProp != "" {
-				err := WriteProperty(tt.args.key, tt.writeTestProp)
+				err := p.WriteProperty(tt.args.key, tt.writeTestProp)
 				if err != nil {
 					t.Errorf("could not write test prop: %s: %s", tt.writeTestProp, err)
 				}
 			}
-			got, err := ReadPropertyString(tt.args.key)
+			got, err := p.ReadPropertyString(tt.args.key)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ReadPropertyString() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -111,13 +118,14 @@ func TestReadMetaPropertyInt(t *testing.T) {
 	t.Cleanup(cleanup)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			p := createTempPrefs(t)
 			if tt.writeTestProp != 0 {
-				err := WriteProperty(tt.args.key, tt.writeTestProp)
+				err := p.WriteProperty(tt.args.key, tt.writeTestProp)
 				if err != nil {
 					t.Errorf("could not write test prop: %d: %s", tt.writeTestProp, err)
 				}
 			}
-			got, err := ReadPropertyInt(tt.args.key)
+			got, err := p.ReadPropertyInt(tt.args.key)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("TestReadMetaPropertyInt() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -146,7 +154,8 @@ func TestWriteMetaProperty(t *testing.T) {
 	t.Cleanup(cleanup)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := WriteProperty(tt.args.key, tt.args.value); (err != nil) != tt.wantErr {
+			p := createTempPrefs(t)
+			if err := p.WriteProperty(tt.args.key, tt.args.value); (err != nil) != tt.wantErr {
 				t.Errorf("WriteProperty() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

@@ -39,9 +39,10 @@ func ResolveLatestToVersion(allowCached bool) (string, error) {
 func loadCached(now int64) string {
 	var latest string
 
-	lastCheck, _ := prefs.ReadPropertyInt("last_version_check")
+	p := getVersionPrefs()
+	lastCheck, _ := p.ReadPropertyInt("last_version_check")
 	if now-int64(lastCheck) < checkThresholdSeconds {
-		latest, _ = prefs.ReadPropertyString("latest")
+		latest, _ = p.ReadPropertyString("latest")
 	}
 
 	logrus.Tracef("latest version cached value: %s", latest)
@@ -65,15 +66,20 @@ func lookupLatest(now int64, allowFallbackToCached bool) (string, error) {
 		}
 	}
 
-	err = prefs.WriteProperty("latest", latest)
+	p := getVersionPrefs()
+	err = p.WriteProperty("latest", latest)
 	if err != nil {
 		logrus.Warnf("failed to record latest version: %s", err)
 	}
-	err = prefs.WriteProperty("last_version_check", now)
+	err = p.WriteProperty("last_version_check", now)
 	if err != nil {
 		logrus.Warnf("failed to record last version check time: %s", err)
 	}
 	return latest, nil
+}
+
+func getVersionPrefs() prefs.Prefs {
+	return prefs.Load("prefs.json")
 }
 
 func fetchLatestFromApi() (string, error) {
