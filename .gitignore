@@ -2,3 +2,4 @@
 *.iml
 .idea/
 dist/
+.imposter_workspace/

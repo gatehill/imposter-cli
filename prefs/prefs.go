@@ -62,7 +62,7 @@ func (p Prefs) ensurePrefsFile() (string, error) {
 func (p Prefs) ensurePrefsFileWithName(fileName string) (string, error) {
 	prefsDir, err := p.ensurePrefsDir()
 	if err != nil {
-		return "", fmt.Errorf("failed to ensure prefs dir: %s", err)
+		return "", fmt.Errorf("failed to ensure prefs dir exists: %s", err)
 	}
 	return filepath.Join(prefsDir, fileName), nil
 }

@@ -66,10 +66,10 @@ func list(engineTypes []engine.EngineType) {
 	for _, metadata := range available {
 		rows = append(rows, []string{string(metadata.EngineType), metadata.Version})
 	}
-	render(rows)
+	renderEngines(rows)
 }
 
-func render(rows [][]string) {
+func renderEngines(rows [][]string) {
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{"Type", "Version"})
 	table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
