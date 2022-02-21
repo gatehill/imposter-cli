@@ -30,8 +30,14 @@ var workspaceNewCmd = &cobra.Command{
 	Long:  `Creates a new workspace with the given name.`,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
+		var dir string
+		if workspaceFlags.path != "" {
+			dir = workspaceFlags.path
+		} else {
+			dir, _ = os.Getwd()
+		}
 		name := args[0]
-		createWorkspace(name)
+		createWorkspace(dir, name)
 	},
 }
 
@@ -39,9 +45,8 @@ func init() {
 	workspaceCmd.AddCommand(workspaceNewCmd)
 }
 
-func createWorkspace(name string) {
-	wd, _ := os.Getwd()
-	_, err := workspace.New(wd, name)
+func createWorkspace(dir string, name string) {
+	_, err := workspace.New(dir, name)
 	if err != nil {
 		logrus.Fatalf("failed to create new workspace: %s", err)
 	}

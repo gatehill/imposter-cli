@@ -20,6 +20,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var workspaceFlags struct {
+	path string
+}
+
 // workspaceCmd represents the workspace command
 var workspaceCmd = &cobra.Command{
 	Use:   "workspace",
@@ -27,5 +31,7 @@ var workspaceCmd = &cobra.Command{
 }
 
 func init() {
+	workspaceCmd.PersistentFlags().StringVarP(&workspaceFlags.path, "workspace", "w", "", "workspace path")
+
 	rootCmd.AddCommand(workspaceCmd)
 }

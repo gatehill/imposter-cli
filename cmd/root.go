@@ -77,8 +77,6 @@ func init() {
 
 	// Global flags.
 	rootCmd.PersistentFlags().StringVar(&rootFlags.cfgFile, "config", "", "config file (default is $HOME/.imposter/config.yaml)")
-
-	// Global flags.
 	rootCmd.PersistentFlags().StringVar(&rootFlags.logLevel, "log-level", "debug", "log level")
 }
 

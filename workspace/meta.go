@@ -9,29 +9,14 @@ import (
 	"path/filepath"
 )
 
-type Manager interface {
-	GetType() string
-	GetUrl() string
-	SetUrl(url string) error
-	GetToken() (string, error)
-	SetToken(token string) error
-	Deploy() (*EndpointDetails, error)
-}
-
 type Workspace struct {
-	Name        string `json:"name"`
-	ManagerType string `json:"managerType"`
+	Name       string `json:"name"`
+	RemoteType string `json:"remoteType"`
 }
 
 type Metadata struct {
 	Workspaces []*Workspace `json:"workspaces"`
 	Active     string       `json:"active"`
-}
-
-type EndpointDetails struct {
-	BaseUrl   string
-	SpecUrl   string
-	StatusUrl string
 }
 
 func createOrLoadMetadata(dir string) (m *Metadata, err error) {
@@ -59,7 +44,15 @@ func createOrLoadMetadata(dir string) (m *Metadata, err error) {
 	return m, nil
 }
 
-func saveMetadata(dir string, m *Metadata) error {
+func EnsureMetadataDir(dir string) (string, error) {
+	metaDir := filepath.Join(dir, ".imposter_workspace")
+	if err := library.EnsureDir(metaDir); err != nil {
+		return "", fmt.Errorf("failed to ensure workspace metadata directory exists: %s: %s", metaDir, err)
+	}
+	return metaDir, nil
+}
+
+func SaveMetadata(dir string, m *Metadata) error {
 	metaFilePath, err := getMetaFilePath(dir)
 	if err != nil {
 		return err
@@ -82,12 +75,4 @@ func getMetaFilePath(dir string) (string, error) {
 	}
 	metaFilePath := filepath.Join(metaDir, "workspaces.json")
 	return metaFilePath, nil
-}
-
-func EnsureMetadataDir(dir string) (string, error) {
-	metaDir := filepath.Join(dir, ".imposter_workspace")
-	if err := library.EnsureDir(metaDir); err != nil {
-		return "", fmt.Errorf("failed to ensure workspace metadata directory exists: %s: %s", metaDir, err)
-	}
-	return metaDir, nil
 }

@@ -30,7 +30,13 @@ var workspaceListCmd = &cobra.Command{
 	Short: "List all workspaces",
 	Long:  `Lists all workspaces, showing the active workspace, if set.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		listWorkspaces()
+		var dir string
+		if workspaceFlags.path != "" {
+			dir = workspaceFlags.path
+		} else {
+			dir, _ = os.Getwd()
+		}
+		listWorkspaces(dir)
 	},
 }
 
@@ -38,13 +44,12 @@ func init() {
 	workspaceCmd.AddCommand(workspaceListCmd)
 }
 
-func listWorkspaces() {
-	wd, _ := os.Getwd()
-	workspaces, err := workspace.List(wd)
+func listWorkspaces(dir string) {
+	workspaces, err := workspace.List(dir)
 	if err != nil {
 		logrus.Fatalf("failed to list workspaces: %s", err)
 	}
-	active, err := workspace.GetActive(wd)
+	active, err := workspace.GetActive(dir)
 	if err != nil {
 		logrus.Fatalf("failed to list workspaces: %s", err)
 	}

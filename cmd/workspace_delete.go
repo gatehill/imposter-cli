@@ -30,8 +30,14 @@ var workspaceDeleteCmd = &cobra.Command{
 	Long:  `Deletes a workspace, if it exists.`,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
+		var dir string
+		if workspaceFlags.path != "" {
+			dir = workspaceFlags.path
+		} else {
+			dir, _ = os.Getwd()
+		}
 		name := args[0]
-		deleteWorkspace(name)
+		deleteWorkspace(dir, name)
 	},
 }
 
@@ -39,9 +45,8 @@ func init() {
 	workspaceCmd.AddCommand(workspaceDeleteCmd)
 }
 
-func deleteWorkspace(name string) {
-	wd, _ := os.Getwd()
-	err := workspace.Delete(wd, name)
+func deleteWorkspace(dir string, name string) {
+	err := workspace.Delete(dir, name)
 	if err != nil {
 		logrus.Fatalf("failed to delete workspace: %s", err)
 	}

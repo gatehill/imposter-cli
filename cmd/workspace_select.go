@@ -31,7 +31,13 @@ var workspaceSelectCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
-		setActiveWorkspace(name)
+		var dir string
+		if workspaceFlags.path != "" {
+			dir = workspaceFlags.path
+		} else {
+			dir, _ = os.Getwd()
+		}
+		setActiveWorkspace(dir, name)
 	},
 }
 
@@ -39,9 +45,8 @@ func init() {
 	workspaceCmd.AddCommand(workspaceSelectCmd)
 }
 
-func setActiveWorkspace(name string) {
-	wd, _ := os.Getwd()
-	_, err := workspace.SetActive(wd, name)
+func setActiveWorkspace(dir string, name string) {
+	_, err := workspace.SetActive(dir, name)
 	if err != nil {
 		logrus.Fatalf("failed to set active workspace: %s", err)
 	}

@@ -44,7 +44,7 @@ func Delete(dir string, name string) error {
 		}
 	}
 	m.Workspaces = modified
-	err = saveMetadata(dir, m)
+	err = SaveMetadata(dir, m)
 	if err != nil {
 		return fmt.Errorf("failed to delete workspace: %s", err)
 	}
@@ -64,7 +64,7 @@ func SetActive(dir string, name string) (*Workspace, error) {
 
 	logrus.Tracef("setting active workspace: %s", name)
 	m.Active = name
-	err = saveMetadata(dir, m)
+	err = SaveMetadata(dir, m)
 	if err != nil {
 		return nil, err
 	}
@@ -72,8 +72,25 @@ func SetActive(dir string, name string) (*Workspace, error) {
 }
 
 func GetActive(dir string) (*Workspace, error) {
-	m, _, err := getActiveWithMetadata(dir)
+	m, _, err := GetActiveWithMetadata(dir)
 	return m, err
+}
+
+func GetActiveWithMetadata(dir string) (*Workspace, *Metadata, error) {
+	m, err := createOrLoadMetadata(dir)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get active workspace: %s", err)
+	}
+	if m.Active == "" {
+		logrus.Tracef("there is no active workspace")
+		return nil, nil, nil
+	}
+	w := getWorkspace(m.Workspaces, m.Active)
+	if w == nil {
+		return nil, nil, fmt.Errorf("active workspace: %s does not exist", m.Active)
+	}
+	logrus.Tracef("active workspace is: %s [%s]", w.Name, w.RemoteType)
+	return w, m, nil
 }
 
 func List(dir string) ([]*Workspace, error) {
@@ -99,7 +116,7 @@ func createWorkspace(dir string, name string, m *Metadata) (*Workspace, error) {
 	}
 	setDefaults(m, w)
 	m.Workspaces = append(m.Workspaces, w)
-	err := saveMetadata(dir, m)
+	err := SaveMetadata(dir, m)
 	if err != nil {
 		return nil, err
 	}
@@ -108,25 +125,8 @@ func createWorkspace(dir string, name string, m *Metadata) (*Workspace, error) {
 }
 
 func setDefaults(m *Metadata, w *Workspace) {
-	w.ManagerType = "cloudmocks"
+	w.RemoteType = "cloudmocks"
 	if len(m.Workspaces) == 0 {
 		m.Active = w.Name
 	}
-}
-
-func getActiveWithMetadata(dir string) (*Workspace, *Metadata, error) {
-	m, err := createOrLoadMetadata(dir)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get active workspace: %s", err)
-	}
-	if m.Active == "" {
-		logrus.Tracef("there is no active workspace")
-		return nil, nil, nil
-	}
-	w := getWorkspace(m.Workspaces, m.Active)
-	if w == nil {
-		return nil, nil, fmt.Errorf("active workspace: %s does not exist", m.Active)
-	}
-	logrus.Tracef("active workspace is: %s [%s]", w.Name, w.ManagerType)
-	return w, m, nil
 }
