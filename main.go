@@ -21,6 +21,7 @@ import (
 	"gatehill.io/imposter/config"
 	"gatehill.io/imposter/engine/docker"
 	"gatehill.io/imposter/engine/jvm"
+	"gatehill.io/imposter/remote/cloudmocks"
 	"os"
 )
 
@@ -40,9 +41,13 @@ func main() {
 		Version:  version,
 	}
 
+	// engines
 	docker.EnableEngine()
 	jvm.EnableSingleJarEngine()
 	jvm.EnableUnpackedDistroEngine()
+
+	// backends
+	cloudmocks.Register()
 
 	cmd.Execute()
 }
