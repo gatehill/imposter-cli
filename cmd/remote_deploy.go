@@ -50,7 +50,7 @@ func remoteDeploy(dir string) {
 	}
 	logrus.Infof("deploying workspace '%s' to remote: %s", active.Name, (*r).GetUrl())
 
-	endpoint, err := (*r).Deploy(dir)
+	endpoint, err := (*r).Deploy()
 	if err != nil {
 		logrus.Fatalf("failed to deploy workspace: %s", err)
 	}

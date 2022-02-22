@@ -21,13 +21,14 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"os"
+	"time"
 )
 
-// remoteShowCmd represents the remoteShow command
-var remoteShowCmd = &cobra.Command{
-	Use:   "show",
-	Short: "Show remote",
-	Long:  `Shows the remote for the active workspace.`,
+// remoteStatusCmd represents the remoteStatus command
+var remoteStatusCmd = &cobra.Command{
+	Use:   "status",
+	Short: "Show remote status",
+	Long:  `Show the status of the remote for the active workspace.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var dir string
 		if remoteFlags.path != "" {
@@ -35,29 +36,25 @@ var remoteShowCmd = &cobra.Command{
 		} else {
 			dir, _ = os.Getwd()
 		}
-		showRemote(dir)
+		showRemoteStatus(dir)
 	},
 }
 
 func init() {
-	remoteCmd.AddCommand(remoteShowCmd)
+	remoteCmd.AddCommand(remoteStatusCmd)
 }
 
-func showRemote(dir string) {
+func showRemoteStatus(dir string) {
 	active, r, err := remote.LoadActive(dir)
 	if err != nil {
 		logrus.Fatalf("failed to load remote: %s", err)
 	}
 
-	remoteType := (*r).GetType()
-	url := (*r).GetUrl()
-	token, err := (*r).GetObfuscatedToken()
+	status, err := (*r).GetStatus()
 	if err != nil {
-		logrus.Fatalf("failed to get remote token: %s", err)
+		logrus.Fatalf("failed to get remote status: %s", err)
 	}
 
-	logrus.Infof(`Workspace '%s' remote:
-  Type: %s
-  URL: %s
-  Token: %s`, active.Name, remoteType, url, token)
+	lastModified := time.UnixMilli(int64(status.LastModified))
+	logrus.Infof("Workspace '%s' remote status: %s\nLast modified: %v", active.Name, status.Status, lastModified)
 }

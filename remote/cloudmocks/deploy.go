@@ -28,7 +28,7 @@ type getEndpointResponse struct {
 	SpecUrl string `json:"specUrl"`
 }
 
-func (m Remote) Deploy(dir string) (*remote.EndpointDetails, error) {
+func (m Remote) Deploy() (*remote.EndpointDetails, error) {
 	if m.config.Url == "" {
 		return nil, fmt.Errorf("URL cannot be null")
 	} else if token, _ := m.GetObfuscatedToken(); token == "" {
@@ -45,7 +45,7 @@ func (m Remote) Deploy(dir string) (*remote.EndpointDetails, error) {
 		return nil, err
 	}
 
-	err = m.syncFiles(dir)
+	err = m.syncFiles(m.dir)
 	if err != nil {
 		return nil, err
 	}

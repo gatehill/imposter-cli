@@ -14,13 +14,19 @@ type Remote interface {
 	SetUrl(url string) error
 	GetObfuscatedToken() (string, error)
 	SetToken(token string) error
-	Deploy(dir string) (*EndpointDetails, error)
+	Deploy() (*EndpointDetails, error)
+	GetStatus() (*Status, error)
 }
 
 type EndpointDetails struct {
 	BaseUrl   string
 	SpecUrl   string
 	StatusUrl string
+}
+
+type Status struct {
+	Status       string
+	LastModified int
 }
 
 var providers = make(map[string]func(dir string, workspace *workspace.Workspace) (Remote, error))

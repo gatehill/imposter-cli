@@ -16,7 +16,7 @@ const defaultUrl = "https://api.mocks.cloud"
 
 type Remote struct {
 	workspace *workspace.Workspace
-	metaDir   string
+	dir       string
 	config    config
 }
 
@@ -31,15 +31,15 @@ func Register() {
 	})
 }
 
-func Load(metaDir string, w *workspace.Workspace) (Remote, error) {
-	c, err := loadConfig(metaDir, w)
+func Load(dir string, w *workspace.Workspace) (Remote, error) {
+	c, err := loadConfig(dir, w)
 	if err != nil {
 		return Remote{}, err
 	}
 
 	r := Remote{
 		workspace: w,
-		metaDir:   metaDir,
+		dir:       dir,
 		config:    c,
 	}
 	return r, nil
@@ -75,12 +75,24 @@ func (m Remote) GetObfuscatedToken() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	obfuscated := strings.Repeat("*", len(cleartext)-4) + cleartext[len(cleartext)-4:]
+	obfuscated := strings.Repeat("*", 8) + cleartext[len(cleartext)-4:]
 	return obfuscated, nil
 }
 
 func (m Remote) SetToken(token string) error {
 	return getCredsPrefs().WriteProperty(m.config.Url, token)
+}
+
+func (m Remote) GetStatus() (*remote.Status, error) {
+	s, err := m.getStatus()
+	if err != nil {
+		return nil, err
+	}
+	status := remote.Status{
+		Status:       s.Status,
+		LastModified: s.LastModified,
+	}
+	return &status, nil
 }
 
 func getCredsPrefs() prefs.Prefs {
@@ -110,7 +122,7 @@ func loadConfig(dir string, w *workspace.Workspace) (c config, err error) {
 }
 
 func (m Remote) saveConfig() error {
-	_, remoteFilePath, err := remote.GetConfigPath(m.metaDir, m.workspace)
+	_, remoteFilePath, err := remote.GetConfigPath(m.dir, m.workspace)
 	if err != nil {
 		return err
 	}
