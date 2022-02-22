@@ -50,7 +50,7 @@ func (m Remote) Deploy() (*remote.EndpointDetails, error) {
 		return nil, err
 	}
 
-	err = m.setMockState("ACTIVE")
+	err = m.setMockState("LIVE")
 	if err != nil {
 		return nil, err
 	}
@@ -154,7 +154,7 @@ func (m Remote) waitForStatus(s string, shutDownC chan bool) bool {
 		return false
 	case success := <-finishedC:
 		finished = success
-		logrus.Tracef("finished probe with mock status at: %v", success)
+		logrus.Tracef("finished probe with desired mock status: %v", success)
 		return success
 	case <-shutDownC:
 		if !finished {
