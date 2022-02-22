@@ -19,6 +19,8 @@ type Metadata struct {
 	Active     string       `json:"active"`
 }
 
+const metaDirName = ".imposter"
+
 func createOrLoadMetadata(dir string) (m *Metadata, err error) {
 	metaFilePath, err := getMetaFilePath(dir)
 	if err != nil {
@@ -45,7 +47,7 @@ func createOrLoadMetadata(dir string) (m *Metadata, err error) {
 }
 
 func EnsureMetadataDir(dir string) (string, error) {
-	metaDir := filepath.Join(dir, ".imposter_workspace")
+	metaDir := filepath.Join(dir, metaDirName)
 	if err := library.EnsureDir(metaDir); err != nil {
 		return "", fmt.Errorf("failed to ensure workspace metadata directory exists: %s: %s", metaDir, err)
 	}
