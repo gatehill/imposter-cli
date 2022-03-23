@@ -64,6 +64,7 @@ func GetLibrary(engineType EngineType) EngineLibrary {
 	if library == nil {
 		logrus.Fatalf("unregistered engine type: %v", engineType)
 	}
+	logrus.Tracef("using %s library", engineType)
 	return library()
 }
 
@@ -75,6 +76,7 @@ func BuildEngine(engineType EngineType, configDir string, startOptions StartOpti
 	if eng == nil {
 		logrus.Fatalf("unregistered engine type: %v", engineType)
 	}
+	logrus.Tracef("using %s engine", engineType)
 	return eng(configDir, startOptions)
 }
 
