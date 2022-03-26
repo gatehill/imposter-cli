@@ -22,6 +22,7 @@ import (
 	"gatehill.io/imposter/engine/docker"
 	"gatehill.io/imposter/engine/jvm"
 	"gatehill.io/imposter/remote/cloudmocks"
+	"gatehill.io/imposter/stringutil"
 	"os"
 )
 
@@ -30,7 +31,7 @@ const defaultLogLevel = "debug"
 var version string
 
 func main() {
-	lvl := config.GetFirstNonEmpty(os.Getenv("LOG_LEVEL"), os.Getenv("IMPOSTER_CLI_LOG_LEVEL"), defaultLogLevel)
+	lvl := stringutil.GetFirstNonEmpty(os.Getenv("LOG_LEVEL"), os.Getenv("IMPOSTER_CLI_LOG_LEVEL"), defaultLogLevel)
 	config.SetLogLevel(lvl)
 
 	if version == "" {

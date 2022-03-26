@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gatehill.io/imposter/config"
 	"gatehill.io/imposter/library"
+	"gatehill.io/imposter/stringutil"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"os"
@@ -135,7 +136,7 @@ func addDefaultPlugins(plugins []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to lead default plugins: %s", err)
 	}
-	combined := config.CombineUnique(existing, plugins)
+	combined := stringutil.CombineUnique(existing, plugins)
 	if len(existing) == len(combined) {
 		// none added
 		return nil

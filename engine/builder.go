@@ -18,7 +18,7 @@ package engine
 
 import (
 	"fmt"
-	"gatehill.io/imposter/config"
+	"gatehill.io/imposter/stringutil"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"os"
@@ -93,7 +93,7 @@ func GetConfiguredType(override string) EngineType {
 }
 
 func GetConfiguredTypeWithDefault(override string, defaultType EngineType) EngineType {
-	return EngineType(config.GetFirstNonEmpty(
+	return EngineType(stringutil.GetFirstNonEmpty(
 		override,
 		viper.GetString("engine"),
 		string(defaultType),
@@ -101,7 +101,7 @@ func GetConfiguredTypeWithDefault(override string, defaultType EngineType) Engin
 }
 
 func GetConfiguredVersion(override string, allowCached bool) string {
-	version := config.GetFirstNonEmpty(
+	version := stringutil.GetFirstNonEmpty(
 		override,
 		viper.GetString("version"),
 		"latest",
@@ -132,24 +132,22 @@ func BuildEnv(options StartOptions, includeHome bool) []string {
 }
 
 func buildEnvFromParent(parentEnv []string, options StartOptions, includeHome bool) []string {
-	var env []string
-	logLevelSet := false
+	env := options.Environment
 
 	for _, e := range parentEnv {
 		if strings.HasPrefix(e, "IMPOSTER_") ||
 			strings.HasPrefix(e, "JAVA_TOOL_OPTIONS=") ||
 			(includeHome && strings.HasPrefix(e, "HOME=")) {
 
-			env = append(env, e)
+			// explicit environment takes precedence over parent
+			key := strings.Split(e, "=")[0]
+			if !stringutil.ContainsPrefix(env, key+"=") {
+				env = append(env, e)
+			}
 		}
 	}
-	for _, e := range options.Environment {
-		env = append(env, e)
-		if strings.HasPrefix(e, "IMPOSTER_LOG_LEVEL=") {
-			logLevelSet = true
-		}
-	}
-	if !logLevelSet {
+
+	if !stringutil.ContainsPrefix(env, "IMPOSTER_LOG_LEVEL=") {
 		env = append(env, "IMPOSTER_LOG_LEVEL="+strings.ToUpper(options.LogLevel))
 	}
 
