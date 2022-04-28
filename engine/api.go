@@ -65,6 +65,11 @@ type EngineLibrary interface {
 	CheckPrereqs() (bool, []string)
 	List() ([]EngineMetadata, error)
 	GetProvider(version string) Provider
+
+	// IsSealedDistro indicates whether a library represents a fixed distribution.
+	// Fixed distributions have a single version, so do not support version
+	// resolution or fetching engine binaries.
+	IsSealedDistro() bool
 }
 
 type MockHealth string

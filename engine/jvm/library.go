@@ -65,3 +65,14 @@ func (j JvmEngineLibrary) GetProvider(version string) engine.Provider {
 		panic(fmt.Errorf("unsupported engine type: %s for JVM library", j.engineType))
 	}
 }
+
+func (j JvmEngineLibrary) IsSealedDistro() bool {
+	switch j.engineType {
+	case engine.EngineTypeJvmSingleJar:
+		return false
+	case engine.EngineTypeJvmUnpacked:
+		return true
+	default:
+		panic(fmt.Errorf("unsupported engine type: %s for JVM library", j.engineType))
+	}
+}
