@@ -8,10 +8,8 @@ import (
 	"strings"
 )
 
-type JvmEngineLibrary struct{}
-
-func getSingleJarLibrary() *JvmEngineLibrary {
-	return &JvmEngineLibrary{}
+type JvmEngineLibrary struct {
+	engineType engine.EngineType
 }
 
 func (JvmEngineLibrary) CheckPrereqs() (bool, []string) {
@@ -57,6 +55,13 @@ func (JvmEngineLibrary) List() ([]engine.EngineMetadata, error) {
 	return available, nil
 }
 
-func (JvmEngineLibrary) GetProvider(version string) engine.Provider {
-	return newSingleJarProvider(version)
+func (j JvmEngineLibrary) GetProvider(version string) engine.Provider {
+	switch j.engineType {
+	case engine.EngineTypeJvmSingleJar:
+		return newSingleJarProvider(version)
+	case engine.EngineTypeJvmUnpacked:
+		return newUnpackedDistroProvider(version)
+	default:
+		panic(fmt.Errorf("unsupported engine type: %s for JVM library", j.engineType))
+	}
 }

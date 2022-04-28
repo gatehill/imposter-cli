@@ -68,7 +68,21 @@ func GetLibrary(engineType EngineType) EngineLibrary {
 	return library()
 }
 
+// BuildEngine is a convenience function that gets the library for the given engine type,
+// obtains a provider for the version specified in the start options, then invokes
+// the provider's builder function.
+//
+// Note that the provider's Provide() function is not invoked explicitly, although it may
+// be invoked implicitly from the builder function.
 func BuildEngine(engineType EngineType, configDir string, startOptions StartOptions) MockEngine {
+	lib := GetLibrary(engineType)
+	provider := lib.GetProvider(startOptions.Version)
+	return provider.Build(configDir, startOptions)
+}
+
+// build validates the engine type against those supported, then invokes the
+// associated engine builder function.
+func build(engineType EngineType, configDir string, startOptions StartOptions) MockEngine {
 	if err := validateEngineType(engineType); err != nil {
 		logrus.Fatal(err)
 	}
@@ -152,4 +166,8 @@ func buildEnvFromParent(parentEnv []string, options StartOptions, includeHome bo
 	}
 
 	return env
+}
+
+func (e *EngineMetadata) Build(configDir string, startOptions StartOptions) MockEngine {
+	return build(e.EngineType, configDir, startOptions)
 }
