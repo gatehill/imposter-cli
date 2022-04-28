@@ -57,6 +57,7 @@ type Provider interface {
 	Satisfied() bool
 	Provide(policy PullPolicy) error
 	GetEngineType() EngineType
+	Build(configDir string, startOptions StartOptions) MockEngine
 }
 
 type EngineLibrary interface {

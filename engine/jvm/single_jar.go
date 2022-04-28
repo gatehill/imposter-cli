@@ -40,6 +40,10 @@ func EnableSingleJarEngine() engine.EngineType {
 	return engine.EngineTypeJvmSingleJar
 }
 
+func getSingleJarLibrary() *JvmEngineLibrary {
+	return &JvmEngineLibrary{engineType: engine.EngineTypeJvmSingleJar}
+}
+
 func newSingleJarProvider(version string) JvmProvider {
 	return &SingleJarProvider{
 		JvmProviderOptions: JvmProviderOptions{

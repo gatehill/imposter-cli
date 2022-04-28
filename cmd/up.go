@@ -66,6 +66,9 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 		} else {
 			pullPolicy = engine.PullIfNotPresent
 		}
+
+		engineType := engine.GetConfiguredType(upFlags.flagEngineType)
+		lib := engine.GetLibrary(engineType)
 		version := engine.GetConfiguredVersion(upFlags.flagEngineVersion, pullPolicy != engine.PullAlways)
 
 		if upFlags.flagEnsurePlugins {
@@ -97,14 +100,16 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 			Environment:     upFlags.flagEnvironment,
 			DirMounts:       upFlags.flagDirMounts,
 		}
-		start(upFlags.flagEngineType, startOptions, configDir, upFlags.flagRestartOnChange)
+		start(&lib, startOptions, configDir, upFlags.flagRestartOnChange)
 	},
 }
 
 func injectExplicitEnvironment() {
 	for _, env := range upFlags.flagEnvironment {
 		envParts := strings.Split(env, "=")
-		_ = os.Setenv(envParts[0], envParts[1])
+		if len(envParts) > 1 {
+			_ = os.Setenv(envParts[0], envParts[1])
+		}
 	}
 }
 
@@ -148,9 +153,9 @@ func validateConfigExists(configDir string, scaffoldMissing bool) error {
 Consider running 'imposter scaffold' first.`, configDir)
 }
 
-func start(engineTypeRaw string, startOptions engine.StartOptions, configDir string, restartOnChange bool) {
-	engineType := engine.GetConfiguredType(engineTypeRaw)
-	mockEngine := engine.BuildEngine(engineType, configDir, startOptions)
+func start(lib *engine.EngineLibrary, startOptions engine.StartOptions, configDir string, restartOnChange bool) {
+	provider := (*lib).GetProvider(startOptions.Version)
+	mockEngine := provider.Build(configDir, startOptions)
 
 	wg := &sync.WaitGroup{}
 	trapExit(mockEngine, wg)

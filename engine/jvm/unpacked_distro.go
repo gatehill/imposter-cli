@@ -23,12 +23,19 @@ func EnableUnpackedDistroEngine() engine.EngineType {
 	if !unpackedDistroInitialised {
 		unpackedDistroInitialised = true
 
+		engine.RegisterLibrary(engine.EngineTypeJvmUnpacked, func() engine.EngineLibrary {
+			return getUnpackedDistroLibrary()
+		})
 		engine.RegisterEngine(engine.EngineTypeJvmUnpacked, func(configDir string, startOptions engine.StartOptions) engine.MockEngine {
 			provider := newUnpackedDistroProvider(startOptions.Version)
 			return buildEngine(configDir, &provider, startOptions)
 		})
 	}
 	return engine.EngineTypeJvmUnpacked
+}
+
+func getUnpackedDistroLibrary() *JvmEngineLibrary {
+	return &JvmEngineLibrary{engineType: engine.EngineTypeJvmUnpacked}
 }
 
 func newUnpackedDistroProvider(version string) JvmProvider {
