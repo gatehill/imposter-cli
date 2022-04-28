@@ -69,12 +69,17 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 
 		engineType := engine.GetConfiguredType(upFlags.flagEngineType)
 		lib := engine.GetLibrary(engineType)
-		version := engine.GetConfiguredVersion(upFlags.flagEngineVersion, pullPolicy != engine.PullAlways)
 
-		if upFlags.flagEnsurePlugins {
-			_, err := plugin.EnsureDefaultPlugins(version)
-			if err != nil {
-				logrus.Fatal(err)
+		var version string
+		if !lib.IsSealedDistro() {
+			// only resolve version if not a sealed distro, to avoid prefs write
+			version = engine.GetConfiguredVersion(upFlags.flagEngineVersion, pullPolicy != engine.PullAlways)
+
+			if upFlags.flagEnsurePlugins {
+				_, err := plugin.EnsureDefaultPlugins(version)
+				if err != nil {
+					logrus.Fatal(err)
+				}
 			}
 		}
 

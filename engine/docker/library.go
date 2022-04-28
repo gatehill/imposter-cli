@@ -64,3 +64,7 @@ func (DockerEngineLibrary) List() ([]engine.EngineMetadata, error) {
 func (l DockerEngineLibrary) GetProvider(version string) engine.Provider {
 	return getProvider(version)
 }
+
+func (l DockerEngineLibrary) IsSealedDistro() bool {
+	return false
+}
