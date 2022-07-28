@@ -4,7 +4,7 @@ Imposter supports different mock engine types: [Docker](./docker_engine.md) and 
 
 ## Prerequisites
 
-Install a Java 8+ JVM.
+Install a Java 11+ JVM.
 
 For example, if you are using Homebrew install with:
 

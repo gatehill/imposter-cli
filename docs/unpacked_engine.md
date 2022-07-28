@@ -6,10 +6,10 @@ Imposter supports different mock engine types: [Docker](./docker_engine.md) and 
 
 ## Prerequisites
 
-- Install a Java 8+ JVM.
+- Install a Java 11+ JVM.
 - Obtain an unpacked distribution of Imposter.
 
-The unpacked distibution must be structured as follows:
+The unpacked distribution must be structured as follows:
 
 ```
 /path/to/distro
