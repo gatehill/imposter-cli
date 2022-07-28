@@ -21,12 +21,12 @@ func Test_pull(t *testing.T) {
 			pullPolicy: engine.PullAlways,
 		}},
 		{name: "pull specific docker version always", args: args{
-			version:    "2.6.0",
+			version:    "3.0.2",
 			engineType: engine.EngineTypeDocker,
 			pullPolicy: engine.PullAlways,
 		}},
 		{name: "pull specific docker version if not present", args: args{
-			version:    "2.6.0",
+			version:    "3.0.2",
 			engineType: engine.EngineTypeDocker,
 			pullPolicy: engine.PullIfNotPresent,
 		}},
@@ -36,12 +36,12 @@ func Test_pull(t *testing.T) {
 			pullPolicy: engine.PullAlways,
 		}},
 		{name: "pull specific jvm version always", args: args{
-			version:    "2.6.0",
+			version:    "3.0.2",
 			engineType: engine.EngineTypeJvmSingleJar,
 			pullPolicy: engine.PullAlways,
 		}},
 		{name: "pull specific jvm version if not present", args: args{
-			version:    "2.6.0",
+			version:    "3.0.2",
 			engineType: engine.EngineTypeJvmSingleJar,
 			pullPolicy: engine.PullIfNotPresent,
 		}},

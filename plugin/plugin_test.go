@@ -59,7 +59,7 @@ func TestEnsurePlugin(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		{name: "fetch plugin", args: args{pluginName: "store-redis", version: "2.6.0"}, wantErr: false},
+		{name: "fetch plugin", args: args{pluginName: "store-redis", version: "3.0.2"}, wantErr: false},
 		{name: "fetch nonexistent plugin version", args: args{pluginName: "store-redis", version: "0.0.0"}, wantErr: true},
 	}
 	for _, tt := range tests {
@@ -81,8 +81,8 @@ func TestEnsurePlugins(t *testing.T) {
 		plugins []string
 		wantErr bool
 	}{
-		{name: "no op if no plugins configured", args: args{version: "2.6.0"}, plugins: nil, wantErr: false},
-		{name: "fetch configured plugins", args: args{version: "2.6.0"}, plugins: []string{"store-redis"}, wantErr: false},
+		{name: "no op if no plugins configured", args: args{version: "3.0.2"}, plugins: nil, wantErr: false},
+		{name: "fetch configured plugins", args: args{version: "3.0.2"}, plugins: []string{"store-redis"}, wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
