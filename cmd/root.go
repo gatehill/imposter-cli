@@ -19,12 +19,14 @@ package cmd
 import (
 	"gatehill.io/imposter/config"
 	"gatehill.io/imposter/engine"
-	"github.com/sirupsen/logrus"
+	"gatehill.io/imposter/logging"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"os"
 	"strings"
 )
+
+var logger = logging.GetLogger()
 
 var rootFlags = struct {
 	cfgFile          string
@@ -101,12 +103,12 @@ func initConfig() {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		logrus.Tracef("using CLI config file: %v", viper.ConfigFileUsed())
+		logger.Tracef("using CLI config file: %v", viper.ConfigFileUsed())
 	}
 }
 
 func initLogging() {
 	if rootFlags.logLevel != "" {
-		config.SetLogLevel(rootFlags.logLevel)
+		logging.SetLogLevel(rootFlags.logLevel)
 	}
 }

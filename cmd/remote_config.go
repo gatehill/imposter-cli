@@ -18,7 +18,6 @@ package cmd
 
 import (
 	"gatehill.io/imposter/remote"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"os"
 )
@@ -74,31 +73,31 @@ func init() {
 func setRemoteConfigType(dir string, remoteType string) {
 	active, err := remote.SaveActiveRemoteType(dir, remoteType)
 	if err != nil {
-		logrus.Fatalf("failed to set remote type: %s", err)
+		logger.Fatalf("failed to set remote type: %s", err)
 	}
-	logrus.Infof("set remote type to '%s' for remote: %s", remoteType, active.Name)
+	logger.Infof("set remote type to '%s' for remote: %s", remoteType, active.Name)
 }
 
 func setRemoteConfigUrl(dir string, url string) {
 	active, r, err := remote.LoadActive(dir)
 	if err != nil {
-		logrus.Fatalf("failed to load remote: %s", err)
+		logger.Fatalf("failed to load remote: %s", err)
 	}
 	err = (*r).SetUrl(url)
 	if err != nil {
-		logrus.Fatalf("failed to set remote URL: %s", err)
+		logger.Fatalf("failed to set remote URL: %s", err)
 	}
-	logrus.Infof("set remote URL to '%s' for remote: %s", url, active.Name)
+	logger.Infof("set remote URL to '%s' for remote: %s", url, active.Name)
 }
 
 func setRemoteConfigToken(dir string, token string) {
 	active, r, err := remote.LoadActive(dir)
 	if err != nil {
-		logrus.Fatalf("failed to load remote: %s", err)
+		logger.Fatalf("failed to load remote: %s", err)
 	}
 	err = (*r).SetToken(token)
 	if err != nil {
-		logrus.Fatalf("failed to set remote token: %s", err)
+		logger.Fatalf("failed to set remote token: %s", err)
 	}
-	logrus.Infof("set remote token for remote: %s", active.Name)
+	logger.Infof("set remote token for remote: %s", active.Name)
 }

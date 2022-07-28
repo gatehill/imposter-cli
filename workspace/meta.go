@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"gatehill.io/imposter/library"
-	"github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
 )
@@ -28,7 +27,7 @@ func createOrLoadMetadata(dir string) (m *Metadata, err error) {
 	}
 	if _, err := os.Stat(metaFilePath); err != nil {
 		if os.IsNotExist(err) {
-			logrus.Trace("creating empty workspace metadata")
+			logger.Trace("creating empty workspace metadata")
 			m = &Metadata{}
 		} else {
 			return nil, fmt.Errorf("failed to stat workspace file: %s: %s", metaFilePath, err)

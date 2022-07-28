@@ -2,11 +2,13 @@ package workspace
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
+	"gatehill.io/imposter/logging"
 	"regexp"
 )
 
 const namePattern = "[a-zA-Z0-9_-]+"
+
+var logger = logging.GetLogger()
 
 func New(dir string, name string) (*Workspace, error) {
 	if match, _ := regexp.MatchString("^"+namePattern+"$", name); !match {
@@ -48,7 +50,7 @@ func Delete(dir string, name string) error {
 	if err != nil {
 		return fmt.Errorf("failed to delete workspace: %s", err)
 	}
-	logrus.Tracef("deleted workspace: %s", name)
+	logger.Tracef("deleted workspace: %s", name)
 	return nil
 }
 
@@ -62,7 +64,7 @@ func SetActive(dir string, name string) (*Workspace, error) {
 		return nil, fmt.Errorf("no such workspace: %s", name)
 	}
 
-	logrus.Tracef("setting active workspace: %s", name)
+	logger.Tracef("setting active workspace: %s", name)
 	m.Active = name
 	err = SaveMetadata(dir, m)
 	if err != nil {
@@ -82,14 +84,14 @@ func GetActiveWithMetadata(dir string) (*Workspace, *Metadata, error) {
 		return nil, nil, fmt.Errorf("failed to get active workspace: %s", err)
 	}
 	if m.Active == "" {
-		logrus.Tracef("there is no active workspace")
+		logger.Tracef("there is no active workspace")
 		return nil, nil, nil
 	}
 	w := getWorkspace(m.Workspaces, m.Active)
 	if w == nil {
 		return nil, nil, fmt.Errorf("active workspace: %s does not exist", m.Active)
 	}
-	logrus.Tracef("active workspace is: %s [%s]", w.Name, w.RemoteType)
+	logger.Tracef("active workspace is: %s [%s]", w.Name, w.RemoteType)
 	return w, m, nil
 }
 
@@ -120,7 +122,7 @@ func createWorkspace(dir string, name string, m *Metadata) (*Workspace, error) {
 	if err != nil {
 		return nil, err
 	}
-	logrus.Tracef("created new workspace: %s", name)
+	logger.Tracef("created new workspace: %s", name)
 	return w, nil
 }
 

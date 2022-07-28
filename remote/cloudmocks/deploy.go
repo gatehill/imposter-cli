@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"gatehill.io/imposter/remote"
-	"github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
@@ -72,7 +71,7 @@ func (m Remote) Deploy() (*remote.EndpointDetails, error) {
 
 func (m Remote) ensureMockExists() error {
 	if m.config.MockId == "" {
-		logrus.Debugf("creating new mock")
+		logger.Debugf("creating new mock")
 
 		var resp createMockResponse
 		err := m.request("POST", "/api/mocks", &resp)
@@ -80,7 +79,7 @@ func (m Remote) ensureMockExists() error {
 			return fmt.Errorf("failed to create mock: %s", err)
 		}
 
-		logrus.Debugf("created mock with ID: %s", resp.MockId)
+		logger.Debugf("created mock with ID: %s", resp.MockId)
 		m.config.MockId = resp.MockId
 		err = m.saveConfig()
 		if err != nil {
@@ -88,19 +87,19 @@ func (m Remote) ensureMockExists() error {
 		}
 
 	} else {
-		logrus.Debugf("using existing mock with ID: %s", m.config.MockId)
+		logger.Debugf("using existing mock with ID: %s", m.config.MockId)
 	}
 	return nil
 }
 
 func (m Remote) setMockState(state string) error {
-	logrus.Debugf("setting mock state to: %s", state)
+	logger.Debugf("setting mock state to: %s", state)
 	var resp interface{}
 	err := m.request("PATCH", fmt.Sprintf("/api/mocks/%s/state/%s", m.config.MockId, state), &resp)
 	if err != nil {
 		return fmt.Errorf("failed to set mock state to: %s: %s", state, err)
 	}
-	logrus.Infof("set mock state to: %s", state)
+	logger.Infof("set mock state to: %s", state)
 	return nil
 }
 
@@ -123,7 +122,7 @@ func (m Remote) getEndpoint() (*getEndpointResponse, error) {
 }
 
 func (m Remote) waitForStatus(s string, shutDownC chan bool) bool {
-	logrus.Infof("waiting for mock status to be: %s...", s)
+	logger.Infof("waiting for mock status to be: %s...", s)
 
 	finishedC := make(chan bool)
 	max := time.NewTimer(120 * time.Second)
@@ -136,7 +135,7 @@ func (m Remote) waitForStatus(s string, shutDownC chan bool) bool {
 			if err != nil {
 				continue
 			}
-			logrus.Tracef("mock status: %v", status.Status)
+			logger.Tracef("mock status: %v", status.Status)
 			if status.Status == s {
 				finishedC <- true
 				break
@@ -150,15 +149,15 @@ func (m Remote) waitForStatus(s string, shutDownC chan bool) bool {
 	select {
 	case <-max.C:
 		finished = true
-		logrus.Fatalf("timed out waiting for mock status to be: %s", s)
+		logger.Fatalf("timed out waiting for mock status to be: %s", s)
 		return false
 	case success := <-finishedC:
 		finished = success
-		logrus.Tracef("finished probe with desired mock status: %v", success)
+		logger.Tracef("finished probe with desired mock status: %v", success)
 		return success
 	case <-shutDownC:
 		if !finished {
-			logrus.Debugf("aborted status probe")
+			logger.Debugf("aborted status probe")
 		}
 		return false
 	}

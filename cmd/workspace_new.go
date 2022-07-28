@@ -18,7 +18,6 @@ package cmd
 
 import (
 	"gatehill.io/imposter/workspace"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"os"
 )
@@ -48,7 +47,7 @@ func init() {
 func createWorkspace(dir string, name string) {
 	_, err := workspace.New(dir, name)
 	if err != nil {
-		logrus.Fatalf("failed to create new workspace: %s", err)
+		logger.Fatalf("failed to create new workspace: %s", err)
 	}
-	logrus.Infof("created workspace '%s'", name)
+	logger.Infof("created workspace '%s'", name)
 }

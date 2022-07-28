@@ -2,7 +2,6 @@ package jvm
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,7 +15,7 @@ func GetJavaCmdPath() (string, error) {
 	// search for 'java' in the PATH
 	javaPath, err := exec.LookPath("java")
 	if err != nil {
-		logrus.Tracef("could not find 'java' in PATH: %s", err)
+		logger.Tracef("could not find 'java' in PATH: %s", err)
 	}
 
 	var binaryPathSuffix string
@@ -51,6 +50,6 @@ func GetJavaCmdPath() (string, error) {
 		return "", fmt.Errorf("failed to determine Java path - consider setting JAVA_HOME or updating PATH")
 	}
 
-	logrus.Tracef("using java: %v", javaPath)
+	logger.Tracef("using java: %v", javaPath)
 	return javaPath, nil
 }

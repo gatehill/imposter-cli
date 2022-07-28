@@ -82,7 +82,7 @@ func ensureContainerImage(cli *client.Client, ctx context.Context, imageTag stri
 			}
 		}
 		if hasImage {
-			logrus.Debugf("engine image '%v' already present", imageTag)
+			logger.Debugf("engine image '%v' already present", imageTag)
 			return imageAndTag, nil
 		}
 	}
@@ -95,14 +95,14 @@ func ensureContainerImage(cli *client.Client, ctx context.Context, imageTag stri
 }
 
 func pullImage(cli *client.Client, ctx context.Context, imageTag string, imageAndTag string) error {
-	logrus.Infof("pulling '%v' engine image", imageTag)
+	logger.Infof("pulling '%v' engine image", imageTag)
 	reader, err := cli.ImagePull(ctx, "docker.io/"+imageAndTag, types.ImagePullOptions{})
 	if err != nil {
 		return err
 	}
 
 	var pullLogDestination io.Writer
-	if logrus.IsLevelEnabled(logrus.TraceLevel) {
+	if logger.IsLevelEnabled(logrus.TraceLevel) {
 		pullLogDestination = os.Stdout
 	} else {
 		pullLogDestination = ioutil.Discard

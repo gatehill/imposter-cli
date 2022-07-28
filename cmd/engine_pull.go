@@ -18,7 +18,6 @@ package cmd
 
 import (
 	"gatehill.io/imposter/engine"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -52,9 +51,9 @@ func pull(version string, engineType engine.EngineType, pullPolicy engine.PullPo
 	downloader := engine.GetLibrary(engineType).GetProvider(version)
 	err := downloader.Provide(pullPolicy)
 	if err != nil {
-		logrus.Fatal(err)
+		logger.Fatal(err)
 	}
-	logrus.Infof("pulled engine version %v", version)
+	logger.Infof("pulled engine version %v", version)
 }
 
 func init() {

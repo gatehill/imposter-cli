@@ -20,11 +20,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"gatehill.io/imposter/fileutil"
-	"github.com/sirupsen/logrus"
+	"gatehill.io/imposter/logging"
 	"io/ioutil"
 	"path/filepath"
 	"sigs.k8s.io/yaml"
 )
+
+var logger = logging.GetLogger()
 
 // DiscoverOpenApiSpecs finds JSON and YAML OpenAPI specification files
 // within the given directory. It returns fully qualified paths
@@ -36,7 +38,7 @@ func DiscoverOpenApiSpecs(configDir string) []string {
 		fullyQualifiedPath := filepath.Join(configDir, yamlFile)
 		jsonContent, err := loadYamlAsJson(fullyQualifiedPath)
 		if err != nil {
-			logrus.Fatal(err)
+			logger.Fatal(err)
 		}
 		if isOpenApiSpec(jsonContent) {
 			openApiSpecs = append(openApiSpecs, fullyQualifiedPath)
@@ -47,7 +49,7 @@ func DiscoverOpenApiSpecs(configDir string) []string {
 		fullyQualifiedPath := filepath.Join(configDir, jsonFile)
 		jsonContent, err := ioutil.ReadFile(fullyQualifiedPath)
 		if err != nil {
-			logrus.Fatal(err)
+			logger.Fatal(err)
 		}
 		if isOpenApiSpec(jsonContent) {
 			openApiSpecs = append(openApiSpecs, fullyQualifiedPath)

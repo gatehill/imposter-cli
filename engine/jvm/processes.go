@@ -3,7 +3,6 @@ package jvm
 import (
 	"fmt"
 	"github.com/shirou/gopsutil/v3/process"
-	"github.com/sirupsen/logrus"
 	"regexp"
 )
 
@@ -30,7 +29,7 @@ func findImposterJvmProcesses() ([]int, error) {
 		if !isImposter {
 			continue
 		}
-		logrus.Tracef("found JVM Imposter process %d: %v", p.Pid, cmdline)
+		logger.Tracef("found JVM Imposter process %d: %v", p.Pid, cmdline)
 		imposterPids = append(imposterPids, int(p.Pid))
 	}
 	return imposterPids, nil

@@ -18,7 +18,7 @@ package fileutil
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
+	"gatehill.io/imposter/logging"
 	"io"
 	"io/ioutil"
 	"os"
@@ -26,11 +26,13 @@ import (
 	"strings"
 )
 
+var logger = logging.GetLogger()
+
 func FindFilesWithExtension(dir, ext string) []string {
 	var filesWithExtension []string
 	infos, err := ioutil.ReadDir(dir)
 	if err != nil {
-		logrus.Fatal(err)
+		logger.Fatal(err)
 	}
 	for _, info := range infos {
 		if !info.IsDir() && filepath.Ext(info.Name()) == ext {
@@ -46,10 +48,10 @@ func GenerateFilePathAdjacentToFile(sourceFilePath string, suffix string, forceO
 	destFilePath := strings.TrimSuffix(sourceFilePath, filepath.Ext(sourceFilePath)) + suffix
 	if _, err := os.Stat(destFilePath); err != nil {
 		if !os.IsNotExist(err) {
-			logrus.Fatal(err)
+			logger.Fatal(err)
 		}
 	} else if !forceOverwrite {
-		logrus.Fatalf("file already exists: %v - aborting", destFilePath)
+		logger.Fatalf("file already exists: %v - aborting", destFilePath)
 	}
 	return destFilePath
 }

@@ -3,6 +3,7 @@ package cloudmocks
 import (
 	"encoding/json"
 	"fmt"
+	"gatehill.io/imposter/logging"
 	"gatehill.io/imposter/prefs"
 	"gatehill.io/imposter/remote"
 	"gatehill.io/imposter/workspace"
@@ -24,6 +25,8 @@ type config struct {
 	MockId string `json:"mockId"`
 	Url    string `json:"url"`
 }
+
+var logger = logging.GetLogger()
 
 func Register() {
 	remote.Register(remoteType, func(dir string, workspace *workspace.Workspace) (remote.Remote, error) {

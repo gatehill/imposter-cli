@@ -22,12 +22,11 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
-	"github.com/sirupsen/logrus"
 	"sync"
 )
 
 func removeContainers(d *DockerMockEngine, containerIds []string) {
-	logrus.Tracef("removing containers: %v", containerIds)
+	logger.Tracef("removing containers: %v", containerIds)
 	wg := &sync.WaitGroup{}
 
 	for _, containerId := range containerIds {
@@ -40,14 +39,14 @@ func removeContainers(d *DockerMockEngine, containerIds []string) {
 func removeContainer(d *DockerMockEngine, wg *sync.WaitGroup, containerId string) {
 	ctx, cli, err := BuildCliClient()
 	if err != nil {
-		logrus.Fatal(err)
+		logger.Fatal(err)
 	}
 
 	// check it exists
 	_, err = cli.ContainerInspect(ctx, containerId)
 	if err != nil {
 		if !client.IsErrNotFound(err) {
-			logrus.Warnf("failed to find mock engine container %v to remove: %v", containerId, err)
+			logger.Warnf("failed to find mock engine container %v to remove: %v", containerId, err)
 			d.debouncer.Notify(wg, debounce.AtMostOnceEvent{Id: containerId, Err: err})
 		} else {
 			d.debouncer.Notify(wg, debounce.AtMostOnceEvent{Id: containerId})
@@ -58,7 +57,7 @@ func removeContainer(d *DockerMockEngine, wg *sync.WaitGroup, containerId string
 	err = cli.ContainerRemove(ctx, containerId, types.ContainerRemoveOptions{Force: true})
 	if err != nil {
 		if !client.IsErrNotFound(err) {
-			logrus.Warnf("failed to remove mock engine container %v: %v", containerId, err)
+			logger.Warnf("failed to remove mock engine container %v: %v", containerId, err)
 			d.debouncer.Notify(wg, debounce.AtMostOnceEvent{Id: containerId, Err: err})
 		} else {
 			d.debouncer.Notify(wg, debounce.AtMostOnceEvent{Id: containerId})
@@ -74,14 +73,14 @@ func notifyOnStopBlocking(d *DockerMockEngine, wg *sync.WaitGroup, containerId s
 	select {
 	case err := <-errCh:
 		if err != nil && !client.IsErrNotFound(err) {
-			logrus.Warnf("failed to wait for mock engine container to stop: %v", err)
+			logger.Warnf("failed to wait for mock engine container to stop: %v", err)
 			d.debouncer.Notify(wg, debounce.AtMostOnceEvent{Id: containerId, Err: err})
 		} else {
 			d.debouncer.Notify(wg, debounce.AtMostOnceEvent{Id: containerId})
 		}
 		break
 	case <-statusCh:
-		logrus.Tracef("mock engine container %v stopped", containerId)
+		logger.Tracef("mock engine container %v stopped", containerId)
 		d.debouncer.Notify(wg, debounce.AtMostOnceEvent{Id: containerId})
 		break
 	}
@@ -94,14 +93,14 @@ func stopDuplicateContainers(d *DockerMockEngine, cli *client.Client, ctx contex
 func stopContainersWithLabels(d *DockerMockEngine, cli *client.Client, ctx context.Context, containerLabels map[string]string) int {
 	existingContainerIds, err := findContainersWithLabels(cli, ctx, containerLabels)
 	if err != nil {
-		logrus.Fatalf("error searching for existing containers: %v", err)
+		logger.Fatalf("error searching for existing containers: %v", err)
 	}
 	if len(existingContainerIds) == 0 {
-		logrus.Tracef("no existing containers found matching labels: %v", containerLabels)
+		logger.Tracef("no existing containers found matching labels: %v", containerLabels)
 		return 0
 	}
 
-	logrus.Debugf("stopping %d existing container(s)", len(existingContainerIds))
+	logger.Debugf("stopping %d existing container(s)", len(existingContainerIds))
 	removeContainers(d, existingContainerIds)
 	return len(existingContainerIds)
 }

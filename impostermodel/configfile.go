@@ -18,15 +18,17 @@ package impostermodel
 
 import (
 	"gatehill.io/imposter/fileutil"
+	"gatehill.io/imposter/logging"
 	"gatehill.io/imposter/openapi"
-	"github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
 )
 
+var logger = logging.GetLogger()
+
 func CreateFromSpecs(configDir string, generateResources bool, forceOverwrite bool, scriptEngine ScriptEngine) {
 	openApiSpecs := openapi.DiscoverOpenApiSpecs(configDir)
-	logrus.Infof("found %d OpenAPI spec(s)", len(openApiSpecs))
+	logger.Infof("found %d OpenAPI spec(s)", len(openApiSpecs))
 
 	for _, openApiSpec := range openApiSpecs {
 		writeMockConfig(openApiSpec, generateResources, forceOverwrite, scriptEngine)
@@ -44,7 +46,7 @@ func writeMockConfig(specFilePath string, generateResources bool, forceOverwrite
 	if generateResources {
 		resources = buildResources(specFilePath, scriptEngine, scriptFileName)
 	} else {
-		logrus.Debug("skipping resource generation")
+		logger.Debug("skipping resource generation")
 	}
 
 	config := GenerateConfig(specFilePath, resources, ConfigGenerationOptions{
@@ -55,22 +57,22 @@ func writeMockConfig(specFilePath string, generateResources bool, forceOverwrite
 	configFilePath := fileutil.GenerateFilePathAdjacentToFile(specFilePath, "-config.yaml", forceOverwrite)
 	configFile, err := os.Create(configFilePath)
 	if err != nil {
-		logrus.Fatal(err)
+		logger.Fatal(err)
 	}
 	defer configFile.Close()
 	_, err = configFile.Write(config)
 	if err != nil {
-		logrus.Fatal(err)
+		logger.Fatal(err)
 	}
 
-	logrus.Infof("wrote Imposter config: %v", configFilePath)
+	logger.Infof("wrote Imposter config: %v", configFilePath)
 }
 
 func writeScriptFile(specFilePath string, engine ScriptEngine, forceOverwrite bool) string {
 	scriptFilePath := BuildScriptFilePath(specFilePath, engine, forceOverwrite)
 	scriptFile, err := os.Create(scriptFilePath)
 	if err != nil {
-		logrus.Fatalf("error writing script file: %v: %v", scriptFilePath, err)
+		logger.Fatalf("error writing script file: %v: %v", scriptFilePath, err)
 	}
 	defer scriptFile.Close()
 
@@ -83,10 +85,10 @@ logger.debug('queryParams: ' + context.request.queryParams);
 logger.debug('headers: ' + context.request.headers);
 `)
 	if err != nil {
-		logrus.Fatalf("error writing script file: %v: %v", scriptFilePath, err)
+		logger.Fatalf("error writing script file: %v: %v", scriptFilePath, err)
 	}
 
-	logrus.Infof("wrote script file: %v", scriptFilePath)
+	logger.Infof("wrote script file: %v", scriptFilePath)
 	return scriptFilePath
 }
 
@@ -95,6 +97,6 @@ func buildResources(specFilePath string, scriptEngine ScriptEngine, scriptFileNa
 		ScriptEngine:   scriptEngine,
 		ScriptFileName: scriptFileName,
 	})
-	logrus.Debugf("generated %d resources from spec", len(resources))
+	logger.Debugf("generated %d resources from spec", len(resources))
 	return resources
 }

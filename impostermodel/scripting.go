@@ -19,7 +19,6 @@ package impostermodel
 import (
 	"fmt"
 	"gatehill.io/imposter/fileutil"
-	"github.com/sirupsen/logrus"
 )
 
 type ScriptEngine string
@@ -59,7 +58,7 @@ func BuildScriptFilePath(specFilePath string, scriptEngine ScriptEngine, forceOv
 			scriptEngineExt = ".groovy"
 			break
 		default:
-			logrus.Fatal("script engine is disabled")
+			logger.Fatal("script engine is disabled")
 		}
 		scriptFilePath = fileutil.GenerateFilePathAdjacentToFile(specFilePath, scriptEngineExt, forceOverwrite)
 	}

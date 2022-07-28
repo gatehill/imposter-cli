@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"gatehill.io/imposter/config"
 	"gatehill.io/imposter/library"
+	"gatehill.io/imposter/logging"
 	"gatehill.io/imposter/stringutil"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"os"
 	"path/filepath"
@@ -14,8 +14,10 @@ import (
 
 const pluginBaseDir = ".imposter/plugins/"
 
+var logger = logging.GetLogger()
+
 func EnsurePlugins(plugins []string, version string, saveDefault bool) (int, error) {
-	logrus.Tracef("ensuring %d plugins: %v", len(plugins), plugins)
+	logger.Tracef("ensuring %d plugins: %v", len(plugins), plugins)
 	if len(plugins) == 0 {
 		return 0, nil
 	}
@@ -24,12 +26,12 @@ func EnsurePlugins(plugins []string, version string, saveDefault bool) (int, err
 		if err != nil {
 			return 0, fmt.Errorf("error ensuring plugin %s: %s", plugin, err)
 		}
-		logrus.Debugf("plugin %s version %s is installed", plugin, version)
+		logger.Debugf("plugin %s version %s is installed", plugin, version)
 	}
 	if saveDefault {
 		err := addDefaultPlugins(plugins)
 		if err != nil {
-			logrus.Warnf("error setting plugins as default: %s", err)
+			logger.Warnf("error setting plugins as default: %s", err)
 		}
 	}
 	return len(plugins), nil
@@ -54,7 +56,7 @@ func EnsureDefaultPlugins(version string) (int, error) {
 		}
 	}
 
-	logrus.Tracef("found %d default plugin(s): %v", len(plugins), plugins)
+	logger.Tracef("found %d default plugin(s): %v", len(plugins), plugins)
 	return EnsurePlugins(plugins, version, false)
 }
 
@@ -68,10 +70,10 @@ func EnsurePlugin(pluginName string, version string) error {
 			return fmt.Errorf("unable to stat plugin file: %s: %s", pluginFilePath, err)
 		}
 	} else {
-		logrus.Tracef("plugin %s version %s already exists at: %s", pluginName, version, pluginFilePath)
+		logger.Tracef("plugin %s version %s already exists at: %s", pluginName, version, pluginFilePath)
 		return nil
 	}
-	logrus.Debugf("plugin %s version %s is not installed", pluginName, version)
+	logger.Debugf("plugin %s version %s is not installed", pluginName, version)
 	err = downloadPlugin(pluginName, version)
 	if err != nil {
 		return err
@@ -88,7 +90,7 @@ func EnsurePluginDir(version string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	logrus.Tracef("ensured plugin directory: %v", fullPluginDir)
+	logger.Tracef("ensured plugin directory: %v", fullPluginDir)
 	return fullPluginDir, nil
 }
 
@@ -114,7 +116,7 @@ func downloadPlugin(pluginName string, version string) error {
 	if err != nil {
 		return err
 	}
-	logrus.Infof("downloaded plugin %s version %s", pluginName, version)
+	logger.Infof("downloaded plugin %s version %s", pluginName, version)
 	return nil
 }
 
@@ -170,7 +172,7 @@ func writeDefaultPlugins(plugins []string) error {
 		return fmt.Errorf("error writing default plugin configuration to: %s: %s", configFilePath, err)
 	}
 
-	logrus.Tracef("wrote default plugin configuration to: %s", configFilePath)
+	logger.Tracef("wrote default plugin configuration to: %s", configFilePath)
 	return nil
 }
 

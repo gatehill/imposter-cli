@@ -19,7 +19,6 @@ package cmd
 import (
 	"gatehill.io/imposter/engine"
 	"gatehill.io/imposter/plugin"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -65,11 +64,11 @@ func installPlugins(plugins []string, version string, saveDefault bool) {
 		ensured, err = plugin.EnsurePlugins(plugins, version, saveDefault)
 	}
 	if err != nil {
-		logrus.Fatal(err)
+		logger.Fatal(err)
 	}
 	if ensured == 0 {
-		logrus.Infof("no plugins to install")
+		logger.Infof("no plugins to install")
 	} else {
-		logrus.Infof("%d plugin(s) installed", ensured)
+		logger.Infof("%d plugin(s) installed", ensured)
 	}
 }

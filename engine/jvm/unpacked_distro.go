@@ -3,7 +3,6 @@ package jvm
 import (
 	"fmt"
 	"gatehill.io/imposter/engine"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"os"
 	"os/exec"
@@ -53,13 +52,13 @@ func (p *UnpackedDistroProvider) GetStartCommand(args []string, env []string) *e
 	if p.javaCmd == "" {
 		javaCmd, err := GetJavaCmdPath()
 		if err != nil {
-			logrus.Fatal(err)
+			logger.Fatal(err)
 		}
 		p.javaCmd = javaCmd
 	}
 	if !p.Satisfied() {
 		if err := p.Provide(engine.PullIfNotPresent); err != nil {
-			logrus.Fatal(err)
+			logger.Fatal(err)
 		}
 	}
 	allArgs := append(
@@ -80,7 +79,7 @@ func (p *UnpackedDistroProvider) Provide(engine.PullPolicy) error {
 		} else if !fileInfo.IsDir() {
 			return fmt.Errorf("distribution path is not a directory: %v", envDistroDir)
 		}
-		logrus.Debugf("using distribution at: %v", envDistroDir)
+		logger.Debugf("using distribution at: %v", envDistroDir)
 		p.distroDir = envDistroDir
 		return nil
 	}

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"gatehill.io/imposter/prefs"
-	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -15,7 +14,7 @@ const latestReleaseApi = "https://api.github.com/repos/outofcoffee/imposter/rele
 const checkThresholdSeconds = 86_400
 
 func ResolveLatestToVersion(allowCached bool) (string, error) {
-	logrus.Tracef("resolving latest version (cache allowed: %v)", allowCached)
+	logger.Tracef("resolving latest version (cache allowed: %v)", allowCached)
 
 	now := time.Now().Unix()
 	var latest string
@@ -32,7 +31,7 @@ func ResolveLatestToVersion(allowCached bool) (string, error) {
 		latest = lookup
 	}
 
-	logrus.Tracef("resolved latest version: %s", latest)
+	logger.Tracef("resolved latest version: %s", latest)
 	return latest, nil
 }
 
@@ -45,7 +44,7 @@ func loadCached(now int64) string {
 		latest, _ = p.ReadPropertyString("latest")
 	}
 
-	logrus.Tracef("latest version cached value: %s", latest)
+	logger.Tracef("latest version cached value: %s", latest)
 	return latest
 }
 
@@ -56,7 +55,7 @@ func lookupLatest(now int64, allowFallbackToCached bool) (string, error) {
 			return "", fmt.Errorf("failed to fetch latest version from API: %s", err)
 		}
 
-		logrus.Warnf("failed to fetch latest version from API (%s) - checking cache", err)
+		logger.Warnf("failed to fetch latest version from API (%s) - checking cache", err)
 		latest = loadCached(now)
 		if latest == "" {
 			return "", fmt.Errorf("failed to resolve latest version (%s) and no cached version found", err)
@@ -69,11 +68,11 @@ func lookupLatest(now int64, allowFallbackToCached bool) (string, error) {
 	p := getVersionPrefs()
 	err = p.WriteProperty("latest", latest)
 	if err != nil {
-		logrus.Warnf("failed to record latest version: %s", err)
+		logger.Warnf("failed to record latest version: %s", err)
 	}
 	err = p.WriteProperty("last_version_check", now)
 	if err != nil {
-		logrus.Warnf("failed to record last version check time: %s", err)
+		logger.Warnf("failed to record last version check time: %s", err)
 	}
 	return latest, nil
 }
@@ -83,7 +82,7 @@ func getVersionPrefs() prefs.Prefs {
 }
 
 func fetchLatestFromApi() (string, error) {
-	logrus.Tracef("fetching latest version from: %s", latestReleaseApi)
+	logger.Tracef("fetching latest version from: %s", latestReleaseApi)
 	resp, err := http.Get(latestReleaseApi)
 	if err != nil {
 		return "", fmt.Errorf("failed to determine latest version from %s: %s", latestReleaseApi, err)

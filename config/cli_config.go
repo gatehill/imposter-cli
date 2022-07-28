@@ -18,7 +18,7 @@ package config
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
+	"gatehill.io/imposter/logging"
 	"os"
 	"path/filepath"
 )
@@ -31,6 +31,8 @@ type CliConfig struct {
 // The ConfigFileName is the file name without the file extension.
 const ConfigFileName = "config"
 
+var logger = logging.GetLogger()
+
 var (
 	Config  CliConfig
 	DirPath string
@@ -41,14 +43,6 @@ func init() {
 		Version:  "dev",
 		LogLevel: "DEBUG",
 	}
-}
-
-func SetLogLevel(lvl string) {
-	ll, err := logrus.ParseLevel(lvl)
-	if err != nil {
-		ll = logrus.DebugLevel
-	}
-	logrus.SetLevel(ll)
 }
 
 func GetConfigDir() (string, error) {

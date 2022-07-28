@@ -18,7 +18,6 @@ package cmd
 
 import (
 	"gatehill.io/imposter/workspace"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"os"
 )
@@ -48,7 +47,7 @@ func init() {
 func deleteWorkspace(dir string, name string) {
 	err := workspace.Delete(dir, name)
 	if err != nil {
-		logrus.Fatalf("failed to delete workspace: %s", err)
+		logger.Fatalf("failed to delete workspace: %s", err)
 	}
-	logrus.Infof("deleted workspace '%s'", name)
+	logger.Infof("deleted workspace '%s'", name)
 }

@@ -23,7 +23,6 @@ import (
 	"gatehill.io/imposter/fileutil"
 	"gatehill.io/imposter/impostermodel"
 	"gatehill.io/imposter/plugin"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"os"
@@ -74,7 +73,7 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 		if upFlags.flagEnsurePlugins {
 			_, err := plugin.EnsureDefaultPlugins(version)
 			if err != nil {
-				logrus.Fatal(err)
+				logger.Fatal(err)
 			}
 		}
 
@@ -85,7 +84,7 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 			configDir, _ = filepath.Abs(args[0])
 		}
 		if err := validateConfigExists(configDir, upFlags.flagScaffoldMissing); err != nil {
-			logrus.Fatal(err)
+			logger.Fatal(err)
 		}
 
 		startOptions := engine.StartOptions{
@@ -145,7 +144,7 @@ func validateConfigExists(configDir string, scaffoldMissing bool) error {
 	}
 
 	if scaffoldMissing {
-		logrus.Infof("scaffolding Imposter configuration files")
+		logger.Infof("scaffolding Imposter configuration files")
 		impostermodel.CreateFromSpecs(configDir, false, false, impostermodel.ScriptEngineNone)
 		return nil
 	}
@@ -166,14 +165,14 @@ func start(lib *engine.EngineLibrary, startOptions engine.StartOptions, configDi
 		go func() {
 			for {
 				<-dirUpdated
-				logrus.Infof("detected change in: %v - triggering restart", configDir)
+				logger.Infof("detected change in: %v - triggering restart", configDir)
 				mockEngine.Restart(wg)
 			}
 		}()
 	}
 
 	wg.Wait()
-	logrus.Debug("shutting down")
+	logger.Debug("shutting down")
 }
 
 // listen for an interrupt from the OS, then attempt engine cleanup

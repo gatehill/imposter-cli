@@ -30,7 +30,7 @@ var engineBuilder = func(tt enginetests.EngineTestScenario) engine.MockEngine {
 }
 
 func init() {
-	logrus.SetLevel(logrus.TraceLevel)
+	logger.SetLevel(logrus.TraceLevel)
 	EnableEngine()
 }
 
@@ -59,7 +59,7 @@ func TestEngine_StartStop(t *testing.T) {
 }
 
 func TestEngine_Restart(t *testing.T) {
-	logrus.SetLevel(logrus.TraceLevel)
+	logger.SetLevel(logrus.TraceLevel)
 	workingDir, err := os.Getwd()
 	if err != nil {
 		panic(err)

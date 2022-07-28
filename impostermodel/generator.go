@@ -18,7 +18,6 @@ package impostermodel
 
 import (
 	"gatehill.io/imposter/openapi"
-	"github.com/sirupsen/logrus"
 	"path/filepath"
 	"sigs.k8s.io/yaml"
 	"strings"
@@ -51,7 +50,7 @@ func GenerateConfig(specFilePath string, resources []Resource, options ConfigGen
 
 	config, err := yaml.Marshal(pluginConfig)
 	if err != nil {
-		logrus.Fatalf("unable to marshal imposter config: %v", err)
+		logger.Fatalf("unable to marshal imposter config: %v", err)
 	}
 	return config
 }
@@ -60,7 +59,7 @@ func GenerateResourcesFromSpec(specFilePath string, options ResourceGenerationOp
 	var resources []Resource
 	partialSpec, err := openapi.Parse(specFilePath)
 	if err != nil {
-		logrus.Fatalf("unable to parse openapi spec: %v: %v", specFilePath, err)
+		logger.Fatalf("unable to parse openapi spec: %v: %v", specFilePath, err)
 	}
 	if partialSpec != nil {
 		for path, pathDetail := range partialSpec.Paths {

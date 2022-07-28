@@ -18,7 +18,6 @@ package cmd
 
 import (
 	"gatehill.io/imposter/remote"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"os"
 )
@@ -46,13 +45,13 @@ func init() {
 func remoteDeploy(dir string) {
 	active, r, err := remote.LoadActive(dir)
 	if err != nil {
-		logrus.Fatalf("failed to load remote: %s", err)
+		logger.Fatalf("failed to load remote: %s", err)
 	}
-	logrus.Infof("deploying workspace '%s' to remote: %s", active.Name, (*r).GetUrl())
+	logger.Infof("deploying workspace '%s' to remote: %s", active.Name, (*r).GetUrl())
 
 	endpoint, err := (*r).Deploy()
 	if err != nil {
-		logrus.Fatalf("failed to deploy workspace: %s", err)
+		logger.Fatalf("failed to deploy workspace: %s", err)
 	}
-	logrus.Infof("deployed workspace '%s'\nBase URL: %s\nSpec: %s\nStatus: %s", active.Name, endpoint.BaseUrl, endpoint.SpecUrl, endpoint.StatusUrl)
+	logger.Infof("deployed workspace '%s'\nBase URL: %s\nSpec: %s\nStatus: %s", active.Name, endpoint.BaseUrl, endpoint.SpecUrl, endpoint.StatusUrl)
 }

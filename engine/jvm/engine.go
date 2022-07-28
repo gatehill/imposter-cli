@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"gatehill.io/imposter/debounce"
 	"gatehill.io/imposter/engine"
+	"gatehill.io/imposter/logging"
 	"gatehill.io/imposter/plugin"
 	"github.com/sirupsen/logrus"
 	"os"
@@ -28,13 +29,15 @@ import (
 	"sync"
 )
 
+var logger = logging.GetLogger()
+
 func (j *JvmMockEngine) Start(wg *sync.WaitGroup) bool {
 	return j.startWithOptions(wg, j.options)
 }
 
 func (j *JvmMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.StartOptions) (success bool) {
 	if len(options.DirMounts) > 0 {
-		logrus.Warnf("JVM engine does not support directory mounts - these will be ignored")
+		logger.Warnf("JVM engine does not support directory mounts - these will be ignored")
 	}
 
 	args := []string{
@@ -47,10 +50,10 @@ func (j *JvmMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.Star
 	command.Stderr = os.Stderr
 	err := command.Start()
 	if err != nil {
-		logrus.Fatalf("failed to exec: %v %v: %v", command.Path, command.Args, err)
+		logger.Fatalf("failed to exec: %v %v: %v", command.Path, command.Args, err)
 	}
 	j.debouncer.Register(wg, strconv.Itoa(command.Process.Pid))
-	logrus.Trace("starting JVM mock engine")
+	logger.Trace("starting JVM mock engine")
 	j.command = command
 
 	up := engine.WaitUntilUp(options.Port, j.shutDownC)
@@ -66,22 +69,22 @@ func (j *JvmMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.Star
 func buildEnv(options engine.StartOptions) []string {
 	env := engine.BuildEnv(options, true)
 	if options.EnablePlugins {
-		logrus.Tracef("plugins are enabled")
+		logger.Tracef("plugins are enabled")
 		pluginDir, err := plugin.EnsurePluginDir(options.Version)
 		if err != nil {
-			logrus.Fatal(err)
+			logger.Fatal(err)
 		}
 		env = append(env, "IMPOSTER_PLUGIN_DIR="+pluginDir)
 	}
 	if options.EnableFileCache {
-		logrus.Tracef("file cache enabled")
+		logger.Tracef("file cache enabled")
 		fileCacheDir, err := engine.EnsureFileCacheDir()
 		if err != nil {
-			logrus.Fatal(err)
+			logger.Fatal(err)
 		}
 		env = append(env, "IMPOSTER_CACHE_DIR="+fileCacheDir, "IMPOSTER_OPENAPI_REMOTE_FILE_CACHE=true")
 	}
-	logrus.Tracef("engine environment: %v", env)
+	logger.Tracef("engine environment: %v", env)
 	return env
 }
 
@@ -92,19 +95,19 @@ func (j *JvmMockEngine) StopImmediately(wg *sync.WaitGroup) {
 
 func (j *JvmMockEngine) Stop(wg *sync.WaitGroup) {
 	if j.command == nil {
-		logrus.Tracef("no process to remove")
+		logger.Tracef("no process to remove")
 		wg.Done()
 		return
 	}
-	if logrus.IsLevelEnabled(logrus.TraceLevel) {
-		logrus.Tracef("stopping mock engine with PID: %v", j.command.Process.Pid)
+	if logger.IsLevelEnabled(logrus.TraceLevel) {
+		logger.Tracef("stopping mock engine with PID: %v", j.command.Process.Pid)
 	} else {
-		logrus.Info("stopping mock engine")
+		logger.Info("stopping mock engine")
 	}
 
 	err := j.command.Process.Kill()
 	if err != nil {
-		logrus.Fatalf("error stopping engine with PID: %d: %v", j.command.Process.Pid, err)
+		logger.Fatalf("error stopping engine with PID: %d: %v", j.command.Process.Pid, err)
 	}
 	j.notifyOnStopBlocking(wg)
 }
@@ -123,12 +126,12 @@ func (j *JvmMockEngine) Restart(wg *sync.WaitGroup) {
 
 func (j *JvmMockEngine) notifyOnStopBlocking(wg *sync.WaitGroup) {
 	if j.command == nil || j.command.Process == nil {
-		logrus.Trace("no subprocess - notifying immediately")
+		logger.Trace("no subprocess - notifying immediately")
 		j.debouncer.Notify(wg, debounce.AtMostOnceEvent{})
 	}
 	pid := strconv.Itoa(j.command.Process.Pid)
 	if j.command.ProcessState != nil && j.command.ProcessState.Exited() {
-		logrus.Tracef("process with PID: %v already exited - notifying immediately", pid)
+		logger.Tracef("process with PID: %v already exited - notifying immediately", pid)
 		j.debouncer.Notify(wg, debounce.AtMostOnceEvent{Id: pid})
 	}
 	_, err := j.command.Process.Wait()
@@ -145,21 +148,21 @@ func (j *JvmMockEngine) notifyOnStopBlocking(wg *sync.WaitGroup) {
 func (j *JvmMockEngine) StopAllManaged() int {
 	processes, err := findImposterJvmProcesses()
 	if err != nil {
-		logrus.Fatal(err)
+		logger.Fatal(err)
 	}
 	if len(processes) == 0 {
 		return 0
 	}
 	for _, pid := range processes {
-		logrus.Tracef("finding JVM process to kill with PID: %d", pid)
+		logger.Tracef("finding JVM process to kill with PID: %d", pid)
 		p, err := os.FindProcess(pid)
 		if err != nil {
-			logrus.Fatal(err)
+			logger.Fatal(err)
 		}
-		logrus.Debugf("killing JVM process with PID: %d", pid)
+		logger.Debugf("killing JVM process with PID: %d", pid)
 		err = p.Kill()
 		if err != nil {
-			logrus.Warnf("error killing JVM process with PID: %d: %v", pid, err)
+			logger.Warnf("error killing JVM process with PID: %d: %v", pid, err)
 		}
 	}
 	return len(processes)

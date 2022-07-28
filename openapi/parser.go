@@ -18,7 +18,6 @@ package openapi
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
@@ -50,6 +49,6 @@ func Parse(specFile string) (*PartialModel, error) {
 		return nil, fmt.Errorf("error: %v\n", err)
 	}
 
-	logrus.Tracef("openapi parsed:\n%v\n\n", o)
+	logger.Tracef("openapi parsed:\n%v\n\n", o)
 	return &o, nil
 }

@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"gatehill.io/imposter/config"
 	"gatehill.io/imposter/engine"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -64,7 +63,7 @@ func getInstalledEngineVersion(engineType engine.EngineType, version string) str
 	})
 	versionString, err := mockEngine.GetVersionString()
 	if err != nil {
-		logrus.Warn(err)
+		logger.Warn(err)
 		return "error"
 	}
 	return versionString

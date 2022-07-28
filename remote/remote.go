@@ -2,8 +2,8 @@ package remote
 
 import (
 	"fmt"
+	"gatehill.io/imposter/logging"
 	"gatehill.io/imposter/workspace"
-	"github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
 )
@@ -29,6 +29,8 @@ type Status struct {
 	LastModified int
 }
 
+var logger = logging.GetLogger()
+
 var providers = make(map[string]func(dir string, workspace *workspace.Workspace) (Remote, error))
 
 func Register(remoteType string, fn func(dir string, workspace *workspace.Workspace) (Remote, error)) {
@@ -50,7 +52,7 @@ func SaveActiveRemoteType(dir string, remoteType string) (*workspace.Workspace, 
 	if err != nil {
 		return nil, err
 	}
-	logrus.Tracef("set remote type: %s for active workspace: %s", remoteType, active.Name)
+	logger.Tracef("set remote type: %s for active workspace: %s", remoteType, active.Name)
 	return active, nil
 }
 
@@ -60,7 +62,7 @@ func Load(dir string, workspace *workspace.Workspace) (*Remote, error) {
 		return nil, fmt.Errorf("unsupported remote type: %s", workspace.RemoteType)
 	}
 	remote, err := provider(dir, workspace)
-	logrus.Tracef("loaded remote [%s] for workspace: %s", remote.GetType(), workspace.Name)
+	logger.Tracef("loaded remote [%s] for workspace: %s", remote.GetType(), workspace.Name)
 	return &remote, err
 }
 
@@ -88,12 +90,12 @@ func GetConfigPath(dir string, w *workspace.Workspace) (exists bool, remoteFileP
 	remoteFilePath = filepath.Join(metadataDir, remoteFileName)
 	if _, err = os.Stat(remoteFilePath); err != nil {
 		if os.IsNotExist(err) {
-			logrus.Tracef("no remote config file for workspace: %s", w.Name)
+			logger.Tracef("no remote config file for workspace: %s", w.Name)
 			return false, remoteFilePath, nil
 		} else {
 			return false, "", fmt.Errorf("failed to stat remote config file: %s: %s", remoteFilePath, err)
 		}
 	}
-	logrus.Tracef("found remote config file for workspace: %s: %s", w.Name, remoteFilePath)
+	logger.Tracef("found remote config file for workspace: %s: %s", w.Name, remoteFilePath)
 	return true, remoteFilePath, nil
 }

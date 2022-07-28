@@ -2,14 +2,13 @@ package cloudmocks
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
 func (m Remote) syncFiles(dir string) error {
-	logrus.Debugf("synchronising files from: %s", dir)
+	logger.Debugf("synchronising files from: %s", dir)
 
 	r, err := m.listRemote()
 	if err != nil {
@@ -36,7 +35,7 @@ func (m Remote) syncFiles(dir string) error {
 }
 
 func (m Remote) listLocal(dir string) ([]string, error) {
-	logrus.Tracef("listing files in: %s", dir)
+	logger.Tracef("listing files in: %s", dir)
 
 	var files []string
 	filenames, err := os.ReadDir(dir)
@@ -71,7 +70,7 @@ func (m Remote) calculateDelta(dir string, remote []string, local []string) []st
 			delta = append(delta, r)
 		}
 	}
-	logrus.Debugf("found %v remote files not present in local", len(delta))
+	logger.Debugf("found %v remote files not present in local", len(delta))
 	return delta
 }
 
@@ -89,7 +88,7 @@ func arrayContains(search []string, trimPrefix string, term string) bool {
 
 func (m Remote) uploadFiles(files []string) error {
 	for _, f := range files {
-		logrus.Infof("uploading: %s", f)
+		logger.Infof("uploading: %s", f)
 		err := m.upload("POST", fmt.Sprintf("/api/mocks/%s/spec", m.config.MockId), f)
 		if err != nil {
 			return fmt.Errorf("failed to upload file: %s: %s", f, err)
@@ -100,7 +99,7 @@ func (m Remote) uploadFiles(files []string) error {
 
 func (m Remote) deleteRemote(files []string) error {
 	for _, f := range files {
-		logrus.Infof("deleting remote file: %s", f)
+		logger.Infof("deleting remote file: %s", f)
 		var resp interface{}
 		err := m.request("DELETE", fmt.Sprintf("/api/mocks/%s/files/%s", m.config.MockId, f), &resp)
 		if err != nil {

@@ -2,7 +2,6 @@ package library
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"os"
@@ -16,7 +15,7 @@ func DownloadBinary(localPath string, remoteFileName string, version string) err
 }
 
 func DownloadBinaryWithFallback(localPath string, remoteFileName string, version string, fallbackRemoteFileName string) error {
-	logrus.Tracef("attempting to download %s version %s to %s", remoteFileName, version, localPath)
+	logger.Tracef("attempting to download %s version %s to %s", remoteFileName, version, localPath)
 	file, err := os.Create(localPath)
 	if err != nil {
 		return fmt.Errorf("error creating file: %v: %v", localPath, err)
@@ -24,7 +23,7 @@ func DownloadBinaryWithFallback(localPath string, remoteFileName string, version
 	defer func() {
 		_ = file.Close()
 		if stat, err := os.Stat(localPath); err == nil && stat.Size() == 0 {
-			logrus.Tracef("removing empty file: %s", localPath)
+			logger.Tracef("removing empty file: %s", localPath)
 			_ = os.Remove(localPath)
 		}
 	}()
@@ -49,7 +48,7 @@ func DownloadBinaryWithFallback(localPath string, remoteFileName string, version
 
 		// fallback to versioned binary filename
 		if resp.StatusCode == 404 && fallbackRemoteFileName != "" {
-			logrus.Tracef("binary not found at: %v - retrying with fallback filename", url)
+			logger.Tracef("binary not found at: %v - retrying with fallback filename", url)
 			url = versionedBaseUrl + fallbackRemoteFileName
 			resp, err = makeHttpRequest(url, err)
 			if err != nil {
@@ -67,7 +66,7 @@ func DownloadBinaryWithFallback(localPath string, remoteFileName string, version
 }
 
 func makeHttpRequest(url string, err error) (*http.Response, error) {
-	logrus.Debugf("downloading %v", url)
+	logger.Debugf("downloading %v", url)
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("error downloading from: %v: %v", url, err)

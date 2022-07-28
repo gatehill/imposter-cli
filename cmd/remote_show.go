@@ -18,7 +18,6 @@ package cmd
 
 import (
 	"gatehill.io/imposter/remote"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"os"
 )
@@ -46,17 +45,17 @@ func init() {
 func showRemote(dir string) {
 	active, r, err := remote.LoadActive(dir)
 	if err != nil {
-		logrus.Fatalf("failed to load remote: %s", err)
+		logger.Fatalf("failed to load remote: %s", err)
 	}
 
 	remoteType := (*r).GetType()
 	url := (*r).GetUrl()
 	token, err := (*r).GetObfuscatedToken()
 	if err != nil {
-		logrus.Fatalf("failed to get remote token: %s", err)
+		logger.Fatalf("failed to get remote token: %s", err)
 	}
 
-	logrus.Infof(`Workspace '%s' remote:
+	logger.Infof(`Workspace '%s' remote:
   Type: %s
   URL: %s
   Token: %s`, active.Name, remoteType, url, token)

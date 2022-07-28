@@ -2,11 +2,13 @@ package library
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
+	"gatehill.io/imposter/logging"
 	"github.com/spf13/viper"
 	"os"
 	"path/filepath"
 )
+
+var logger = logging.GetLogger()
 
 func EnsureDirUsingConfig(settingsKey string, homeSubDirPath string) (string, error) {
 	dirPath, err := GetDirPath(settingsKey, homeSubDirPath)
@@ -17,7 +19,7 @@ func EnsureDirUsingConfig(settingsKey string, homeSubDirPath string) (string, er
 	if err != nil {
 		return "", err
 	}
-	logrus.Tracef("ensured directory: %v", dirPath)
+	logger.Tracef("ensured directory: %v", dirPath)
 	return dirPath, nil
 }
 
@@ -35,7 +37,7 @@ func GetDirPath(settingsKey string, homeSubDirPath string) (string, error) {
 func EnsureDir(dirPath string) error {
 	if info, err := os.Stat(dirPath); err != nil {
 		if os.IsNotExist(err) {
-			logrus.Tracef("creating directory: %v", dirPath)
+			logger.Tracef("creating directory: %v", dirPath)
 			err := os.MkdirAll(dirPath, 0700)
 			if err != nil {
 				return fmt.Errorf("failed to create directory: %v: %v", dirPath, err)

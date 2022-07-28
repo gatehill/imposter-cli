@@ -18,7 +18,6 @@ package engine
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"io"
 	"net/http"
@@ -37,7 +36,7 @@ func getStartTimeout() time.Duration {
 
 func WaitUntilUp(port int, shutDownC chan bool) (success bool) {
 	url := fmt.Sprintf("http://localhost:%d/system/status", port)
-	logrus.Tracef("waiting for mock engine to come up at %v", url)
+	logger.Tracef("waiting for mock engine to come up at %v", url)
 
 	startedC := make(chan bool)
 	max := time.NewTimer(getStartTimeout())
@@ -65,15 +64,15 @@ func WaitUntilUp(port int, shutDownC chan bool) (success bool) {
 	select {
 	case <-max.C:
 		finished = true
-		logrus.Fatalf("timed out waiting for engine to start: could not reach status endpoint: %s", url)
+		logger.Fatalf("timed out waiting for engine to start: could not reach status endpoint: %s", url)
 		return false
 	case <-startedC:
 		finished = true
-		logrus.Tracef("engine started")
+		logger.Tracef("engine started")
 		return true
 	case <-shutDownC:
 		if !finished {
-			logrus.Debugf("aborted health probe")
+			logger.Debugf("aborted health probe")
 		}
 		return false
 	}

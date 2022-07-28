@@ -18,7 +18,6 @@ package cmd
 
 import (
 	"gatehill.io/imposter/engine"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"os"
 	"path/filepath"
@@ -44,14 +43,14 @@ func init() {
 }
 
 func stopAll(engineType engine.EngineType) {
-	logrus.Info("stopping all managed mocks...")
+	logger.Info("stopping all managed mocks...")
 
 	configDir := filepath.Join(os.TempDir(), "imposter-down")
 	mockEngine := engine.BuildEngine(engineType, configDir, engine.StartOptions{})
 
 	if stopped := mockEngine.StopAllManaged(); stopped > 0 {
-		logrus.Infof("stopped %d managed mock(s)", stopped)
+		logger.Infof("stopped %d managed mock(s)", stopped)
 	} else {
-		logrus.Info("no managed mocks were found")
+		logger.Info("no managed mocks were found")
 	}
 }

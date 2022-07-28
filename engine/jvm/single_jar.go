@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"gatehill.io/imposter/engine"
 	"gatehill.io/imposter/library"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"os"
 	"os/exec"
@@ -59,13 +58,13 @@ func (p *SingleJarProvider) GetStartCommand(args []string, env []string) *exec.C
 	if p.javaCmd == "" {
 		javaCmd, err := GetJavaCmdPath()
 		if err != nil {
-			logrus.Fatal(err)
+			logger.Fatal(err)
 		}
 		p.javaCmd = javaCmd
 	}
 	if !p.Satisfied() {
 		if err := p.Provide(engine.PullIfNotPresent); err != nil {
-			logrus.Fatal(err)
+			logger.Fatal(err)
 		}
 	}
 	allArgs := append(
@@ -95,7 +94,7 @@ func ensureBinary(version string, policy engine.PullPolicy) (string, error) {
 		if _, err := os.Stat(envJarFile); err != nil {
 			return "", fmt.Errorf("could not stat JAR file: %v: %v", envJarFile, err)
 		}
-		logrus.Debugf("using JAR file: %v", envJarFile)
+		logger.Debugf("using JAR file: %v", envJarFile)
 		return envJarFile, nil
 	}
 	return checkOrDownloadBinary(version, policy)
@@ -104,7 +103,7 @@ func ensureBinary(version string, policy engine.PullPolicy) (string, error) {
 func checkOrDownloadBinary(version string, policy engine.PullPolicy) (string, error) {
 	binCachePath, err := ensureBinCache()
 	if err != nil {
-		logrus.Fatal(err)
+		logger.Fatal(err)
 	}
 
 	binFilePath := filepath.Join(binCachePath, fmt.Sprintf("imposter-%v.jar", version))
@@ -118,8 +117,8 @@ func checkOrDownloadBinary(version string, policy engine.PullPolicy) (string, er
 				return "", fmt.Errorf("failed to stat: %v: %v", binFilePath, err)
 			}
 		} else {
-			logrus.Debugf("engine binary '%v' already present", version)
-			logrus.Tracef("binary for version %v found at: %v", version, binFilePath)
+			logger.Debugf("engine binary '%v' already present", version)
+			logger.Tracef("binary for version %v found at: %v", version, binFilePath)
 			return binFilePath, nil
 		}
 	}
@@ -127,7 +126,7 @@ func checkOrDownloadBinary(version string, policy engine.PullPolicy) (string, er
 	if err := downloadBinary(binFilePath, version); err != nil {
 		return "", fmt.Errorf("failed to fetch binary: %v", err)
 	}
-	logrus.Tracef("using imposter at: %v", binFilePath)
+	logger.Tracef("using imposter at: %v", binFilePath)
 	return binFilePath, nil
 }
 

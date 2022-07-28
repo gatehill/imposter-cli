@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"gatehill.io/imposter/debounce"
 	"gatehill.io/imposter/engine"
+	"gatehill.io/imposter/logging"
 	"gatehill.io/imposter/plugin"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -43,20 +44,22 @@ const containerPluginDir = "/opt/imposter/plugins"
 const containerFileCacheDir = "/tmp/imposter-cache"
 const removalTimeoutSec = 5
 
+var logger = logging.GetLogger()
+
 func (d *DockerMockEngine) Start(wg *sync.WaitGroup) bool {
 	return d.startWithOptions(wg, d.options)
 }
 
 func (d *DockerMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.StartOptions) (success bool) {
-	logrus.Infof("starting mock engine on port %d - press ctrl+c to stop", options.Port)
+	logger.Infof("starting mock engine on port %d - press ctrl+c to stop", options.Port)
 	ctx, cli, err := BuildCliClient()
 	if err != nil {
-		logrus.Fatal(err)
+		logger.Fatal(err)
 	}
 
 	if !d.provider.Satisfied() {
 		if err := d.provider.Provide(engine.PullIfNotPresent); err != nil {
-			logrus.Fatal(err)
+			logger.Fatal(err)
 		}
 	}
 
@@ -71,7 +74,7 @@ func (d *DockerMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.S
 
 	// if not specified, falls back to default in container image
 	containerUser := viper.GetString("docker.containerUser")
-	logrus.Tracef("container user: %s", containerUser)
+	logger.Tracef("container user: %s", containerUser)
 
 	resp, err := cli.ContainerCreate(ctx, &container.Config{
 		Image: d.provider.imageAndTag,
@@ -97,19 +100,19 @@ func (d *DockerMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.S
 		},
 	}, nil, nil, "")
 	if err != nil {
-		logrus.Fatal(err)
+		logger.Fatal(err)
 	}
 
 	containerId := resp.ID
 	d.debouncer.Register(wg, containerId)
 	if err := cli.ContainerStart(ctx, containerId, types.ContainerStartOptions{}); err != nil {
-		logrus.Fatalf("error starting mock engine container: %v", err)
+		logger.Fatalf("error starting mock engine container: %v", err)
 	}
-	logrus.Trace("starting Docker mock engine")
+	logger.Trace("starting Docker mock engine")
 
 	d.containerId = containerId
 	if err = streamLogsToStdIo(cli, ctx, containerId); err != nil {
-		logrus.Warn(err)
+		logger.Warn(err)
 	}
 	up := engine.WaitUntilUp(options.Port, d.shutDownC)
 
@@ -126,7 +129,7 @@ func buildEnv(options engine.StartOptions) []string {
 	if options.EnableFileCache {
 		env = append(env, "IMPOSTER_CACHE_DIR=/tmp/imposter-cache", "IMPOSTER_OPENAPI_REMOTE_FILE_CACHE=true")
 	}
-	logrus.Tracef("engine environment: %v", env)
+	logger.Tracef("engine environment: %v", env)
 	return env
 }
 
@@ -135,23 +138,23 @@ func buildBinds(d *DockerMockEngine, options engine.StartOptions) []string {
 		d.configDir + ":" + containerConfigDir + viper.GetString("docker.bindFlags"),
 	}
 	if options.EnablePlugins {
-		logrus.Tracef("plugins are enabled")
+		logger.Tracef("plugins are enabled")
 		pluginDir, err := plugin.EnsurePluginDir(options.Version)
 		if err != nil {
-			logrus.Fatal(err)
+			logger.Fatal(err)
 		}
 		binds = append(binds, pluginDir+":"+containerPluginDir)
 	}
 	if options.EnableFileCache {
-		logrus.Tracef("file cache enabled")
+		logger.Tracef("file cache enabled")
 		fileCacheDir, err := engine.EnsureFileCacheDir()
 		if err != nil {
-			logrus.Fatal(err)
+			logger.Fatal(err)
 		}
 		binds = append(binds, fileCacheDir+":"+containerFileCacheDir)
 	}
 	binds = append(binds, parseDirMounts(options.DirMounts)...)
-	logrus.Tracef("using binds: %v", binds)
+	logger.Tracef("using binds: %v", binds)
 	return binds
 }
 
@@ -175,10 +178,10 @@ func parseDirMounts(dirMounts []string) []string {
 
 		hostDirInfo, err := os.Stat(hostDir)
 		if err != nil {
-			logrus.Fatalf("failed to stat host dir: %s", hostDir)
+			logger.Fatalf("failed to stat host dir: %s", hostDir)
 		}
 		if !hostDirInfo.IsDir() {
-			logrus.Fatalf("host path: %s is not a directory", hostDir)
+			logger.Fatalf("host path: %s is not a directory", hostDir)
 		}
 		binds = append(binds, mountSpec)
 	}
@@ -219,7 +222,7 @@ func streamLogs(cli *client.Client, ctx context.Context, containerId string, out
 	go func() {
 		_, err := stdcopy.StdCopy(outStream, errStream, containerLogs)
 		if err != nil {
-			logrus.Warnf("error streaming container logs for container with ID: %v: %v", containerId, err)
+			logger.Warnf("error streaming container logs for container with ID: %v: %v", containerId, err)
 		}
 	}()
 	return nil
@@ -241,14 +244,14 @@ func (d *DockerMockEngine) StopImmediately(wg *sync.WaitGroup) {
 
 func (d *DockerMockEngine) Stop(wg *sync.WaitGroup) {
 	if len(d.containerId) == 0 {
-		logrus.Tracef("no container ID to remove")
+		logger.Tracef("no container ID to remove")
 		wg.Done()
 		return
 	}
-	if logrus.IsLevelEnabled(logrus.TraceLevel) {
-		logrus.Tracef("stopping mock engine container %v", d.containerId)
+	if logger.IsLevelEnabled(logrus.TraceLevel) {
+		logger.Tracef("stopping mock engine container %v", d.containerId)
 	} else {
-		logrus.Info("stopping mock engine")
+		logger.Info("stopping mock engine")
 	}
 
 	oldContainerId := d.containerId
@@ -256,7 +259,7 @@ func (d *DockerMockEngine) Stop(wg *sync.WaitGroup) {
 	// supervisor to work-around removal race
 	go func() {
 		time.Sleep(removalTimeoutSec * time.Second)
-		logrus.Tracef("fired timeout supervisor for container %v removal", oldContainerId)
+		logger.Tracef("fired timeout supervisor for container %v removal", oldContainerId)
 		d.debouncer.Notify(wg, debounce.AtMostOnceEvent{Id: oldContainerId})
 	}()
 
@@ -278,7 +281,7 @@ func (d *DockerMockEngine) Restart(wg *sync.WaitGroup) {
 func (d *DockerMockEngine) StopAllManaged() int {
 	cli, ctx, err := BuildCliClient()
 	if err != nil {
-		logrus.Fatal(err)
+		logger.Fatal(err)
 	}
 
 	labels := map[string]string{

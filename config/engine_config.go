@@ -17,7 +17,6 @@ limitations under the License.
 package config
 
 import (
-	"github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
 	"strings"
@@ -28,7 +27,7 @@ import (
 func ContainsConfigFile(configDir string, recursive bool) bool {
 	files, err := os.ReadDir(configDir)
 	if err != nil {
-		logrus.Errorf("unable to list directory contents: %v: %v", configDir, err)
+		logger.Errorf("unable to list directory contents: %v: %v", configDir, err)
 		return false
 	}
 	for _, file := range files {

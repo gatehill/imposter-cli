@@ -24,7 +24,6 @@ import (
 	"github.com/docker/docker/api/types"
 	filters2 "github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
-	"github.com/sirupsen/logrus"
 )
 
 const labelKeyManaged = "io.gatehill.imposter.managed"
@@ -48,11 +47,12 @@ func findContainersWithLabels(cli *client.Client, ctx context.Context, labels ma
 	for key, value := range labels {
 		filters.Add("label", fmt.Sprintf("%v=%v", key, value))
 	}
+	cli.Close()
 	containers, err := cli.ContainerList(ctx, types.ContainerListOptions{Filters: filters})
 	if err != nil {
 		return nil, err
 	}
-	logrus.Tracef("containers matching labels: %v", containers)
+	logger.Tracef("containers matching labels: %v", containers)
 
 	var containerIds []string
 	for _, container := range containers {

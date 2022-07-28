@@ -2,7 +2,6 @@ package engine
 
 import (
 	"gatehill.io/imposter/library"
-	"github.com/sirupsen/logrus"
 )
 
 const fileCacheDir = ".imposter/filecache/"
@@ -13,6 +12,6 @@ func EnsureFileCacheDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	logrus.Tracef("ensured file cache directory: %v", fileCacheDir)
+	logger.Tracef("ensured file cache directory: %v", fileCacheDir)
 	return fileCacheDir, nil
 }

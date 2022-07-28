@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	logrus.SetLevel(logrus.TraceLevel)
+	logger.SetLevel(logrus.TraceLevel)
 }
 
 func TestEnsurePluginDir(t *testing.T) {

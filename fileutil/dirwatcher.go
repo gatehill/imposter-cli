@@ -18,7 +18,6 @@ package fileutil
 
 import (
 	"github.com/radovskyb/watcher"
-	"github.com/sirupsen/logrus"
 	"time"
 )
 
@@ -31,19 +30,19 @@ func WatchDir(dir string) (updatedC chan bool) {
 
 	w := watcher.New()
 	if err := w.AddRecursive(dir); err != nil {
-		logrus.Warnln(err)
+		logger.Warnln(err)
 	}
 
 	dirUpdated := false
 	go func() {
-		logrus.Infof("watching for changes to: %v", dir)
+		logger.Infof("watching for changes to: %v", dir)
 		for {
 			select {
 			case <-w.Event:
 				dirUpdated = true
 				break
 			case err := <-w.Error:
-				logrus.Warnln(err)
+				logger.Warnln(err)
 			case <-w.Closed:
 				return
 			}
@@ -52,7 +51,7 @@ func WatchDir(dir string) (updatedC chan bool) {
 
 	go func() {
 		if err := w.Start(time.Millisecond * 500); err != nil {
-			logrus.Warnln(err)
+			logger.Warnln(err)
 		}
 	}()
 

@@ -18,8 +18,8 @@ package engine
 
 import (
 	"fmt"
+	"gatehill.io/imposter/logging"
 	"gatehill.io/imposter/stringutil"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"os"
 	"strings"
@@ -34,6 +34,8 @@ const (
 	EngineTypeJvmUnpacked  EngineType = "unpacked"
 )
 const defaultEngineType = EngineTypeDocker
+
+var logger = logging.GetLogger()
 
 var (
 	libraries = make(map[EngineType]func() EngineLibrary)
@@ -58,13 +60,13 @@ func EnumerateLibraries() []EngineType {
 
 func GetLibrary(engineType EngineType) EngineLibrary {
 	if err := validateEngineType(engineType); err != nil {
-		logrus.Fatal(err)
+		logger.Fatal(err)
 	}
 	library := libraries[engineType]
 	if library == nil {
-		logrus.Fatalf("unregistered engine type: %v", engineType)
+		logger.Fatalf("unregistered engine type: %v", engineType)
 	}
-	logrus.Tracef("using %s library", engineType)
+	logger.Tracef("using %s library", engineType)
 	return library()
 }
 
@@ -84,13 +86,13 @@ func BuildEngine(engineType EngineType, configDir string, startOptions StartOpti
 // associated engine builder function.
 func build(engineType EngineType, configDir string, startOptions StartOptions) MockEngine {
 	if err := validateEngineType(engineType); err != nil {
-		logrus.Fatal(err)
+		logger.Fatal(err)
 	}
 	eng := engines[engineType]
 	if eng == nil {
-		logrus.Fatalf("unregistered engine type: %v", engineType)
+		logger.Fatalf("unregistered engine type: %v", engineType)
 	}
-	logrus.Tracef("using %s engine", engineType)
+	logger.Tracef("using %s engine", engineType)
 	return eng(configDir, startOptions)
 }
 

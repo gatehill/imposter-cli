@@ -19,7 +19,6 @@ package cmd
 import (
 	"gatehill.io/imposter/engine"
 	"github.com/olekukonko/tablewriter"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"os"
 )
@@ -50,14 +49,14 @@ If engine type is not specified, it defaults to all.`,
 }
 
 func list(engineTypes []engine.EngineType) {
-	logrus.Tracef("listing engines")
+	logger.Tracef("listing engines")
 	var available []engine.EngineMetadata
 
 	for _, e := range engineTypes {
 		library := engine.GetLibrary(e)
 		engines, err := library.List()
 		if err != nil {
-			logrus.Fatal(err)
+			logger.Fatal(err)
 		}
 		available = append(available, engines...)
 	}

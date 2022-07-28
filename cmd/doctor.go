@@ -19,7 +19,6 @@ package cmd
 import (
 	"fmt"
 	"gatehill.io/imposter/engine"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"strings"
 )
@@ -42,7 +41,7 @@ var doctorCmd = &cobra.Command{
 	Long: `Checks prerequisites for running Imposter, including those needed
 by the engines.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		logrus.Debug("running check up...")
+		logger.Debug("running check up...")
 		println(checkPrereqs())
 	},
 }

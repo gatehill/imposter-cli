@@ -19,7 +19,6 @@ package cmd
 import (
 	"gatehill.io/imposter/workspace"
 	"github.com/olekukonko/tablewriter"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"os"
 )
@@ -47,11 +46,11 @@ func init() {
 func listWorkspaces(dir string) {
 	workspaces, err := workspace.List(dir)
 	if err != nil {
-		logrus.Fatalf("failed to list workspaces: %s", err)
+		logger.Fatalf("failed to list workspaces: %s", err)
 	}
 	active, err := workspace.GetActive(dir)
 	if err != nil {
-		logrus.Fatalf("failed to list workspaces: %s", err)
+		logger.Fatalf("failed to list workspaces: %s", err)
 	}
 	var activeName string
 	if active != nil {
