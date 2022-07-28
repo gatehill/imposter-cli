@@ -23,12 +23,12 @@ import (
 	"os"
 )
 
-var listFlags = struct {
-	flagEngineType string
+var engineListFlags = struct {
+	engineType string
 }{}
 
-// listCmd represents the list command
-var listCmd = &cobra.Command{
+// engineListCmd represents the engineList command
+var engineListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List the engines in the cache",
 	Long: `Lists all versions of engine binaries/images in the cache.
@@ -36,7 +36,7 @@ var listCmd = &cobra.Command{
 If engine type is not specified, it defaults to all.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// unspecified type is valid
-		engineType := engine.GetConfiguredTypeWithDefault(listFlags.flagEngineType, engine.EngineTypeNone)
+		engineType := engine.GetConfiguredTypeWithDefault(engineListFlags.engineType, engine.EngineTypeNone)
 
 		var engineTypes []engine.EngineType
 		if engine.EngineTypeNone == engineType {
@@ -44,11 +44,11 @@ If engine type is not specified, it defaults to all.`,
 		} else {
 			engineTypes = []engine.EngineType{engineType}
 		}
-		list(engineTypes)
+		listEngines(engineTypes)
 	},
 }
 
-func list(engineTypes []engine.EngineType) {
+func listEngines(engineTypes []engine.EngineType) {
 	logger.Tracef("listing engines")
 	var available []engine.EngineMetadata
 
@@ -78,6 +78,6 @@ func renderEngines(rows [][]string) {
 }
 
 func init() {
-	listCmd.Flags().StringVarP(&listFlags.flagEngineType, "engine-type", "t", "", "Imposter engine type (valid: docker,jvm - default is all")
-	engineCmd.AddCommand(listCmd)
+	engineListCmd.Flags().StringVarP(&engineListFlags.engineType, "engine-type", "t", "", "Imposter engine type (valid: docker,jvm - default is all")
+	engineCmd.AddCommand(engineListCmd)
 }

@@ -29,9 +29,9 @@ import (
 var logger = logging.GetLogger()
 
 var rootFlags = struct {
-	cfgFile          string
-	flagPrintVersion bool
-	logLevel         string
+	cfgFile      string
+	printVersion bool
+	logLevel     string
 }{}
 
 // rootCmd represents the base command when called without any subcommands
@@ -55,7 +55,7 @@ Advanced users can write their own plugins in a JVM language of their choice.
 
 Learn more at www.imposter.sh`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if rootFlags.flagPrintVersion {
+		if rootFlags.printVersion {
 			engineType := engine.GetConfiguredType("")
 			println(describeVersions(engineType))
 		} else {
@@ -75,7 +75,7 @@ func init() {
 	cobra.OnInitialize(initConfig, initLogging)
 
 	// syntactic sugar to support common `<app> --version` usage
-	rootCmd.Flags().BoolVar(&rootFlags.flagPrintVersion, "version", false, "Print version information")
+	rootCmd.Flags().BoolVar(&rootFlags.printVersion, "version", false, "Print version information")
 
 	// Global flags.
 	rootCmd.PersistentFlags().StringVar(&rootFlags.cfgFile, "config", "", "config file (default is $HOME/.imposter/config.yaml)")

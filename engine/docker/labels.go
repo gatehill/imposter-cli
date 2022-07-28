@@ -21,6 +21,7 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
+	"gatehill.io/imposter/engine"
 	"github.com/docker/docker/api/types"
 	filters2 "github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
@@ -42,7 +43,7 @@ func sha1hash(input string) string {
 	return hex.EncodeToString(bs)
 }
 
-func findContainersWithLabels(cli *client.Client, ctx context.Context, labels map[string]string) ([]string, error) {
+func findContainersWithLabels(cli *client.Client, ctx context.Context, labels map[string]string) ([]engine.ManagedMock, error) {
 	filters := filters2.NewArgs()
 	for key, value := range labels {
 		filters.Add("label", fmt.Sprintf("%v=%v", key, value))
@@ -54,9 +55,9 @@ func findContainersWithLabels(cli *client.Client, ctx context.Context, labels ma
 	}
 	logger.Tracef("containers matching labels: %v", containers)
 
-	var containerIds []string
+	var mocks []engine.ManagedMock
 	for _, container := range containers {
-		containerIds = append(containerIds, container.ID)
+		mocks = append(mocks, engine.ManagedMock{ID: container.ID, Name: container.Names[0]})
 	}
-	return containerIds, nil
+	return mocks, nil
 }

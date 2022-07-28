@@ -91,16 +91,20 @@ func stopDuplicateContainers(d *DockerMockEngine, cli *client.Client, ctx contex
 }
 
 func stopContainersWithLabels(d *DockerMockEngine, cli *client.Client, ctx context.Context, containerLabels map[string]string) int {
-	existingContainerIds, err := findContainersWithLabels(cli, ctx, containerLabels)
+	containers, err := findContainersWithLabels(cli, ctx, containerLabels)
 	if err != nil {
 		logger.Fatalf("error searching for existing containers: %v", err)
 	}
-	if len(existingContainerIds) == 0 {
+	if len(containers) == 0 {
 		logger.Tracef("no existing containers found matching labels: %v", containerLabels)
 		return 0
 	}
 
-	logger.Debugf("stopping %d existing container(s)", len(existingContainerIds))
-	removeContainers(d, existingContainerIds)
-	return len(existingContainerIds)
+	logger.Debugf("stopping %d existing container(s)", len(containers))
+	var containerIds []string
+	for _, mock := range containers {
+		containerIds = append(containerIds, mock.ID)
+	}
+	removeContainers(d, containerIds)
+	return len(containers)
 }

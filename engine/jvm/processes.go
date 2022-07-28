@@ -2,17 +2,18 @@ package jvm
 
 import (
 	"fmt"
+	"gatehill.io/imposter/engine"
 	"github.com/shirou/gopsutil/v3/process"
 	"regexp"
 )
 
-func findImposterJvmProcesses() ([]int, error) {
+func findImposterJvmProcesses() ([]engine.ManagedMock, error) {
 	processes, err := process.Processes()
 	if err != nil {
 		return nil, fmt.Errorf("error listing processes: %v", err)
 	}
 
-	var imposterPids []int
+	var mocks []engine.ManagedMock
 	for _, p := range processes {
 		cmdline, err := p.CmdlineSlice()
 		if err != nil {
@@ -30,9 +31,9 @@ func findImposterJvmProcesses() ([]int, error) {
 			continue
 		}
 		logger.Tracef("found JVM Imposter process %d: %v", p.Pid, cmdline)
-		imposterPids = append(imposterPids, int(p.Pid))
+		mocks = append(mocks, engine.ManagedMock{ID: fmt.Sprintf("%d", p.Pid), Name: procName})
 	}
-	return imposterPids, nil
+	return mocks, nil
 }
 
 func isImposterProc(cmdline []string, procName string) (bool, error) {

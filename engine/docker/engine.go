@@ -278,6 +278,22 @@ func (d *DockerMockEngine) Restart(wg *sync.WaitGroup) {
 	wg.Done()
 }
 
+func (d *DockerMockEngine) ListAllManaged() ([]engine.ManagedMock, error) {
+	cli, ctx, err := BuildCliClient()
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	labels := map[string]string{
+		labelKeyManaged: "true",
+	}
+	containers, err := findContainersWithLabels(ctx, cli, labels)
+	if err != nil {
+		logger.Fatalf("error searching for existing containers: %v", err)
+	}
+	return containers, nil
+}
+
 func (d *DockerMockEngine) StopAllManaged() int {
 	cli, ctx, err := BuildCliClient()
 	if err != nil {

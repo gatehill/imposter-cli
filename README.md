@@ -65,15 +65,24 @@ Usage:
   imposter [command]
 
 Available Commands:
-  up              Start live mocks of APIs
-  scaffold        Create Imposter configuration from OpenAPI specs
-  engine pull     Pull the engine into the cache
-  engine list     List the engines in the cache
-  doctor          Check prerequisites for running Imposter
-  down            Stop running mocks
-  version         Print CLI version
-  plugin install  Install plugin
-  help            Help about any command
+  up                Start live mocks of APIs
+  scaffold          Create Imposter configuration from OpenAPI specs
+  engine pull       Pull the engine into the cache
+  engine list       List the engines in the cache
+  doctor            Check prerequisites for running Imposter
+  down              Stop running mocks
+  list              List running mocks
+  plugin install    Install plugin
+  version           Print CLI version
+  remote config     Configure remote
+  remote deploy     Deploy active workspace
+  remote show       Show remote
+  remote status     Show remote status
+  workspace delete  Delete a workspace
+  workspace list    List all workspaces
+  workspace new     Create a workspace
+  workspace select  Set the active workspace
+  help              Help about any command
 ```
 
 #### Create and start mocks
@@ -198,6 +207,25 @@ Stops running Imposter mocks for the current engine type.
 
 Usage:
   imposter down [flags]
+
+Flags:
+  -t, --engine-type string   Imposter engine type (valid: docker,jvm - default "docker")
+  -h, --help                 help for down
+```
+
+#### List all running mocks
+
+Example:
+
+    imposter list
+
+Usage:
+
+```
+Lists running Imposter mocks for the current engine type.
+
+Usage:
+  imposter list [flags]
 
 Flags:
   -t, --engine-type string   Imposter engine type (valid: docker,jvm - default "docker")

@@ -44,6 +44,7 @@ type MockEngine interface {
 	Stop(wg *sync.WaitGroup)
 	StopImmediately(wg *sync.WaitGroup)
 	Restart(wg *sync.WaitGroup)
+	ListAllManaged() ([]ManagedMock, error)
 	StopAllManaged() int
 	GetVersionString() (string, error)
 }
@@ -64,4 +65,9 @@ type EngineLibrary interface {
 	CheckPrereqs() (bool, []string)
 	List() ([]EngineMetadata, error)
 	GetProvider(version string) Provider
+}
+
+type ManagedMock struct {
+	ID   string
+	Name string
 }

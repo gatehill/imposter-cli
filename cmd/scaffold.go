@@ -24,9 +24,9 @@ import (
 )
 
 var scaffoldFlags = struct {
-	flagForceOverwrite    bool
-	flagGenerateResources bool
-	flagScriptEngine      string
+	forceOverwrite    bool
+	generateResources bool
+	scriptEngine      string
 }{}
 
 // scaffoldCmd represents the up command
@@ -45,14 +45,14 @@ If DIR is not specified, the current working directory is used.`,
 		} else {
 			configDir, _ = filepath.Abs(args[0])
 		}
-		scriptEngine := impostermodel.ParseScriptEngine(scaffoldFlags.flagScriptEngine)
-		impostermodel.CreateFromSpecs(configDir, scaffoldFlags.flagGenerateResources, scaffoldFlags.flagForceOverwrite, scriptEngine)
+		scriptEngine := impostermodel.ParseScriptEngine(scaffoldFlags.scriptEngine)
+		impostermodel.CreateFromSpecs(configDir, scaffoldFlags.generateResources, scaffoldFlags.forceOverwrite, scriptEngine)
 	},
 }
 
 func init() {
-	scaffoldCmd.Flags().BoolVarP(&scaffoldFlags.flagForceOverwrite, "force-overwrite", "f", false, "Force overwrite of destination file(s) if already exist")
-	scaffoldCmd.Flags().BoolVar(&scaffoldFlags.flagGenerateResources, "generate-resources", true, "Generate Imposter resources from OpenAPI paths")
-	scaffoldCmd.Flags().StringVarP(&scaffoldFlags.flagScriptEngine, "script-engine", "s", "none", "Generate placeholder Imposter script (none|groovy|js)")
+	scaffoldCmd.Flags().BoolVarP(&scaffoldFlags.forceOverwrite, "force-overwrite", "f", false, "Force overwrite of destination file(s) if already exist")
+	scaffoldCmd.Flags().BoolVar(&scaffoldFlags.generateResources, "generate-resources", true, "Generate Imposter resources from OpenAPI paths")
+	scaffoldCmd.Flags().StringVarP(&scaffoldFlags.scriptEngine, "script-engine", "s", "none", "Generate placeholder Imposter script (none|groovy|js)")
 	rootCmd.AddCommand(scaffoldCmd)
 }

@@ -24,7 +24,7 @@ import (
 )
 
 var versionFlags = struct {
-	flagEngineType string
+	engineType string
 }{}
 
 // versionCmd represents the up command
@@ -33,13 +33,13 @@ var versionCmd = &cobra.Command{
 	Short: "Prints version information",
 	Long:  `Prints the version of the CLI and engine, if available.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		engineType := engine.GetConfiguredType(versionFlags.flagEngineType)
+		engineType := engine.GetConfiguredType(versionFlags.engineType)
 		println(describeVersions(engineType))
 	},
 }
 
 func init() {
-	versionCmd.Flags().StringVarP(&versionFlags.flagEngineType, "engine-type", "t", "", "Imposter engine type (valid: docker,jvm - default \"docker\")")
+	versionCmd.Flags().StringVarP(&versionFlags.engineType, "engine-type", "t", "", "Imposter engine type (valid: docker,jvm - default \"docker\")")
 	rootCmd.AddCommand(versionCmd)
 }
 

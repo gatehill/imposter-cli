@@ -24,7 +24,7 @@ import (
 )
 
 var downFlags = struct {
-	flagEngineType string
+	engineType string
 }{}
 
 // downCmd represents the down command
@@ -33,12 +33,12 @@ var downCmd = &cobra.Command{
 	Short: "Stop running mocks",
 	Long:  `Stops running Imposter mocks for the current engine type.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		stopAll(engine.GetConfiguredType(downFlags.flagEngineType))
+		stopAll(engine.GetConfiguredType(downFlags.engineType))
 	},
 }
 
 func init() {
-	downCmd.Flags().StringVarP(&downFlags.flagEngineType, "engine-type", "t", "", "Imposter engine type (valid: docker,jvm - default \"docker\")")
+	downCmd.Flags().StringVarP(&downFlags.engineType, "engine-type", "t", "", "Imposter engine type (valid: docker,jvm - default \"docker\")")
 	rootCmd.AddCommand(downCmd)
 }
 

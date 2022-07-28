@@ -145,6 +145,14 @@ func (j *JvmMockEngine) notifyOnStopBlocking(wg *sync.WaitGroup) {
 	}
 }
 
+func (j *JvmMockEngine) ListAllManaged() ([]engine.ManagedMock, error) {
+	processes, err := findImposterJvmProcesses()
+	if err != nil {
+		logger.Fatal(err)
+	}
+	return processes, nil
+}
+
 func (j *JvmMockEngine) StopAllManaged() int {
 	processes, err := findImposterJvmProcesses()
 	if err != nil {
@@ -153,7 +161,11 @@ func (j *JvmMockEngine) StopAllManaged() int {
 	if len(processes) == 0 {
 		return 0
 	}
-	for _, pid := range processes {
+	for _, proc := range processes {
+		pid, err := strconv.Atoi(proc.ID)
+		if err != nil {
+			logger.Fatal(err)
+		}
 		logger.Tracef("finding JVM process to kill with PID: %d", pid)
 		p, err := os.FindProcess(pid)
 		if err != nil {

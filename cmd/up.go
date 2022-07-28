@@ -34,18 +34,18 @@ import (
 )
 
 var upFlags = struct {
-	flagDeduplicate     string
-	flagEngineType      string
-	flagEngineVersion   string
-	flagForcePull       bool
-	flagPort            int
-	flagRestartOnChange bool
-	flagScaffoldMissing bool
-	flagEnablePlugins   bool
-	flagEnsurePlugins   bool
-	flagEnableFileCache bool
-	flagEnvironment     []string
-	flagDirMounts       []string
+	deduplicate     string
+	engineType      string
+	engineVersion   string
+	forcePull       bool
+	port            int
+	restartOnChange bool
+	scaffoldMissing bool
+	enablePlugins   bool
+	ensurePlugins   bool
+	enableFileCache bool
+	environment     []string
+	dirMounts       []string
 }{}
 
 // upCmd represents the up command
@@ -60,17 +60,17 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 		injectExplicitEnvironment()
 
 		var pullPolicy engine.PullPolicy
-		if upFlags.flagForcePull {
+		if upFlags.forcePull {
 			pullPolicy = engine.PullAlways
 		} else {
 			pullPolicy = engine.PullIfNotPresent
 		}
 
-		engineType := engine.GetConfiguredType(upFlags.flagEngineType)
+		engineType := engine.GetConfiguredType(upFlags.engineType)
 		lib := engine.GetLibrary(engineType)
-		version := engine.GetConfiguredVersion(upFlags.flagEngineVersion, pullPolicy != engine.PullAlways)
+		version := engine.GetConfiguredVersion(upFlags.engineVersion, pullPolicy != engine.PullAlways)
 
-		if upFlags.flagEnsurePlugins {
+		if upFlags.ensurePlugins {
 			_, err := plugin.EnsureDefaultPlugins(version)
 			if err != nil {
 				logger.Fatal(err)
@@ -83,28 +83,28 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 		} else {
 			configDir, _ = filepath.Abs(args[0])
 		}
-		if err := validateConfigExists(configDir, upFlags.flagScaffoldMissing); err != nil {
+		if err := validateConfigExists(configDir, upFlags.scaffoldMissing); err != nil {
 			logger.Fatal(err)
 		}
 
 		startOptions := engine.StartOptions{
-			Port:            upFlags.flagPort,
+			Port:            upFlags.port,
 			Version:         version,
 			PullPolicy:      pullPolicy,
 			LogLevel:        config.Config.LogLevel,
 			ReplaceRunning:  true,
-			Deduplicate:     upFlags.flagDeduplicate,
-			EnablePlugins:   upFlags.flagEnablePlugins,
-			EnableFileCache: upFlags.flagEnableFileCache,
-			Environment:     upFlags.flagEnvironment,
-			DirMounts:       upFlags.flagDirMounts,
+			Deduplicate:     upFlags.deduplicate,
+			EnablePlugins:   upFlags.enablePlugins,
+			EnableFileCache: upFlags.enableFileCache,
+			Environment:     upFlags.environment,
+			DirMounts:       upFlags.dirMounts,
 		}
-		start(&lib, startOptions, configDir, upFlags.flagRestartOnChange)
+		start(&lib, startOptions, configDir, upFlags.restartOnChange)
 	},
 }
 
 func injectExplicitEnvironment() {
-	for _, env := range upFlags.flagEnvironment {
+	for _, env := range upFlags.environment {
 		envParts := strings.Split(env, "=")
 		if len(envParts) > 1 {
 			_ = os.Setenv(envParts[0], envParts[1])
@@ -113,18 +113,18 @@ func injectExplicitEnvironment() {
 }
 
 func init() {
-	upCmd.Flags().StringVarP(&upFlags.flagEngineType, "engine-type", "t", "", "Imposter engine type (valid: docker,jvm - default \"docker\")")
-	upCmd.Flags().StringVarP(&upFlags.flagEngineVersion, "version", "v", "", "Imposter engine version (default \"latest\")")
-	upCmd.Flags().IntVarP(&upFlags.flagPort, "port", "p", 8080, "Port on which to listen")
-	upCmd.Flags().BoolVar(&upFlags.flagForcePull, "pull", false, "Force engine pull")
-	upCmd.Flags().BoolVar(&upFlags.flagRestartOnChange, "auto-restart", true, "Automatically restart when config dir contents change")
-	upCmd.Flags().BoolVarP(&upFlags.flagScaffoldMissing, "scaffold", "s", false, "Scaffold Imposter configuration for all OpenAPI files")
-	upCmd.Flags().StringVar(&upFlags.flagDeduplicate, "deduplicate", "", "Override deduplication ID for replacement of containers")
-	upCmd.Flags().BoolVar(&upFlags.flagEnablePlugins, "enable-plugins", true, "Whether to enable plugins")
-	upCmd.Flags().BoolVar(&upFlags.flagEnsurePlugins, "install-default-plugins", true, "Whether to install missing default plugins")
-	upCmd.Flags().BoolVar(&upFlags.flagEnableFileCache, "enable-file-cache", true, "Whether to enable file cache")
-	upCmd.Flags().StringArrayVarP(&upFlags.flagEnvironment, "env", "e", []string{}, "Explicit environment variables to set")
-	upCmd.Flags().StringArrayVar(&upFlags.flagDirMounts, "mount-dir", []string{}, "(Docker engine type only) Extra directory bind-mounts in the form HOST_PATH:CONTAINER_PATH (e.g. $HOME/somedir:/opt/imposter/somedir) or simply HOST_PATH, which will mount the directory at /opt/imposter/<dir>")
+	upCmd.Flags().StringVarP(&upFlags.engineType, "engine-type", "t", "", "Imposter engine type (valid: docker,jvm - default \"docker\")")
+	upCmd.Flags().StringVarP(&upFlags.engineVersion, "version", "v", "", "Imposter engine version (default \"latest\")")
+	upCmd.Flags().IntVarP(&upFlags.port, "port", "p", 8080, "Port on which to listen")
+	upCmd.Flags().BoolVar(&upFlags.forcePull, "pull", false, "Force engine pull")
+	upCmd.Flags().BoolVar(&upFlags.restartOnChange, "auto-restart", true, "Automatically restart when config dir contents change")
+	upCmd.Flags().BoolVarP(&upFlags.scaffoldMissing, "scaffold", "s", false, "Scaffold Imposter configuration for all OpenAPI files")
+	upCmd.Flags().StringVar(&upFlags.deduplicate, "deduplicate", "", "Override deduplication ID for replacement of containers")
+	upCmd.Flags().BoolVar(&upFlags.enablePlugins, "enable-plugins", true, "Whether to enable plugins")
+	upCmd.Flags().BoolVar(&upFlags.ensurePlugins, "install-default-plugins", true, "Whether to install missing default plugins")
+	upCmd.Flags().BoolVar(&upFlags.enableFileCache, "enable-file-cache", true, "Whether to enable file cache")
+	upCmd.Flags().StringArrayVarP(&upFlags.environment, "env", "e", []string{}, "Explicit environment variables to set")
+	upCmd.Flags().StringArrayVar(&upFlags.dirMounts, "mount-dir", []string{}, "(Docker engine type only) Extra directory bind-mounts in the form HOST_PATH:CONTAINER_PATH (e.g. $HOME/somedir:/opt/imposter/somedir) or simply HOST_PATH, which will mount the directory at /opt/imposter/<dir>")
 	rootCmd.AddCommand(upCmd)
 }
 

@@ -23,8 +23,8 @@ import (
 )
 
 var pluginInstallFlags = struct {
-	flagEngineVersion string
-	flagSaveDefault   bool
+	engineVersion string
+	saveDefault   bool
 }{}
 
 // pluginInstallCmd represents the pluginInstall command
@@ -44,14 +44,14 @@ Example 2: Install all plugins in config file
 	imposter plugin install`,
 	Args: cobra.ArbitraryArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		version := engine.GetConfiguredVersion(pluginInstallFlags.flagEngineVersion, true)
-		installPlugins(args, version, pluginInstallFlags.flagSaveDefault)
+		version := engine.GetConfiguredVersion(pluginInstallFlags.engineVersion, true)
+		installPlugins(args, version, pluginInstallFlags.saveDefault)
 	},
 }
 
 func init() {
-	pluginInstallCmd.Flags().StringVarP(&pluginInstallFlags.flagEngineVersion, "version", "v", "", "Imposter engine version (default \"latest\")")
-	pluginInstallCmd.Flags().BoolVarP(&pluginInstallFlags.flagSaveDefault, "save-default", "d", false, "Whether to save the plugin as a default")
+	pluginInstallCmd.Flags().StringVarP(&pluginInstallFlags.engineVersion, "version", "v", "", "Imposter engine version (default \"latest\")")
+	pluginInstallCmd.Flags().BoolVarP(&pluginInstallFlags.saveDefault, "save-default", "d", false, "Whether to save the plugin as a default")
 	pluginCmd.AddCommand(pluginInstallCmd)
 }
 
