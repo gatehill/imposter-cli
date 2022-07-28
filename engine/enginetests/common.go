@@ -21,6 +21,7 @@ import (
 	"gatehill.io/imposter/engine"
 	"github.com/stretchr/testify/require"
 	"io"
+	"net"
 	"net/http"
 	"sync"
 	"testing"
@@ -91,6 +92,17 @@ func Restart(t *testing.T, tests []EngineTestScenario, builder func(scenario Eng
 			checkUp(t, tt.Fields.Options.Port)
 		})
 	}
+}
+
+func GetFreePort() int {
+	if addr, err := net.ResolveTCPAddr("tcp", "localhost:0"); err == nil {
+		var l *net.TCPListener
+		if l, err = net.ListenTCP("tcp", addr); err == nil {
+			defer l.Close()
+			return l.Addr().(*net.TCPAddr).Port
+		}
+	}
+	panic("could not find a free port")
 }
 
 func checkUp(t *testing.T, port int) {
