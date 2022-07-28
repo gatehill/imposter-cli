@@ -36,7 +36,7 @@ See [Releases](https://github.com/gatehill/imposter-cli/releases) for the latest
 
 ## macOS
 
-Only Intel x86_64 is supported on macOS.
+Only Intel x86_64 and ARM64 are supported on macOS.
 
 ```shell
 # see https://github.com/gatehill/imposter-cli/releases

@@ -48,6 +48,7 @@ function find_arch() {
     case "$(uname -m)" in
     *i386* ) IMPOSTER_ARCH="x86_64" ;;
     *x86_64* ) IMPOSTER_ARCH="x86_64" ;;
+    *arm64* ) IMPOSTER_ARCH="arm64" ;;
     * ) unsupported_arch;;
     esac
   else
@@ -99,6 +100,7 @@ IMPOSTER_TEMP_DIR="$( mktemp -d /tmp/imposter.XXXXXXX )"
 cd "${IMPOSTER_TEMP_DIR}"
 
 echo -e "\nDownloading from ${DOWNLOAD_URL}"
+exit 1
 curl --fail -L -o imposter.tar.gz "${DOWNLOAD_URL}"
 tar xf imposter.tar.gz
 
