@@ -22,6 +22,7 @@ import (
 	"github.com/spf13/cobra"
 	"os"
 	"path/filepath"
+	"strconv"
 )
 
 var listFlags = struct {
@@ -54,14 +55,15 @@ func listMocks(engineType engine.EngineType) {
 
 	var rows [][]string
 	for _, mock := range mocks {
-		rows = append(rows, []string{mock.Name, mock.ID})
+		engine.PopulateHealth(&mock)
+		rows = append(rows, []string{mock.ID, mock.Name, strconv.Itoa(mock.Port), string(mock.Health)})
 	}
 	renderMocks(rows)
 }
 
 func renderMocks(rows [][]string) {
 	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"Name", "ID"})
+	table.SetHeader([]string{"ID", "Name", "Port", "Health"})
 	table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
 	table.SetCenterSeparator("|")
 	table.AppendBulk(rows)

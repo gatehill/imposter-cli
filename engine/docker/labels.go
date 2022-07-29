@@ -56,7 +56,21 @@ func findContainersWithLabels(cli *client.Client, ctx context.Context, labels ma
 
 	var mocks []engine.ManagedMock
 	for _, container := range containers {
-		mocks = append(mocks, engine.ManagedMock{ID: container.ID, Name: container.Names[0]})
+		mock := engine.ManagedMock{
+			ID:   container.ID[0:12],
+			Name: container.Names[0],
+			Port: findPublicPort(container),
+		}
+		mocks = append(mocks, mock)
 	}
 	return mocks, nil
+}
+
+func findPublicPort(container types.Container) int {
+	for _, port := range container.Ports {
+		if port.PublicPort != 0 {
+			return int(port.PublicPort)
+		}
+	}
+	return 0
 }

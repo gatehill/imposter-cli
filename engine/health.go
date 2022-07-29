@@ -34,8 +34,34 @@ func getStartTimeout() time.Duration {
 	return time.Duration(startTimeout) * time.Second
 }
 
+// IsMockUp invokes the status endpoint on the specified port and returns
+// a boolean indicating whether it returned an HTTP 200 status.
+func IsMockUp(port int) (success bool) {
+	url := getStatusUrl(port)
+	logger.Tracef("checking mock engine at %v", url)
+	client := http.Client{
+		Timeout: 2 * time.Second,
+	}
+	resp, err := client.Get(url)
+	if err != nil {
+		logger.Tracef("healthcheck request failed for mock at %s: %s", url, err)
+		return false
+	}
+	if _, err := io.ReadAll(resp.Body); err != nil {
+		logger.Tracef("healthcheck body read failed for mock at %s: %s", url, err)
+		return false
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode == 200 {
+		logger.Tracef("healthcheck passed for mock at %s: %s", url, err)
+		return true
+	}
+	logger.Tracef("healthcheck status was %d for mock at %s: %s", resp.StatusCode, url, err)
+	return false
+}
+
 func WaitUntilUp(port int, shutDownC chan bool) (success bool) {
-	url := fmt.Sprintf("http://localhost:%d/system/status", port)
+	url := getStatusUrl(port)
 	logger.Tracef("waiting for mock engine to come up at %v", url)
 
 	startedC := make(chan bool)
@@ -75,5 +101,21 @@ func WaitUntilUp(port int, shutDownC chan bool) (success bool) {
 			logger.Debugf("aborted health probe")
 		}
 		return false
+	}
+}
+
+func getStatusUrl(port int) string {
+	return fmt.Sprintf("http://localhost:%d/system/status", port)
+}
+
+func PopulateHealth(mock *ManagedMock) {
+	if mock.Port != 0 {
+		if IsMockUp(mock.Port) {
+			mock.Health = MockHealthHealthy
+		} else {
+			mock.Health = MockHealthUnhealthy
+		}
+	} else {
+		mock.Health = MockHealthUnknown
 	}
 }

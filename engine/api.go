@@ -67,7 +67,17 @@ type EngineLibrary interface {
 	GetProvider(version string) Provider
 }
 
+type MockHealth string
+
+const (
+	MockHealthHealthy   MockHealth = "healthy"
+	MockHealthUnhealthy MockHealth = "unhealthy"
+	MockHealthUnknown   MockHealth = "unknown"
+)
+
 type ManagedMock struct {
-	ID   string
-	Name string
+	ID     string
+	Name   string
+	Port   int
+	Health MockHealth
 }
