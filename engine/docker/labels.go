@@ -48,7 +48,6 @@ func findContainersWithLabels(cli *client.Client, ctx context.Context, labels ma
 	for key, value := range labels {
 		filters.Add("label", fmt.Sprintf("%v=%v", key, value))
 	}
-	cli.Close()
 	containers, err := cli.ContainerList(ctx, types.ContainerListOptions{Filters: filters})
 	if err != nil {
 		return nil, err
