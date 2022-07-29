@@ -229,6 +229,7 @@ Usage:
 
 Flags:
   -t, --engine-type string   Imposter engine type (valid: docker,jvm - default "docker")
+  -x, --exit-code-health     Set exit code based on mock health
   -h, --help                 help for down
 ```
 

@@ -26,7 +26,8 @@ import (
 )
 
 var listFlags = struct {
-	engineType string
+	engineType     string
+	healthExitCode bool
 }{}
 
 // listCmd represents the list command
@@ -41,6 +42,7 @@ var listCmd = &cobra.Command{
 
 func init() {
 	listCmd.Flags().StringVarP(&listFlags.engineType, "engine-type", "t", "", "Imposter engine type (valid: docker,jvm - default \"docker\")")
+	listCmd.Flags().BoolVarP(&listFlags.healthExitCode, "exit-code-health", "x", false, "Set exit code based on mock health")
 	rootCmd.AddCommand(listCmd)
 }
 
@@ -53,12 +55,25 @@ func listMocks(engineType engine.EngineType) {
 		logger.Fatalf("failed to list mocks: %s", err)
 	}
 
+	var anyFailed = false
 	var rows [][]string
 	for _, mock := range mocks {
 		engine.PopulateHealth(&mock)
 		rows = append(rows, []string{mock.ID, mock.Name, strconv.Itoa(mock.Port), string(mock.Health)})
+		if mock.Health != engine.MockHealthHealthy {
+			anyFailed = true
+		}
 	}
 	renderMocks(rows)
+
+	if listFlags.healthExitCode {
+		// if there is at least one mock, and all mocks are healthy, return status 0
+		if len(mocks) > 0 && !anyFailed {
+			os.Exit(0)
+		} else {
+			os.Exit(1)
+		}
+	}
 }
 
 func renderMocks(rows [][]string) {
