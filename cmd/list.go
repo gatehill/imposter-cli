@@ -44,8 +44,6 @@ func init() {
 }
 
 func listMocks(engineType engine.EngineType) {
-	logger.Info("listing all managed mocks...")
-
 	configDir := filepath.Join(os.TempDir(), "imposter-list")
 	mockEngine := engine.BuildEngine(engineType, configDir, engine.StartOptions{})
 
