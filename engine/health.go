@@ -35,8 +35,18 @@ func getStartTimeout() time.Duration {
 }
 
 // IsMockUp invokes the status endpoint on the specified port and returns
-// a boolean indicating whether it returned an HTTP 200 status.
+// a boolean indicating whether it is healthy.
 func IsMockUp(port int) (success bool) {
+	if err := CheckMockStatus(port); err != nil {
+		logger.Errorf("healthcheck request failed for mock: %s", err)
+		return false
+	}
+	return true
+}
+
+// CheckMockStatus invokes the status endpoint on the specified port and
+// checks it returns an HTTP 200 status.
+func CheckMockStatus(port int) error {
 	url := getStatusUrl(port)
 	logger.Tracef("checking mock engine at %v", url)
 	client := http.Client{
@@ -44,20 +54,17 @@ func IsMockUp(port int) (success bool) {
 	}
 	resp, err := client.Get(url)
 	if err != nil {
-		logger.Tracef("healthcheck request failed for mock at %s: %s", url, err)
-		return false
+		return fmt.Errorf("healthcheck request failed for mock at %s: %s", url, err)
 	}
 	if _, err := io.ReadAll(resp.Body); err != nil {
-		logger.Tracef("healthcheck body read failed for mock at %s: %s", url, err)
-		return false
+		return fmt.Errorf("healthcheck body read failed for mock at %s: %s", url, err)
 	}
 	_ = resp.Body.Close()
 	if resp.StatusCode == 200 {
-		logger.Tracef("healthcheck passed for mock at %s: %s", url, err)
-		return true
+		logger.Tracef("healthcheck passed for mock at %s", url)
+		return nil
 	}
-	logger.Tracef("healthcheck status was %d for mock at %s: %s", resp.StatusCode, url, err)
-	return false
+	return fmt.Errorf("healthcheck status was %d for mock at %s: %s", resp.StatusCode, url, err)
 }
 
 func WaitUntilUp(port int, shutDownC chan bool) (success bool) {

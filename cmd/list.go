@@ -38,6 +38,7 @@ var listCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		listMocks(engine.GetConfiguredType(listFlags.engineType))
 	},
+	Aliases: []string{"ls"},
 }
 
 func init() {

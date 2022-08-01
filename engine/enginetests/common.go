@@ -106,18 +106,9 @@ func GetFreePort() int {
 }
 
 func checkUp(t *testing.T, port int) {
-	url := fmt.Sprintf("http://localhost:%d/system/status", port)
-	resp, err := http.Get(url)
-	if err != nil {
-		t.Fatalf("error checking status endpoint: %v", err)
-	}
-	if _, err := io.ReadAll(resp.Body); err != nil {
-		t.Fatalf("error checking status endpoint: %v", err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode == 200 {
-		t.Logf("mock engine up at: %v", url)
+	if err := engine.CheckMockStatus(port); err != nil {
+		t.Fatalf("mock engine down on port: %d: %s", port, err)
 	} else {
-		t.Fatalf("unexpected response status code: %d", resp.StatusCode)
+		t.Logf("mock engine up on port: %d", port)
 	}
 }
