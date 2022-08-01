@@ -116,6 +116,9 @@ func List(t *testing.T, tests []EngineTestScenario, builder func(scenario Engine
 				t.Fatalf("failed to list mocks: %s", err)
 			}
 			require.Equal(t, 1, len(mocks), "expected 1 running mock")
+			require.NotNilf(t, mocks[0].ID, "mock id should be set")
+			require.NotNilf(t, mocks[0].Name, "mock name should be set")
+			require.Equal(t, mocks[0].Port, tt.Fields.Options.Port, "mock port should be correct")
 		})
 	}
 }
