@@ -17,17 +17,13 @@ func findImposterJvmProcesses() ([]engine.ManagedMock, error) {
 	for _, p := range processes {
 		cmdline, err := p.CmdlineSlice()
 		if err != nil {
-			return nil, err
+			continue
 		}
 		procName, err := p.Name()
 		if err != nil {
-			return nil, err
+			continue
 		}
-		isImposter, err := isImposterProc(cmdline, procName)
-		if err != nil {
-			return nil, err
-		}
-		if !isImposter {
+		if !isImposterProc(cmdline, procName) {
 			continue
 		}
 		logger.Tracef("found JVM Imposter process %d: %v", p.Pid, cmdline)
@@ -36,14 +32,14 @@ func findImposterJvmProcesses() ([]engine.ManagedMock, error) {
 	return mocks, nil
 }
 
-func isImposterProc(cmdline []string, procName string) (bool, error) {
+func isImposterProc(cmdline []string, procName string) bool {
 	if procName != "java" {
-		return false, nil
+		return false
 	}
 	for _, arg := range cmdline {
 		if matched, _ := regexp.MatchString("/imposter.*\\.jar", arg); matched {
-			return true, nil
+			return true
 		}
 	}
-	return false, nil
+	return false
 }

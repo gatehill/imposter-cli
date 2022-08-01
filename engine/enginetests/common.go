@@ -94,6 +94,32 @@ func Restart(t *testing.T, tests []EngineTestScenario, builder func(scenario Eng
 	}
 }
 
+func List(t *testing.T, tests []EngineTestScenario, builder func(scenario EngineTestScenario) engine.MockEngine) {
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			wg := &sync.WaitGroup{}
+			mockEngine := builder(tt)
+			success := mockEngine.Start(wg)
+			if !success {
+				t.Fatalf("engine did not start successfully")
+			}
+
+			defer func() {
+				mockEngine.Stop(wg)
+				wg.Wait()
+			}()
+
+			checkUp(t, tt.Fields.Options.Port)
+
+			mocks, err := mockEngine.ListAllManaged()
+			if err != nil {
+				t.Fatalf("failed to list mocks: %s", err)
+			}
+			require.Equal(t, 1, len(mocks), "expected 1 running mock")
+		})
+	}
+}
+
 func GetFreePort() int {
 	if addr, err := net.ResolveTCPAddr("tcp", "localhost:0"); err == nil {
 		var l *net.TCPListener

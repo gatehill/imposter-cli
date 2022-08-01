@@ -82,3 +82,28 @@ func TestEngine_Restart(t *testing.T) {
 	}
 	enginetests.Restart(t, tests, engineBuilder)
 }
+
+func TestEngine_List(t *testing.T) {
+	logger.SetLevel(logrus.TraceLevel)
+	workingDir, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	testConfigPath := filepath.Join(workingDir, "../enginetests/testdata")
+
+	tests := []enginetests.EngineTestScenario{
+		{
+			Name: "list docker engine",
+			Fields: enginetests.EngineTestFields{
+				ConfigDir: testConfigPath,
+				Options: engine.StartOptions{
+					Port:       enginetests.GetFreePort(),
+					Version:    "3.0.2",
+					PullPolicy: engine.PullIfNotPresent,
+					LogLevel:   "DEBUG",
+				},
+			},
+		},
+	}
+	enginetests.List(t, tests, engineBuilder)
+}
