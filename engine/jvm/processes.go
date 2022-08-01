@@ -44,7 +44,7 @@ func isImposterProc(cmdline []string, procName string) bool {
 		return false
 	}
 	for _, arg := range cmdline {
-		if matched, _ := regexp.MatchString("/imposter.*\\.jar", arg); matched {
+		if matched, _ := regexp.MatchString("([/\\\\]imposter.*\\.jar$|^io.gatehill.imposter.cmd.ImposterLauncher$)", arg); matched {
 			return true
 		}
 	}
