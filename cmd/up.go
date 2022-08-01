@@ -34,18 +34,19 @@ import (
 )
 
 var upFlags = struct {
-	deduplicate     string
-	engineType      string
-	engineVersion   string
-	forcePull       bool
-	port            int
-	restartOnChange bool
-	scaffoldMissing bool
-	enablePlugins   bool
-	ensurePlugins   bool
-	enableFileCache bool
-	environment     []string
-	dirMounts       []string
+	deduplicate         string
+	engineType          string
+	engineVersion       string
+	forcePull           bool
+	port                int
+	restartOnChange     bool
+	scaffoldMissing     bool
+	enablePlugins       bool
+	ensurePlugins       bool
+	enableFileCache     bool
+	environment         []string
+	dirMounts           []string
+	recursiveConfigScan bool
 }{}
 
 // upCmd represents the up command
@@ -110,6 +111,9 @@ func injectExplicitEnvironment() {
 			_ = os.Setenv(envParts[0], envParts[1])
 		}
 	}
+	if upFlags.recursiveConfigScan {
+		_ = os.Setenv("IMPOSTER_CONFIG_SCAN_RECURSIVE", "true")
+	}
 }
 
 func init() {
@@ -120,11 +124,12 @@ func init() {
 	upCmd.Flags().BoolVar(&upFlags.restartOnChange, "auto-restart", true, "Automatically restart when config dir contents change")
 	upCmd.Flags().BoolVarP(&upFlags.scaffoldMissing, "scaffold", "s", false, "Scaffold Imposter configuration for all OpenAPI files")
 	upCmd.Flags().StringVar(&upFlags.deduplicate, "deduplicate", "", "Override deduplication ID for replacement of containers")
-	upCmd.Flags().BoolVar(&upFlags.enablePlugins, "enable-plugins", true, "Whether to enable plugins")
-	upCmd.Flags().BoolVar(&upFlags.ensurePlugins, "install-default-plugins", true, "Whether to install missing default plugins")
-	upCmd.Flags().BoolVar(&upFlags.enableFileCache, "enable-file-cache", true, "Whether to enable file cache")
+	upCmd.Flags().BoolVar(&upFlags.enablePlugins, "enable-plugins", true, "Enable plugins")
+	upCmd.Flags().BoolVar(&upFlags.ensurePlugins, "install-default-plugins", true, "Install missing default plugins")
+	upCmd.Flags().BoolVar(&upFlags.enableFileCache, "enable-file-cache", true, "Enable file cache")
 	upCmd.Flags().StringArrayVarP(&upFlags.environment, "env", "e", []string{}, "Explicit environment variables to set")
 	upCmd.Flags().StringArrayVar(&upFlags.dirMounts, "mount-dir", []string{}, "(Docker engine type only) Extra directory bind-mounts in the form HOST_PATH:CONTAINER_PATH (e.g. $HOME/somedir:/opt/imposter/somedir) or simply HOST_PATH, which will mount the directory at /opt/imposter/<dir>")
+	upCmd.Flags().BoolVarP(&upFlags.recursiveConfigScan, "recursive-config-scan", "r", false, "Scan for config files in subdirectories")
 	rootCmd.AddCommand(upCmd)
 }
 
