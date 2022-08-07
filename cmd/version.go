@@ -23,8 +23,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type outputFormat string
+
+const (
+	outputFormatPlain outputFormat = "plain"
+	outputFormatJson  outputFormat = "json"
+)
+
 var versionFlags = struct {
 	engineType string
+	format     string
+	cliOnly    bool
 }{}
 
 // versionCmd represents the up command
@@ -34,26 +43,59 @@ var versionCmd = &cobra.Command{
 	Long:  `Prints the version of the CLI and engine, if available.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		engineType := engine.GetConfiguredType(versionFlags.engineType)
-		println(describeVersions(engineType))
+		var format outputFormat
+		if versionFlags.format != "" {
+			format = outputFormat(versionFlags.format)
+		} else {
+			format = outputFormatPlain
+		}
+		println(describeVersions(engineType, format, versionFlags.cliOnly))
 	},
 }
 
 func init() {
 	versionCmd.Flags().StringVarP(&versionFlags.engineType, "engine-type", "t", "", "Imposter engine type (valid: docker,jvm - default \"docker\")")
+	versionCmd.Flags().StringVarP(&versionFlags.format, "output-format", "o", "", "Output format (valid: plain,json - default \"plain\")")
+	versionCmd.Flags().BoolVar(&versionFlags.cliOnly, "cli-only", false, "Only print the version of the CLI")
 	rootCmd.AddCommand(versionCmd)
 }
 
-func describeVersions(engineType engine.EngineType) string {
-	engineConfigVersion := engine.GetConfiguredVersion("", true)
-	engineVersionOutput := getInstalledEngineVersion(engineType, engineConfigVersion)
+func describeVersions(engineType engine.EngineType, format outputFormat, cliOnly bool) string {
+	var firstTrailer string
+	if cliOnly {
+		firstTrailer = ""
+	} else {
+		firstTrailer = ","
+	}
+	output := formatProperty(format, "imposter-cli", config.Config.Version, firstTrailer)
 
-	return fmt.Sprintf(`imposter-cli %[1]v
-imposter-engine %[2]v
-engine-output %[3]v`,
-		config.Config.Version,
-		engineConfigVersion,
-		engineVersionOutput,
-	)
+	if !cliOnly {
+		engineConfigVersion := engine.GetConfiguredVersion("", true)
+		output += formatProperty(format, "imposter-engine", engineConfigVersion, ",")
+		output += formatProperty(format, "engine-output", getInstalledEngineVersion(engineType, engineConfigVersion), "")
+	}
+
+	switch format {
+	case outputFormatPlain:
+		return output
+	case outputFormatJson:
+		return fmt.Sprintf("{\n%s}", output)
+	default:
+		panic(fmt.Errorf("unsupported output format: %s", format))
+	}
+}
+
+func formatProperty(format outputFormat, key string, value string, trailer string) string {
+	var formatted string
+	switch format {
+	case outputFormatPlain:
+		formatted = fmt.Sprintf("%s %s", key, value)
+	case outputFormatJson:
+		formatted = fmt.Sprintf(`  "%s": "%s"%s`, key, value, trailer)
+	default:
+		panic(fmt.Errorf("unsupported output format: %s", format))
+	}
+	return formatted + "\n"
 }
 
 func getInstalledEngineVersion(engineType engine.EngineType, version string) string {

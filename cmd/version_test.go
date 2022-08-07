@@ -51,9 +51,9 @@ func Test_describeVersions(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			want := `imposter-cli dev
 imposter-engine 3.0.2
-engine-output 3.0.2`
-
-			got := describeVersions(tt.args.engineType)
+engine-output 3.0.2
+`
+			got := describeVersions(tt.args.engineType, outputFormatPlain, false)
 			require.Equal(t, want, got, "version should match")
 		})
 	}
