@@ -32,13 +32,13 @@ var listFlags = struct {
 
 // listCmd represents the list command
 var listCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List running mocks",
-	Long:  `Lists running Imposter mocks for the current engine type.`,
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List running mocks",
+	Long:    `Lists running Imposter mocks for the current engine type.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		listMocks(engine.GetConfiguredType(listFlags.engineType))
 	},
-	Aliases: []string{"ls"},
 }
 
 func init() {

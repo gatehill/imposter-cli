@@ -25,9 +25,10 @@ import (
 
 // workspaceListCmd represents the workspaceList command
 var workspaceListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List all workspaces",
-	Long:  `Lists all workspaces, showing the active workspace, if set.`,
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List all workspaces",
+	Long:    `Lists all workspaces, showing the active workspace, if set.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var dir string
 		if workspaceFlags.path != "" {

@@ -29,8 +29,9 @@ var engineListFlags = struct {
 
 // engineListCmd represents the engineList command
 var engineListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List the engines in the cache",
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List the engines in the cache",
 	Long: `Lists all versions of engine binaries/images in the cache.
 
 If engine type is not specified, it defaults to all.`,
