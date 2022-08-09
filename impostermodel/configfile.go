@@ -22,39 +22,65 @@ import (
 	"gatehill.io/imposter/openapi"
 	"os"
 	"path/filepath"
+	"sigs.k8s.io/yaml"
 )
+
+type ConfigGenerationOptions struct {
+	PluginName     string
+	ScriptEngine   ScriptEngine
+	ScriptFileName string
+	SpecFilePath   string
+}
 
 var logger = logging.GetLogger()
 
-func CreateFromSpecs(configDir string, generateResources bool, forceOverwrite bool, scriptEngine ScriptEngine) {
+func Create(configDir string, generateResources bool, forceOverwrite bool, scriptEngine ScriptEngine, requireOpenApi bool) {
 	openApiSpecs := openapi.DiscoverOpenApiSpecs(configDir)
 	logger.Infof("found %d OpenAPI spec(s)", len(openApiSpecs))
 
-	for _, openApiSpec := range openApiSpecs {
-		writeMockConfig(openApiSpec, generateResources, forceOverwrite, scriptEngine)
+	if len(openApiSpecs) > 0 {
+		logger.Tracef("using openapi plugin")
+		for _, openApiSpec := range openApiSpecs {
+			scriptFileName := getScriptFileName(openApiSpec, scriptEngine, forceOverwrite)
+			writeOpenapiMockConfig(openApiSpec, generateResources, forceOverwrite, scriptEngine, scriptFileName)
+		}
+	} else if !requireOpenApi {
+		logger.Infof("falling back to rest plugin")
+		readmeFilePath, responseFilePath := generateRestMockFiles(configDir)
+		scriptFileName := getScriptFileName(readmeFilePath, scriptEngine, forceOverwrite)
+		writeRestMockConfig(readmeFilePath, responseFilePath, generateResources, forceOverwrite, scriptEngine, scriptFileName)
+	} else {
+		logger.Fatalf("no OpenAPI specs found in: %s", configDir)
 	}
 }
 
-func writeMockConfig(specFilePath string, generateResources bool, forceOverwrite bool, scriptEngine ScriptEngine) {
-	var scriptFileName string
-	if IsScriptEngineEnabled(scriptEngine) {
-		scriptFilePath := writeScriptFile(specFilePath, scriptEngine, forceOverwrite)
-		scriptFileName = filepath.Base(scriptFilePath)
+func GenerateConfig(options ConfigGenerationOptions, resources []Resource) []byte {
+	pluginConfig := PluginConfig{
+		Plugin: options.PluginName,
 	}
-
-	var resources []Resource
-	if generateResources {
-		resources = buildResources(specFilePath, scriptEngine, scriptFileName)
+	if options.SpecFilePath != "" {
+		pluginConfig.SpecFile = filepath.Base(options.SpecFilePath)
+	}
+	if len(resources) > 0 {
+		pluginConfig.Resources = resources
 	} else {
-		logger.Debug("skipping resource generation")
+		if IsScriptEngineEnabled(options.ScriptEngine) {
+			pluginConfig.Response = &ResponseConfig{
+				ScriptFile: options.ScriptFileName,
+			}
+		}
 	}
 
-	config := GenerateConfig(specFilePath, resources, ConfigGenerationOptions{
-		ScriptEngine:   scriptEngine,
-		ScriptFileName: scriptFileName,
-	})
+	config, err := yaml.Marshal(pluginConfig)
+	if err != nil {
+		logger.Fatalf("unable to marshal imposter config: %v", err)
+	}
+	return config
+}
 
-	configFilePath := fileutil.GenerateFilePathAdjacentToFile(specFilePath, "-config.yaml", forceOverwrite)
+func writeMockConfig(anchorFilePath string, resources []Resource, forceOverwrite bool, options ConfigGenerationOptions) {
+	config := GenerateConfig(options, resources)
+	configFilePath := fileutil.GenerateFilePathAdjacentToFile(anchorFilePath, "-config.yaml", forceOverwrite)
 	configFile, err := os.Create(configFilePath)
 	if err != nil {
 		logger.Fatal(err)
@@ -66,37 +92,4 @@ func writeMockConfig(specFilePath string, generateResources bool, forceOverwrite
 	}
 
 	logger.Infof("wrote Imposter config: %v", configFilePath)
-}
-
-func writeScriptFile(specFilePath string, engine ScriptEngine, forceOverwrite bool) string {
-	scriptFilePath := BuildScriptFilePath(specFilePath, engine, forceOverwrite)
-	scriptFile, err := os.Create(scriptFilePath)
-	if err != nil {
-		logger.Fatalf("error writing script file: %v: %v", scriptFilePath, err)
-	}
-	defer scriptFile.Close()
-
-	_, err = scriptFile.WriteString(`
-// TODO add your custom logic here
-logger.debug('method: ' + context.request.method);
-logger.debug('path: ' + context.request.path);
-logger.debug('pathParams: ' + context.request.pathParams);
-logger.debug('queryParams: ' + context.request.queryParams);
-logger.debug('headers: ' + context.request.headers);
-`)
-	if err != nil {
-		logger.Fatalf("error writing script file: %v: %v", scriptFilePath, err)
-	}
-
-	logger.Infof("wrote script file: %v", scriptFilePath)
-	return scriptFilePath
-}
-
-func buildResources(specFilePath string, scriptEngine ScriptEngine, scriptFileName string) []Resource {
-	resources := GenerateResourcesFromSpec(specFilePath, ResourceGenerationOptions{
-		ScriptEngine:   scriptEngine,
-		ScriptFileName: scriptFileName,
-	})
-	logger.Debugf("generated %d resources from spec", len(resources))
-	return resources
 }

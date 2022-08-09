@@ -1,5 +1,5 @@
 /*
-Copyright © 2021 Pete Cornish <outofcoffee@gmail.com>
+Copyright © 2022 Pete Cornish <outofcoffee@gmail.com>
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,41 +18,12 @@ package impostermodel
 
 import (
 	"gatehill.io/imposter/openapi"
-	"path/filepath"
-	"sigs.k8s.io/yaml"
 	"strings"
 )
 
 type ResourceGenerationOptions struct {
 	ScriptEngine   ScriptEngine
 	ScriptFileName string
-}
-
-type ConfigGenerationOptions struct {
-	ScriptEngine   ScriptEngine
-	ScriptFileName string
-}
-
-func GenerateConfig(specFilePath string, resources []Resource, options ConfigGenerationOptions) []byte {
-	pluginConfig := PluginConfig{
-		Plugin:   "openapi",
-		SpecFile: filepath.Base(specFilePath),
-	}
-	if len(resources) > 0 {
-		pluginConfig.Resources = resources
-	} else {
-		if IsScriptEngineEnabled(options.ScriptEngine) {
-			pluginConfig.Response = &ResponseConfig{
-				ScriptFile: options.ScriptFileName,
-			}
-		}
-	}
-
-	config, err := yaml.Marshal(pluginConfig)
-	if err != nil {
-		logger.Fatalf("unable to marshal imposter config: %v", err)
-	}
-	return config
 }
 
 func GenerateResourcesFromSpec(specFilePath string, options ResourceGenerationOptions) []Resource {
@@ -78,5 +49,30 @@ func GenerateResourcesFromSpec(specFilePath string, options ResourceGenerationOp
 		}
 
 	}
+	return resources
+}
+
+func writeOpenapiMockConfig(specFilePath string, generateResources bool, forceOverwrite bool, scriptEngine ScriptEngine, scriptFileName string) {
+	var resources []Resource
+	if generateResources {
+		resources = buildOpenapiResources(specFilePath, scriptEngine, scriptFileName)
+	} else {
+		logger.Debug("skipping resource generation")
+	}
+	options := ConfigGenerationOptions{
+		PluginName:     "openapi",
+		ScriptEngine:   scriptEngine,
+		ScriptFileName: scriptFileName,
+		SpecFilePath:   specFilePath,
+	}
+	writeMockConfig(specFilePath, resources, forceOverwrite, options)
+}
+
+func buildOpenapiResources(specFilePath string, scriptEngine ScriptEngine, scriptFileName string) []Resource {
+	resources := GenerateResourcesFromSpec(specFilePath, ResourceGenerationOptions{
+		ScriptEngine:   scriptEngine,
+		ScriptFileName: scriptFileName,
+	})
+	logger.Debugf("generated %d resources from spec", len(resources))
 	return resources
 }

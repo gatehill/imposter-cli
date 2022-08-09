@@ -46,7 +46,7 @@ If DIR is not specified, the current working directory is used.`,
 			configDir, _ = filepath.Abs(args[0])
 		}
 		scriptEngine := impostermodel.ParseScriptEngine(scaffoldFlags.scriptEngine)
-		impostermodel.CreateFromSpecs(configDir, scaffoldFlags.generateResources, scaffoldFlags.forceOverwrite, scriptEngine)
+		impostermodel.Create(configDir, scaffoldFlags.generateResources, scaffoldFlags.forceOverwrite, scriptEngine, false)
 	},
 }
 

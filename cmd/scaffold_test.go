@@ -40,54 +40,100 @@ func Test_createMockConfig(t *testing.T) {
 		generateResources bool
 		forceOverwrite    bool
 		scriptEngine      impostermodel.ScriptEngine
+		copySpecs         bool
+		anchorFileName    string
+		checkResponseFile bool
 	}
 	tests := []struct {
 		name string
 		args args
 	}{
 		{
-			name: "generate no resources no script",
+			name: "generate openapi mock no resources no script",
 			args: args{
 				generateResources: false,
 				forceOverwrite:    true,
 				scriptEngine:      impostermodel.ScriptEngineNone,
+				anchorFileName:    "order_service",
+				copySpecs:         true,
+				checkResponseFile: false,
 			},
 		},
 		{
-			name: "generate no resources with script",
+			name: "generate openapi mock no resources with script",
 			args: args{
 				generateResources: false,
 				forceOverwrite:    true,
 				scriptEngine:      impostermodel.ScriptEngineJavaScript,
+				anchorFileName:    "order_service",
+				copySpecs:         true,
+				checkResponseFile: false,
 			},
 		},
 		{
-			name: "generate with resources no script",
+			name: "generate openapi mock with resources no script",
 			args: args{
 				generateResources: true,
 				forceOverwrite:    true,
 				scriptEngine:      impostermodel.ScriptEngineNone,
+				anchorFileName:    "order_service",
+				copySpecs:         true,
+				checkResponseFile: false,
 			},
 		},
 		{
-			name: "generate with resources with script",
+			name: "generate openapi mock with resources with script",
 			args: args{
 				generateResources: true,
 				forceOverwrite:    true,
 				scriptEngine:      impostermodel.ScriptEngineJavaScript,
+				anchorFileName:    "order_service",
+				copySpecs:         true,
+				checkResponseFile: false,
+			},
+		},
+		{
+			name: "generate rest mock with resources no script",
+			args: args{
+				generateResources: true,
+				forceOverwrite:    true,
+				scriptEngine:      impostermodel.ScriptEngineNone,
+				anchorFileName:    "mock",
+				copySpecs:         false,
+				checkResponseFile: true,
+			},
+		},
+		{
+			name: "generate rest mock with resources with script",
+			args: args{
+				generateResources: true,
+				forceOverwrite:    true,
+				scriptEngine:      impostermodel.ScriptEngineJavaScript,
+				anchorFileName:    "mock",
+				copySpecs:         false,
+				checkResponseFile: true,
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			configDir := prepTestData(t, testConfigPath)
-			impostermodel.CreateFromSpecs(configDir, tt.args.generateResources, tt.args.forceOverwrite, tt.args.scriptEngine)
+			configDir, err := os.MkdirTemp(os.TempDir(), "specs")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if tt.args.copySpecs {
+				prepTestData(t, configDir, testConfigPath)
+			}
+			impostermodel.Create(configDir, tt.args.generateResources, tt.args.forceOverwrite, tt.args.scriptEngine, false)
 
-			if !doesFileExist(filepath.Join(configDir, "order_service-config.yaml")) {
+			if !doesFileExist(filepath.Join(configDir, tt.args.anchorFileName+"-config.yaml")) {
 				t.Fatalf("imposter config file should exist")
 			}
+			if tt.args.checkResponseFile && !doesFileExist(filepath.Join(configDir, "response.json")) {
+				t.Fatalf("response file should exist")
+			}
 
-			scriptPath := filepath.Join(configDir, "order_service.js")
+			scriptPath := filepath.Join(configDir, tt.args.anchorFileName+".js")
 			if impostermodel.IsScriptEngineEnabled(tt.args.scriptEngine) {
 				if !doesFileExist(scriptPath) {
 					t.Fatalf("script file should exist")
@@ -109,14 +155,9 @@ func doesFileExist(path string) bool {
 	return !info.IsDir()
 }
 
-func prepTestData(t *testing.T, src string) string {
-	tempDir, err := os.MkdirTemp(os.TempDir(), "specs")
+func prepTestData(t *testing.T, configDir string, src string) {
+	err := fileutil.CopyDirShallow(src, configDir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = fileutil.CopyDirShallow(src, tempDir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return tempDir
 }

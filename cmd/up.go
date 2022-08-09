@@ -150,7 +150,7 @@ func validateConfigExists(configDir string, scaffoldMissing bool) error {
 
 	if scaffoldMissing {
 		logger.Infof("scaffolding Imposter configuration files")
-		impostermodel.CreateFromSpecs(configDir, false, false, impostermodel.ScriptEngineNone)
+		impostermodel.Create(configDir, false, false, impostermodel.ScriptEngineNone, true)
 		return nil
 	}
 	return fmt.Errorf(`No Imposter configuration files found in: %v
