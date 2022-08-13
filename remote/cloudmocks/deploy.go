@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"gatehill.io/imposter/remote"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -208,7 +207,7 @@ func (m Remote) upload(method string, path string, src string) error {
 	if err != nil {
 		return err
 	}
-	fileContents, err := ioutil.ReadAll(file)
+	fileContents, err := io.ReadAll(file)
 	if err != nil {
 		return err
 	}

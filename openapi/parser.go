@@ -19,7 +19,7 @@ package openapi
 import (
 	"fmt"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
+	"io"
 	"os"
 )
 
@@ -38,7 +38,7 @@ func Parse(specFile string) (*PartialModel, error) {
 	}
 	defer reader.Close()
 
-	raw, err := ioutil.ReadAll(reader)
+	raw, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, err
 	}

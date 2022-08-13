@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"gatehill.io/imposter/prefs"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -90,7 +90,7 @@ func fetchLatestFromApi() (string, error) {
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		return "", fmt.Errorf("failed to determine latest version from %s - status code: %d", latestReleaseApi, resp.StatusCode)
 	}
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("failed to determine latest version from %s - cannot read response body: %s", latestReleaseApi, err)
 	}
