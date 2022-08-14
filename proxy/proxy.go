@@ -27,10 +27,10 @@ import (
 	"time"
 )
 
-var skipHeaders = []string{
+var skipProxyHeaders = []string{
 	"Accept-Encoding",
 
-	// Hop-by-hop headers. These are removed when sent to the upstream.
+	// Hop-by-hop headers. These are removed in requests to the upstream or reponses to the client.
 	// See "13.5.1 End-to-end and Hop-by-hop Headers" in http://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html
 	"Connection",
 	"Keep-Alive",
@@ -40,6 +40,19 @@ var skipHeaders = []string{
 	"Trailers",
 	"Transfer-Encoding",
 	"Upgrade",
+}
+
+var skipRecordHeaders = []string{
+	"Accept-Ranges",
+	"Age",
+	"Cache-Control",
+	"Content-Length",
+	"Date",
+	"Etag",
+	"Expires",
+	"Last-Modified",
+	"Server",
+	"Vary",
 }
 
 var logger = logging.GetLogger()
@@ -157,7 +170,7 @@ func sendResponse(w http.ResponseWriter, headers *http.Header, statusCode int, b
 // of the header is a hop-by-hop header.
 func copyHeaders(source *http.Header, destination *http.Header) {
 	for headerName, headerValues := range *source {
-		if !stringutil.Contains(skipHeaders, headerName) {
+		if !stringutil.Contains(skipProxyHeaders, headerName) {
 			for _, headerValue := range headerValues {
 				destination.Add(headerName, headerValue)
 			}

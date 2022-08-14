@@ -17,11 +17,12 @@ limitations under the License.
 package impostermodel
 
 type ResponseConfig struct {
-	StatusCode  int    `json:"statusCode,omitempty"`
-	StaticFile  string `json:"staticFile,omitempty"`
-	StaticData  string `json:"staticData,omitempty"`
-	ExampleName string `json:"exampleName,omitempty"`
-	ScriptFile  string `json:"scriptFile,omitempty"`
+	StatusCode  int                `json:"statusCode,omitempty"`
+	StaticFile  string             `json:"staticFile,omitempty"`
+	StaticData  string             `json:"staticData,omitempty"`
+	ExampleName string             `json:"exampleName,omitempty"`
+	ScriptFile  string             `json:"scriptFile,omitempty"`
+	Headers     *map[string]string `json:"headers,omitempty"`
 }
 
 type Resource struct {

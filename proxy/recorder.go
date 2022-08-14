@@ -18,6 +18,8 @@ package proxy
 
 import (
 	"fmt"
+	"gatehill.io/imposter/impostermodel"
+	"gatehill.io/imposter/stringutil"
 	"github.com/google/uuid"
 	"mime"
 	"net/http"
@@ -56,18 +58,9 @@ func record(upstream string, dir string, exchange HttpExchange) error {
 	}
 	logger.Debugf("wrote response file %s for %s %v [%d bytes]", respFile, req.Method, req.URL, len(*exchange.Body))
 
-	config := fmt.Sprintf(`plugin: rest
-resources:
-- path: "%s"
-  response:
-    statusCode: %d
-    staticFile: "%s"
-    headers:
-      Content-Type: "%s"
-`, req.URL.Path, exchange.StatusCode, path.Base(respFile), exchange.Headers.Get("Content-Type"))
-
+	config := generateConfig(exchange, req, respFile)
 	configFile := path.Join(dir, upstreamHost+"-"+reqId+"-config.yaml")
-	err = os.WriteFile(configFile, []byte(config), 0644)
+	err = os.WriteFile(configFile, config, 0644)
 	if err != nil {
 		logger.Warnf("failed to write config file %s for %s %v: %v", configFile, req.Method, req.URL, err)
 	}
@@ -83,4 +76,30 @@ func getFileExtension(respHeaders *http.Header) string {
 		return ".txt"
 	}
 	return extensions[0]
+}
+
+func generateConfig(exchange HttpExchange, req *http.Request, respFile string) []byte {
+	var resources []impostermodel.Resource
+	headers := make(map[string]string)
+	for headerName, headerValues := range *exchange.Headers {
+		if !stringutil.Contains(skipProxyHeaders, headerName) && !stringutil.Contains(skipRecordHeaders, headerName) {
+			if len(headerValues) > 0 {
+				headers[headerName] = headerValues[0]
+			}
+		}
+	}
+	resource := impostermodel.Resource{
+		Path:   req.URL.Path,
+		Method: req.Method,
+		Response: &impostermodel.ResponseConfig{
+			StatusCode: exchange.StatusCode,
+			StaticFile: path.Base(respFile),
+			Headers:    &headers,
+		},
+	}
+	resources = append(resources, resource)
+
+	options := impostermodel.ConfigGenerationOptions{PluginName: "rest"}
+	config := impostermodel.GenerateConfig(options, resources)
+	return config
 }
