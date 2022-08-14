@@ -58,10 +58,10 @@ var skipRecordHeaders = []string{
 var logger = logging.GetLogger()
 
 type HttpExchange struct {
-	Req        *http.Request
-	StatusCode int
-	Body       *[]byte
-	Headers    *http.Header
+	Request         *http.Request
+	StatusCode      int
+	ResponseBody    *[]byte
+	ResponseHeaders *http.Header
 }
 
 func Handle(

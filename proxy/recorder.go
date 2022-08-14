@@ -22,84 +22,131 @@ import (
 	"gatehill.io/imposter/stringutil"
 	"github.com/google/uuid"
 	"mime"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"path"
+	"strings"
 )
 
-func StartRecorder(upstream string, dir string) chan HttpExchange {
+func StartRecorder(upstream string, dir string) (chan HttpExchange, error) {
+	upstreamHost, err := formatUpstreamHostPort(upstream)
+	if err != nil {
+		return nil, err
+	}
+
+	var resources []impostermodel.Resource
+	options := impostermodel.ConfigGenerationOptions{PluginName: "rest"}
+
 	recordC := make(chan HttpExchange)
 	go func() {
 		for {
-			if err := record(upstream, dir, <-recordC); err != nil {
+			exchange := <-recordC
+			reqId := uuid.New().String()
+
+			resource, err := record(upstreamHost, dir, reqId, exchange)
+			if err != nil {
+				logger.Warn(err)
+				continue
+			}
+			resources = append(resources, *resource)
+
+			if err := updateConfigFile(exchange, options, resources, dir, upstreamHost); err != nil {
 				logger.Warn(err)
 			}
 		}
 	}()
-	return recordC
+
+	return recordC, nil
 }
 
-func record(upstream string, dir string, exchange HttpExchange) error {
+func formatUpstreamHostPort(upstream string) (string, error) {
 	upstreamUrl, err := url.Parse(upstream)
 	if err != nil {
-		return fmt.Errorf("failed to parse upstream URL: %v", err)
+		return "", fmt.Errorf("failed to parse upstream URL: %v", err)
 	}
-	upstreamHost := upstreamUrl.Host
+	host := upstreamUrl.Host
+	if !strings.Contains(host, ":") {
+		return host, nil
+	} else {
+		hostOnly, port, err := net.SplitHostPort(host)
+		if err != nil {
+			return "", fmt.Errorf("failed to parse split upstream host/port: %v", err)
+		}
+		if port != "" {
+			hostOnly += "-" + port
+		}
+		return hostOnly, nil
+	}
+}
 
-	req := exchange.Req
-	reqId := uuid.New().String()
+func record(upstreamHost string, dir string, reqId string, exchange HttpExchange) (resource *impostermodel.Resource, err error) {
+	req := exchange.Request
 
-	fileExt := getFileExtension(exchange.Headers)
+	fileExt := getFileExtension(exchange.ResponseHeaders)
 	respFile := path.Join(dir, upstreamHost+"-"+reqId+"-response"+fileExt)
-	err = os.WriteFile(respFile, *exchange.Body, 0644)
+	err = os.WriteFile(respFile, *exchange.ResponseBody, 0644)
 	if err != nil {
-		return fmt.Errorf("failed to write response file %s for %s %v: %v", respFile, req.Method, req.URL, err)
+		return nil, fmt.Errorf("failed to write response file %s for %s %v: %v", respFile, req.Method, req.URL, err)
 	}
-	logger.Debugf("wrote response file %s for %s %v [%d bytes]", respFile, req.Method, req.URL, len(*exchange.Body))
+	logger.Debugf("wrote response file %s for %s %v [%d bytes]", respFile, req.Method, req.URL, len(*exchange.ResponseBody))
 
-	config := generateConfig(exchange, req, respFile)
-	configFile := path.Join(dir, upstreamHost+"-"+reqId+"-config.yaml")
-	err = os.WriteFile(configFile, config, 0644)
-	if err != nil {
-		logger.Warnf("failed to write config file %s for %s %v: %v", configFile, req.Method, req.URL, err)
-	}
-	logger.Debugf("wrote config file %s for %s %v", configFile, req.Method, req.URL)
-
-	return nil
+	r := buildResource(exchange, respFile)
+	return &r, nil
 }
 
 func getFileExtension(respHeaders *http.Header) string {
 	contentType := respHeaders.Get("Content-Type")
-	extensions, err := mime.ExtensionsByType(contentType)
-	if err != nil || extensions == nil {
-		return ".txt"
-	}
-	return extensions[0]
-}
-
-func generateConfig(exchange HttpExchange, req *http.Request, respFile string) []byte {
-	var resources []impostermodel.Resource
-	headers := make(map[string]string)
-	for headerName, headerValues := range *exchange.Headers {
-		if !stringutil.Contains(skipProxyHeaders, headerName) && !stringutil.Contains(skipRecordHeaders, headerName) {
-			if len(headerValues) > 0 {
-				headers[headerName] = headerValues[0]
-			}
+	if contentType != "" {
+		if extensions, err := mime.ExtensionsByType(contentType); err == nil && len(extensions) > 0 {
+			return extensions[0]
 		}
 	}
+	return ".txt"
+}
+
+func buildResource(exchange HttpExchange, respFile string) impostermodel.Resource {
+	req := *exchange.Request
 	resource := impostermodel.Resource{
 		Path:   req.URL.Path,
 		Method: req.Method,
 		Response: &impostermodel.ResponseConfig{
 			StatusCode: exchange.StatusCode,
 			StaticFile: path.Base(respFile),
-			Headers:    &headers,
 		},
 	}
-	resources = append(resources, resource)
+	if len(req.URL.Query()) > 0 {
+		queryParams := make(map[string]string)
+		for qk, qvs := range req.URL.Query() {
+			if len(qvs) > 0 {
+				queryParams[qk] = qvs[0]
+			}
+		}
+		resource.QueryParams = &queryParams
+	}
+	if len(*exchange.ResponseHeaders) > 0 {
+		headers := make(map[string]string)
+		for headerName, headerValues := range *exchange.ResponseHeaders {
+			if !stringutil.Contains(skipProxyHeaders, headerName) && !stringutil.Contains(skipRecordHeaders, headerName) {
+				if len(headerValues) > 0 {
+					headers[headerName] = headerValues[0]
+				}
+			}
+		}
+		resource.Response.Headers = &headers
+	}
+	return resource
+}
 
-	options := impostermodel.ConfigGenerationOptions{PluginName: "rest"}
+func updateConfigFile(exchange HttpExchange, options impostermodel.ConfigGenerationOptions, resources []impostermodel.Resource, dir string, upstreamHost string) error {
+	req := exchange.Request
 	config := impostermodel.GenerateConfig(options, resources)
-	return config
+	configFile := path.Join(dir, upstreamHost+"-config.yaml")
+	err := os.WriteFile(configFile, config, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to write config file %s for %s %v: %v", configFile, req.Method, req.URL, err)
+	}
+	logger.Debugf("wrote config file %s for %s %v", configFile, req.Method, req.URL)
+	return nil
 }

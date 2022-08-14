@@ -26,9 +26,10 @@ type ResponseConfig struct {
 }
 
 type Resource struct {
-	Path     string          `json:"path"`
-	Method   string          `json:"method"`
-	Response *ResponseConfig `json:"response,omitempty"`
+	Path        string             `json:"path"`
+	Method      string             `json:"method"`
+	QueryParams *map[string]string `json:"queryParams,omitempty"`
+	Response    *ResponseConfig    `json:"response,omitempty"`
 }
 
 type PluginConfig struct {
