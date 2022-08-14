@@ -27,9 +27,11 @@ import (
 	"time"
 )
 
-// Hop-by-hop headers. These are removed when sent to the upstream.
-// See "13.5.1 End-to-end and Hop-by-hop Headers" in http://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html
-var hopHeaders = []string{
+var skipHeaders = []string{
+	"Accept-Encoding",
+
+	// Hop-by-hop headers. These are removed when sent to the upstream.
+	// See "13.5.1 End-to-end and Hop-by-hop Headers" in http://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html
 	"Connection",
 	"Keep-Alive",
 	"Proxy-Authenticate",
@@ -42,7 +44,19 @@ var hopHeaders = []string{
 
 var logger = logging.GetLogger()
 
-func Handle(upstream string, w http.ResponseWriter, req *http.Request, outputDir string) {
+type HttpExchange struct {
+	Req        *http.Request
+	StatusCode int
+	Body       *[]byte
+	Headers    *http.Header
+}
+
+func Handle(
+	upstream string,
+	w http.ResponseWriter,
+	req *http.Request,
+	listener func(statusCode int, respBody *[]byte, respHeaders *http.Header),
+) {
 	startTime := time.Now()
 
 	client := req.RemoteAddr
@@ -61,6 +75,8 @@ func Handle(upstream string, w http.ResponseWriter, req *http.Request, outputDir
 		w.WriteHeader(http.StatusBadGateway)
 		return
 	}
+
+	listener(statusCode, responseBody, upstreamRespHeaders)
 
 	err = sendResponse(w, upstreamRespHeaders, statusCode, responseBody, client)
 	if err != nil {
@@ -101,7 +117,13 @@ func forward(
 	upstreamReqHeaders := req.Header
 	copyHeaders(clientRequestHeaders, &upstreamReqHeaders)
 
-	client := &http.Client{}
+	tr := &http.Transport{
+		//MaxIdleConns:       10,
+		//IdleConnTimeout:    30 * time.Second,
+		DisableCompression: true,
+	}
+	client := &http.Client{Transport: tr}
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return 0, nil, nil, err
@@ -135,7 +157,7 @@ func sendResponse(w http.ResponseWriter, headers *http.Header, statusCode int, b
 // of the header is a hop-by-hop header.
 func copyHeaders(source *http.Header, destination *http.Header) {
 	for headerName, headerValues := range *source {
-		if !stringutil.Contains(hopHeaders, headerName) {
+		if !stringutil.Contains(skipHeaders, headerName) {
 			for _, headerValue := range headerValues {
 				destination.Add(headerName, headerValue)
 			}

@@ -58,13 +58,23 @@ func init() {
 }
 
 func proxyUpstream(upstream string, port int, dir string) {
+	logger.Infof("starting proxy for upstream %s on port %v", upstream, port)
+	recorderC := proxy.StartRecorder(upstream, dir)
+
 	http.HandleFunc("/system/status", func(writer http.ResponseWriter, request *http.Request) {
 		_, _ = fmt.Fprintf(writer, "ok\n")
 	})
 	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
-		proxy.Handle(upstream, writer, request, dir)
+		proxy.Handle(upstream, writer, request, func(statusCode int, respBody *[]byte, respHeaders *http.Header) {
+			recorderC <- proxy.HttpExchange{
+				Req:        request,
+				StatusCode: statusCode,
+				Body:       respBody,
+				Headers:    respHeaders,
+			}
+		})
 	})
-	logger.Infof("starting proxy for upstream %s on port %v", upstream, port)
+
 	err := http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 	if err != nil {
 		panic(err)

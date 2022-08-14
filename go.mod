@@ -5,6 +5,7 @@ go 1.19
 require (
 	github.com/docker/docker v20.10.17+incompatible
 	github.com/docker/go-connections v0.4.0
+	github.com/google/uuid v1.1.2
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/radovskyb/watcher v1.0.7
 	github.com/shirou/gopsutil/v3 v3.22.2
