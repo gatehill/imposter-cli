@@ -56,7 +56,7 @@ var versionCmd = &cobra.Command{
 func init() {
 	versionCmd.Flags().StringVarP(&versionFlags.engineType, "engine-type", "t", "", "Imposter engine type (valid: docker,jvm - default \"docker\")")
 	versionCmd.Flags().StringVarP(&versionFlags.format, "output-format", "o", "", "Output format (valid: plain,json - default \"plain\")")
-	versionCmd.Flags().BoolVar(&versionFlags.cliOnly, "cli-only", false, "Only print the version of the CLI")
+	versionCmd.Flags().BoolVarP(&versionFlags.cliOnly, "cli-only", "c", false, "Only print the version of the CLI")
 	rootCmd.AddCommand(versionCmd)
 }
 
