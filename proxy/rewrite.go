@@ -1,15 +1,16 @@
 package proxy
 
 import (
+	"bytes"
 	"fmt"
 	"mime"
 	"net/http"
 	"regexp"
-	"strings"
 )
 
 var rewriteMediaTypes = []string{
 	"text/.+",
+	"application/javascript",
 	"application/json",
 	"application/xml",
 }
@@ -35,7 +36,7 @@ func Rewrite(respHeaders *http.Header, respBody *[]byte, upstream string, port i
 		logger.Debugf("unsupported content type %s for rewrite - skipping rewrite: %v", mediaType, err)
 		return respBody
 	}
-	rewritten := []byte(strings.ReplaceAll(string(*respBody), upstream, fmt.Sprintf("http://localhost:%d", port)))
+	rewritten := bytes.ReplaceAll(*respBody, []byte(upstream), []byte(fmt.Sprintf("http://localhost:%d", port)))
 	respBody = &rewritten
 	return respBody
 }
