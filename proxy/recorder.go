@@ -31,7 +31,8 @@ import (
 )
 
 type RecorderOptions struct {
-	IgnoreDuplicateRequests bool
+	IgnoreDuplicateRequests   bool
+	RecordOnlyResponseHeaders []string
 }
 
 func StartRecorder(upstream string, dir string, options RecorderOptions) (chan HttpExchange, error) {
@@ -56,7 +57,7 @@ func StartRecorder(upstream string, dir string, options RecorderOptions) (chan H
 			exchange := <-recordC
 
 			if options.IgnoreDuplicateRequests {
-				requestHash := getRequestHash(exchange)
+				requestHash := getRequestHash(exchange.Request)
 				if stringutil.Contains(requestHashes, requestHash) {
 					logger.Debugf("skipping recording of duplicate of request %s %v", exchange.Request.Method, exchange.Request.URL)
 					continue
@@ -65,7 +66,7 @@ func StartRecorder(upstream string, dir string, options RecorderOptions) (chan H
 			}
 
 			reqId := uuid.New().String()
-			resource, err := record(upstreamHost, dir, &responseHashes, reqId, exchange)
+			resource, err := record(upstreamHost, dir, &responseHashes, reqId, exchange, options)
 			if err != nil {
 				logger.Warn(err)
 				continue
@@ -101,12 +102,12 @@ func formatUpstreamHostPort(upstream string) (string, error) {
 	}
 }
 
-func record(upstreamHost string, dir string, responseHashes *map[string]string, reqId string, exchange HttpExchange) (resource *impostermodel.Resource, err error) {
+func record(upstreamHost string, dir string, responseHashes *map[string]string, reqId string, exchange HttpExchange, options RecorderOptions) (resource *impostermodel.Resource, err error) {
 	respFile, err := getResponseFile(upstreamHost, dir, responseHashes, reqId, exchange)
 	if err != nil {
 		return nil, err
 	}
-	r := buildResource(exchange, respFile)
+	r := buildResource(exchange, options, respFile)
 	return &r, nil
 }
 
@@ -147,7 +148,7 @@ func getFileExtension(respHeaders *http.Header) string {
 	return ".txt"
 }
 
-func buildResource(exchange HttpExchange, respFile string) impostermodel.Resource {
+func buildResource(exchange HttpExchange, options RecorderOptions, respFile string) impostermodel.Resource {
 	req := *exchange.Request
 	resource := impostermodel.Resource{
 		Path:   req.URL.Path,
@@ -169,7 +170,10 @@ func buildResource(exchange HttpExchange, respFile string) impostermodel.Resourc
 	if len(*exchange.ResponseHeaders) > 0 {
 		headers := make(map[string]string)
 		for headerName, headerValues := range *exchange.ResponseHeaders {
-			if !stringutil.Contains(skipProxyHeaders, headerName) && !stringutil.Contains(skipRecordHeaders, headerName) {
+			shouldSkip := stringutil.Contains(skipProxyHeaders, headerName) || stringutil.Contains(skipRecordHeaders, headerName)
+			if !shouldSkip &&
+				(options.RecordOnlyResponseHeaders == nil) || stringutil.Contains(options.RecordOnlyResponseHeaders, headerName) {
+
 				if len(headerValues) > 0 {
 					headers[headerName] = headerValues[0]
 				}
@@ -180,8 +184,10 @@ func buildResource(exchange HttpExchange, respFile string) impostermodel.Resourc
 	return resource
 }
 
-func getRequestHash(exchange HttpExchange) string {
-	return stringutil.Sha1hashString(exchange.Request.Method + exchange.Request.URL.String())
+// getRequestHash generates a hash for a request based on the HTTP method and the URL. It does
+// not take into consideration request headers.
+func getRequestHash(req *http.Request) string {
+	return stringutil.Sha1hashString(req.Method + req.URL.String())
 }
 
 func updateConfigFile(exchange HttpExchange, options impostermodel.ConfigGenerationOptions, resources []impostermodel.Resource, configFile string) error {

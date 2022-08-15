@@ -25,10 +25,11 @@ import (
 )
 
 var proxyFlags = struct {
-	port                    int
-	outputDir               string
-	rewrite                 bool
-	ignoreDuplicateRequests bool
+	port                      int
+	outputDir                 string
+	rewrite                   bool
+	ignoreDuplicateRequests   bool
+	recordOnlyResponseHeaders []string
 }{}
 
 // proxyCmd represents the up command
@@ -49,7 +50,11 @@ var proxyCmd = &cobra.Command{
 			}
 			outputDir = workingDir
 		}
-		proxyUpstream(upstream, proxyFlags.port, outputDir, proxyFlags.rewrite, proxyFlags.ignoreDuplicateRequests)
+		options := proxy.RecorderOptions{
+			IgnoreDuplicateRequests:   proxyFlags.ignoreDuplicateRequests,
+			RecordOnlyResponseHeaders: proxyFlags.recordOnlyResponseHeaders,
+		}
+		proxyUpstream(upstream, proxyFlags.port, outputDir, proxyFlags.rewrite, options)
 	},
 }
 
@@ -58,12 +63,13 @@ func init() {
 	proxyCmd.Flags().StringVarP(&proxyFlags.outputDir, "output-dir", "o", "", "Directory in which HTTP exchanges are recorded (default: current working directory)")
 	proxyCmd.Flags().BoolVarP(&proxyFlags.rewrite, "rewrite-urls", "r", false, "Rewrite upstream URL in response body to proxy URL")
 	proxyCmd.Flags().BoolVarP(&proxyFlags.ignoreDuplicateRequests, "ignore-duplicate-requests", "i", true, "Ignore duplicate requests with same method and URI")
+	proxyCmd.Flags().StringSliceVarP(&proxyFlags.recordOnlyResponseHeaders, "response-headers", "H", nil, "Record only these response headers")
 	rootCmd.AddCommand(proxyCmd)
 }
 
-func proxyUpstream(upstream string, port int, dir string, rewrite bool, ignoreDuplicateRequests bool) {
+func proxyUpstream(upstream string, port int, dir string, rewrite bool, options proxy.RecorderOptions) {
 	logger.Infof("starting proxy for upstream %s on port %v", upstream, port)
-	recorderC, err := proxy.StartRecorder(upstream, dir, proxy.RecorderOptions{IgnoreDuplicateRequests: ignoreDuplicateRequests})
+	recorderC, err := proxy.StartRecorder(upstream, dir, options)
 	if err != nil {
 		logger.Fatal(err)
 	}
