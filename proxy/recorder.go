@@ -17,6 +17,8 @@ limitations under the License.
 package proxy
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	"gatehill.io/imposter/impostermodel"
 	"gatehill.io/imposter/stringutil"
@@ -35,9 +37,15 @@ func StartRecorder(upstream string, dir string) (chan HttpExchange, error) {
 	if err != nil {
 		return nil, err
 	}
+	configFile := path.Join(dir, upstreamHost+"-config.yaml")
+	if _, err := os.Stat(configFile); err == nil {
+		return nil, fmt.Errorf("config file %s already exists", configFile)
+	}
 
 	var resources []impostermodel.Resource
 	options := impostermodel.ConfigGenerationOptions{PluginName: "rest"}
+
+	fileHashes := make(map[string]string)
 
 	recordC := make(chan HttpExchange)
 	go func() {
@@ -45,14 +53,14 @@ func StartRecorder(upstream string, dir string) (chan HttpExchange, error) {
 			exchange := <-recordC
 			reqId := uuid.New().String()
 
-			resource, err := record(upstreamHost, dir, reqId, exchange)
+			resource, err := record(upstreamHost, dir, &fileHashes, reqId, exchange)
 			if err != nil {
 				logger.Warn(err)
 				continue
 			}
 			resources = append(resources, *resource)
 
-			if err := updateConfigFile(exchange, options, resources, dir, upstreamHost); err != nil {
+			if err := updateConfigFile(exchange, options, resources, configFile); err != nil {
 				logger.Warn(err)
 			}
 		}
@@ -81,20 +89,44 @@ func formatUpstreamHostPort(upstream string) (string, error) {
 	}
 }
 
-func record(upstreamHost string, dir string, reqId string, exchange HttpExchange) (resource *impostermodel.Resource, err error) {
-	req := exchange.Request
-	sanitisedPath := strings.ReplaceAll(req.URL.EscapedPath(), "/", "_")
-
-	fileExt := getFileExtension(exchange.ResponseHeaders)
-	respFile := path.Join(dir, upstreamHost+"-"+req.Method+"-"+sanitisedPath+"-"+reqId+"-response"+fileExt)
-	err = os.WriteFile(respFile, *exchange.ResponseBody, 0644)
+func record(upstreamHost string, dir string, fileHashes *map[string]string, reqId string, exchange HttpExchange) (resource *impostermodel.Resource, err error) {
+	respFile, err := getResponseFile(upstreamHost, dir, fileHashes, reqId, exchange, err)
 	if err != nil {
-		return nil, fmt.Errorf("failed to write response file %s for %s %v: %v", respFile, req.Method, req.URL, err)
+		return nil, err
 	}
-	logger.Debugf("wrote response file %s for %s %v [%d bytes]", respFile, req.Method, req.URL, len(*exchange.ResponseBody))
-
 	r := buildResource(exchange, respFile)
 	return &r, nil
+}
+
+// getResponseFile checks the map for the hash of the response body to see if it has already been
+// written. If not, a new file is written and its hash stored in the map.
+func getResponseFile(upstreamHost string, dir string, fileHashes *map[string]string, reqId string, exchange HttpExchange, err error) (string, error) {
+	var respFile string
+
+	req := exchange.Request
+	respBody := *exchange.ResponseBody
+
+	h := sha1.New()
+	h.Write(respBody)
+	bs := h.Sum(nil)
+	bodyHash := hex.EncodeToString(bs)
+
+	if existing := (*fileHashes)[bodyHash]; existing != "" {
+		respFile = existing
+		logger.Debugf("reusing existing response file %s for %s %v [%d bytes]", respFile, req.Method, req.URL, len(respBody))
+	} else {
+		sanitisedPath := strings.ReplaceAll(req.URL.EscapedPath(), "/", "_")
+
+		fileExt := getFileExtension(exchange.ResponseHeaders)
+		respFile = path.Join(dir, upstreamHost+"-"+req.Method+"-"+sanitisedPath+"-"+reqId+"-response"+fileExt)
+		err = os.WriteFile(respFile, respBody, 0644)
+		if err != nil {
+			return "", fmt.Errorf("failed to write response file %s for %s %v: %v", respFile, req.Method, req.URL, err)
+		}
+		logger.Debugf("wrote response file %s for %s %v [%d bytes]", respFile, req.Method, req.URL, len(respBody))
+		(*fileHashes)[bodyHash] = respFile
+	}
+	return respFile, err
 }
 
 func getFileExtension(respHeaders *http.Header) string {
@@ -140,10 +172,9 @@ func buildResource(exchange HttpExchange, respFile string) impostermodel.Resourc
 	return resource
 }
 
-func updateConfigFile(exchange HttpExchange, options impostermodel.ConfigGenerationOptions, resources []impostermodel.Resource, dir string, upstreamHost string) error {
+func updateConfigFile(exchange HttpExchange, options impostermodel.ConfigGenerationOptions, resources []impostermodel.Resource, configFile string) error {
 	req := exchange.Request
 	config := impostermodel.GenerateConfig(options, resources)
-	configFile := path.Join(dir, upstreamHost+"-config.yaml")
 	err := os.WriteFile(configFile, config, 0644)
 	if err != nil {
 		return fmt.Errorf("failed to write config file %s for %s %v: %v", configFile, req.Method, req.URL, err)
