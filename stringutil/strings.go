@@ -16,7 +16,11 @@ limitations under the License.
 
 package stringutil
 
-import "strings"
+import (
+	"crypto/sha1"
+	"encoding/hex"
+	"strings"
+)
 
 func GetFirstNonEmpty(candidates ...string) string {
 	for _, candidate := range candidates {
@@ -55,4 +59,19 @@ func ContainsPrefix(entries []string, searchTerm string) bool {
 		}
 	}
 	return false
+}
+
+// Sha1hashString returns a SHA1 checksum of the given input string. This
+// *must not* be used for cryptographic purposes, as SHA1 is not secure.
+func Sha1hashString(input string) string {
+	return Sha1hash([]byte(input))
+}
+
+// Sha1hash returns a SHA1 checksum of the given input string. This
+// *must not* be used for cryptographic purposes, as SHA1 is not secure.
+func Sha1hash(input []byte) string {
+	h := sha1.New()
+	h.Write(input)
+	bs := h.Sum(nil)
+	return hex.EncodeToString(bs)
 }

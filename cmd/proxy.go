@@ -25,9 +25,10 @@ import (
 )
 
 var proxyFlags = struct {
-	port      int
-	outputDir string
-	rewrite   bool
+	port                    int
+	outputDir               string
+	rewrite                 bool
+	ignoreDuplicateRequests bool
 }{}
 
 // proxyCmd represents the up command
@@ -48,7 +49,7 @@ var proxyCmd = &cobra.Command{
 			}
 			outputDir = workingDir
 		}
-		proxyUpstream(upstream, proxyFlags.port, outputDir, proxyFlags.rewrite)
+		proxyUpstream(upstream, proxyFlags.port, outputDir, proxyFlags.rewrite, proxyFlags.ignoreDuplicateRequests)
 	},
 }
 
@@ -56,12 +57,13 @@ func init() {
 	proxyCmd.Flags().IntVarP(&proxyFlags.port, "port", "p", 8080, "Port on which to listen")
 	proxyCmd.Flags().StringVarP(&proxyFlags.outputDir, "output-dir", "o", "", "Directory in which HTTP exchanges are recorded (default: current working directory)")
 	proxyCmd.Flags().BoolVarP(&proxyFlags.rewrite, "rewrite-urls", "r", false, "Rewrite upstream URL in response body to proxy URL")
+	proxyCmd.Flags().BoolVarP(&proxyFlags.ignoreDuplicateRequests, "ignore-duplicate-requests", "i", true, "Ignore duplicate requests with same method and URI")
 	rootCmd.AddCommand(proxyCmd)
 }
 
-func proxyUpstream(upstream string, port int, dir string, rewrite bool) {
+func proxyUpstream(upstream string, port int, dir string, rewrite bool, ignoreDuplicateRequests bool) {
 	logger.Infof("starting proxy for upstream %s on port %v", upstream, port)
-	recorderC, err := proxy.StartRecorder(upstream, dir)
+	recorderC, err := proxy.StartRecorder(upstream, dir, proxy.RecorderOptions{IgnoreDuplicateRequests: ignoreDuplicateRequests})
 	if err != nil {
 		logger.Fatal(err)
 	}

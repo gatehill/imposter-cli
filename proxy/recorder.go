@@ -17,8 +17,6 @@ limitations under the License.
 package proxy
 
 import (
-	"crypto/sha1"
-	"encoding/hex"
 	"fmt"
 	"gatehill.io/imposter/impostermodel"
 	"gatehill.io/imposter/stringutil"
@@ -32,7 +30,11 @@ import (
 	"strings"
 )
 
-func StartRecorder(upstream string, dir string) (chan HttpExchange, error) {
+type RecorderOptions struct {
+	IgnoreDuplicateRequests bool
+}
+
+func StartRecorder(upstream string, dir string, options RecorderOptions) (chan HttpExchange, error) {
 	upstreamHost, err := formatUpstreamHostPort(upstream)
 	if err != nil {
 		return nil, err
@@ -43,24 +45,34 @@ func StartRecorder(upstream string, dir string) (chan HttpExchange, error) {
 	}
 
 	var resources []impostermodel.Resource
-	options := impostermodel.ConfigGenerationOptions{PluginName: "rest"}
+	genOptions := impostermodel.ConfigGenerationOptions{PluginName: "rest"}
 
-	fileHashes := make(map[string]string)
+	var requestHashes []string
+	responseHashes := make(map[string]string)
 
 	recordC := make(chan HttpExchange)
 	go func() {
 		for {
 			exchange := <-recordC
-			reqId := uuid.New().String()
 
-			resource, err := record(upstreamHost, dir, &fileHashes, reqId, exchange)
+			if options.IgnoreDuplicateRequests {
+				requestHash := getRequestHash(exchange)
+				if stringutil.Contains(requestHashes, requestHash) {
+					logger.Debugf("skipping recording of duplicate of request %s %v", exchange.Request.Method, exchange.Request.URL)
+					continue
+				}
+				requestHashes = append(requestHashes, requestHash)
+			}
+
+			reqId := uuid.New().String()
+			resource, err := record(upstreamHost, dir, &responseHashes, reqId, exchange)
 			if err != nil {
 				logger.Warn(err)
 				continue
 			}
 			resources = append(resources, *resource)
 
-			if err := updateConfigFile(exchange, options, resources, configFile); err != nil {
+			if err := updateConfigFile(exchange, genOptions, resources, configFile); err != nil {
 				logger.Warn(err)
 			}
 		}
@@ -89,8 +101,8 @@ func formatUpstreamHostPort(upstream string) (string, error) {
 	}
 }
 
-func record(upstreamHost string, dir string, fileHashes *map[string]string, reqId string, exchange HttpExchange) (resource *impostermodel.Resource, err error) {
-	respFile, err := getResponseFile(upstreamHost, dir, fileHashes, reqId, exchange, err)
+func record(upstreamHost string, dir string, responseHashes *map[string]string, reqId string, exchange HttpExchange) (resource *impostermodel.Resource, err error) {
+	respFile, err := getResponseFile(upstreamHost, dir, responseHashes, reqId, exchange)
 	if err != nil {
 		return nil, err
 	}
@@ -100,16 +112,12 @@ func record(upstreamHost string, dir string, fileHashes *map[string]string, reqI
 
 // getResponseFile checks the map for the hash of the response body to see if it has already been
 // written. If not, a new file is written and its hash stored in the map.
-func getResponseFile(upstreamHost string, dir string, fileHashes *map[string]string, reqId string, exchange HttpExchange, err error) (string, error) {
+func getResponseFile(upstreamHost string, dir string, fileHashes *map[string]string, reqId string, exchange HttpExchange) (string, error) {
 	var respFile string
 
 	req := exchange.Request
 	respBody := *exchange.ResponseBody
-
-	h := sha1.New()
-	h.Write(respBody)
-	bs := h.Sum(nil)
-	bodyHash := hex.EncodeToString(bs)
+	bodyHash := stringutil.Sha1hash(respBody)
 
 	if existing := (*fileHashes)[bodyHash]; existing != "" {
 		respFile = existing
@@ -119,14 +127,14 @@ func getResponseFile(upstreamHost string, dir string, fileHashes *map[string]str
 
 		fileExt := getFileExtension(exchange.ResponseHeaders)
 		respFile = path.Join(dir, upstreamHost+"-"+req.Method+"-"+sanitisedPath+"-"+reqId+"-response"+fileExt)
-		err = os.WriteFile(respFile, respBody, 0644)
+		err := os.WriteFile(respFile, respBody, 0644)
 		if err != nil {
 			return "", fmt.Errorf("failed to write response file %s for %s %v: %v", respFile, req.Method, req.URL, err)
 		}
 		logger.Debugf("wrote response file %s for %s %v [%d bytes]", respFile, req.Method, req.URL, len(respBody))
 		(*fileHashes)[bodyHash] = respFile
 	}
-	return respFile, err
+	return respFile, nil
 }
 
 func getFileExtension(respHeaders *http.Header) string {
@@ -170,6 +178,10 @@ func buildResource(exchange HttpExchange, respFile string) impostermodel.Resourc
 		resource.Response.Headers = &headers
 	}
 	return resource
+}
+
+func getRequestHash(exchange HttpExchange) string {
+	return stringutil.Sha1hashString(exchange.Request.Method + exchange.Request.URL.String())
 }
 
 func updateConfigFile(exchange HttpExchange, options impostermodel.ConfigGenerationOptions, resources []impostermodel.Resource, configFile string) error {

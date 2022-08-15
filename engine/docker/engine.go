@@ -23,6 +23,7 @@ import (
 	"gatehill.io/imposter/engine"
 	"gatehill.io/imposter/logging"
 	"gatehill.io/imposter/plugin"
+	"gatehill.io/imposter/stringutil"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
@@ -193,7 +194,7 @@ func generateMetadata(d *DockerMockEngine, options engine.StartOptions) (string,
 
 	var mockHash string
 	if options.Deduplicate != "" {
-		mockHash = sha1hash(options.Deduplicate)
+		mockHash = stringutil.Sha1hashString(options.Deduplicate)
 	} else {
 		mockHash = genDefaultHash(absoluteConfigDir, options.Port)
 	}

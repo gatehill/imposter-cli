@@ -18,10 +18,9 @@ package docker
 
 import (
 	"context"
-	"crypto/sha1"
-	"encoding/hex"
 	"fmt"
 	"gatehill.io/imposter/engine"
+	"gatehill.io/imposter/stringutil"
 	"github.com/docker/docker/api/types"
 	filters2 "github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
@@ -33,14 +32,7 @@ const labelKeyDir = "io.gatehill.imposter.dir"
 const labelKeyHash = "io.gatehill.imposter.hash"
 
 func genDefaultHash(absPath string, port int) string {
-	return sha1hash(fmt.Sprintf("%v:%d", absPath, port))
-}
-
-func sha1hash(input string) string {
-	h := sha1.New()
-	h.Write([]byte(input))
-	bs := h.Sum(nil)
-	return hex.EncodeToString(bs)
+	return stringutil.Sha1hashString(fmt.Sprintf("%v:%d", absPath, port))
 }
 
 func findContainersWithLabels(cli *client.Client, ctx context.Context, labels map[string]string) ([]engine.ManagedMock, error) {
