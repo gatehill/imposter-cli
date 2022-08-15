@@ -68,7 +68,7 @@ func Handle(
 	upstream string,
 	w http.ResponseWriter,
 	req *http.Request,
-	listener func(statusCode int, respBody *[]byte, respHeaders *http.Header),
+	listener func(statusCode int, respBody *[]byte, respHeaders *http.Header) (*[]byte, *http.Header),
 ) {
 	startTime := time.Now()
 
@@ -82,16 +82,16 @@ func Handle(
 		return
 	}
 
-	statusCode, responseBody, upstreamRespHeaders, err := forward(upstream, req.Method, path, clientReqHeaders, requestBody)
+	statusCode, responseBody, respHeaders, err := forward(upstream, req.Method, path, clientReqHeaders, requestBody)
 	if err != nil {
 		logger.Error(err)
 		w.WriteHeader(http.StatusBadGateway)
 		return
 	}
 
-	listener(statusCode, responseBody, upstreamRespHeaders)
+	responseBody, respHeaders = listener(statusCode, responseBody, respHeaders)
 
-	err = sendResponse(w, upstreamRespHeaders, statusCode, responseBody, client)
+	err = sendResponse(w, respHeaders, statusCode, responseBody, client)
 	if err != nil {
 		logger.Error(err)
 		w.WriteHeader(http.StatusInternalServerError)

@@ -83,9 +83,10 @@ func formatUpstreamHostPort(upstream string) (string, error) {
 
 func record(upstreamHost string, dir string, reqId string, exchange HttpExchange) (resource *impostermodel.Resource, err error) {
 	req := exchange.Request
+	sanitisedPath := strings.ReplaceAll(req.URL.EscapedPath(), "/", "_")
 
 	fileExt := getFileExtension(exchange.ResponseHeaders)
-	respFile := path.Join(dir, upstreamHost+"-"+reqId+"-response"+fileExt)
+	respFile := path.Join(dir, upstreamHost+"-"+req.Method+"-"+sanitisedPath+"-"+reqId+"-response"+fileExt)
 	err = os.WriteFile(respFile, *exchange.ResponseBody, 0644)
 	if err != nil {
 		return nil, fmt.Errorf("failed to write response file %s for %s %v: %v", respFile, req.Method, req.URL, err)

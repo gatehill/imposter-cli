@@ -27,6 +27,7 @@ import (
 var proxyFlags = struct {
 	port      int
 	outputDir string
+	rewrite   bool
 }{}
 
 // proxyCmd represents the up command
@@ -47,17 +48,18 @@ var proxyCmd = &cobra.Command{
 			}
 			outputDir = workingDir
 		}
-		proxyUpstream(upstream, proxyFlags.port, outputDir)
+		proxyUpstream(upstream, proxyFlags.port, outputDir, proxyFlags.rewrite)
 	},
 }
 
 func init() {
 	proxyCmd.Flags().IntVarP(&proxyFlags.port, "port", "p", 8080, "Port on which to listen")
 	proxyCmd.Flags().StringVarP(&proxyFlags.outputDir, "output-dir", "o", "", "Directory in which HTTP exchanges are recorded (default: current working directory)")
+	proxyCmd.Flags().BoolVarP(&proxyFlags.rewrite, "rewrite-urls", "r", false, "Rewrite upstream URL in response body to proxy URL")
 	rootCmd.AddCommand(proxyCmd)
 }
 
-func proxyUpstream(upstream string, port int, dir string) {
+func proxyUpstream(upstream string, port int, dir string, rewrite bool) {
 	logger.Infof("starting proxy for upstream %s on port %v", upstream, port)
 	recorderC, err := proxy.StartRecorder(upstream, dir)
 	if err != nil {
@@ -68,13 +70,17 @@ func proxyUpstream(upstream string, port int, dir string) {
 		_, _ = fmt.Fprintf(writer, "ok\n")
 	})
 	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
-		proxy.Handle(upstream, writer, request, func(statusCode int, respBody *[]byte, respHeaders *http.Header) {
+		proxy.Handle(upstream, writer, request, func(statusCode int, respBody *[]byte, respHeaders *http.Header) (*[]byte, *http.Header) {
+			if rewrite {
+				respBody = proxy.Rewrite(respHeaders, respBody, upstream, port)
+			}
 			recorderC <- proxy.HttpExchange{
 				Request:         request,
 				StatusCode:      statusCode,
 				ResponseBody:    respBody,
 				ResponseHeaders: respHeaders,
 			}
+			return respBody, respHeaders
 		})
 	})
 
