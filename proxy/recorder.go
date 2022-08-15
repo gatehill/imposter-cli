@@ -56,17 +56,20 @@ func StartRecorder(upstream string, dir string, options RecorderOptions) (chan H
 		for {
 			exchange := <-recordC
 
-			if options.IgnoreDuplicateRequests {
-				requestHash := getRequestHash(exchange.Request)
-				if stringutil.Contains(requestHashes, requestHash) {
-					logger.Debugf("skipping recording of duplicate of request %s %v", exchange.Request.Method, exchange.Request.URL)
+			var responseFileSuffix string
+			requestHash := getRequestHash(exchange.Request)
+			if stringutil.Contains(requestHashes, requestHash) {
+				responseFileSuffix = "-" + uuid.New().String()
+				if options.IgnoreDuplicateRequests {
+					logger.Debugf("skipping recording of duplicate request %s %v", exchange.Request.Method, exchange.Request.URL)
 					continue
 				}
-				requestHashes = append(requestHashes, requestHash)
+			} else {
+				responseFileSuffix = ""
 			}
+			requestHashes = append(requestHashes, requestHash)
 
-			reqId := uuid.New().String()
-			resource, err := record(upstreamHost, dir, &responseHashes, reqId, exchange, options)
+			resource, err := record(upstreamHost, dir, &responseHashes, responseFileSuffix, exchange, options)
 			if err != nil {
 				logger.Warn(err)
 				continue
@@ -102,8 +105,8 @@ func formatUpstreamHostPort(upstream string) (string, error) {
 	}
 }
 
-func record(upstreamHost string, dir string, responseHashes *map[string]string, reqId string, exchange HttpExchange, options RecorderOptions) (resource *impostermodel.Resource, err error) {
-	respFile, err := getResponseFile(upstreamHost, dir, responseHashes, reqId, exchange)
+func record(upstreamHost string, dir string, responseHashes *map[string]string, fileSuffix string, exchange HttpExchange, options RecorderOptions) (resource *impostermodel.Resource, err error) {
+	respFile, err := getResponseFile(upstreamHost, dir, responseHashes, fileSuffix, exchange)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +116,7 @@ func record(upstreamHost string, dir string, responseHashes *map[string]string, 
 
 // getResponseFile checks the map for the hash of the response body to see if it has already been
 // written. If not, a new file is written and its hash stored in the map.
-func getResponseFile(upstreamHost string, dir string, fileHashes *map[string]string, reqId string, exchange HttpExchange) (string, error) {
+func getResponseFile(upstreamHost string, dir string, fileHashes *map[string]string, fileSuffix string, exchange HttpExchange) (string, error) {
 	var respFile string
 
 	req := exchange.Request
@@ -122,12 +125,13 @@ func getResponseFile(upstreamHost string, dir string, fileHashes *map[string]str
 
 	if existing := (*fileHashes)[bodyHash]; existing != "" {
 		respFile = existing
-		logger.Debugf("reusing existing response file %s for %s %v [%d bytes]", respFile, req.Method, req.URL, len(respBody))
+		logger.Debugf("reusing identical response file %s for %s %v", respFile, req.Method, req.URL)
 	} else {
-		sanitisedPath := strings.ReplaceAll(req.URL.EscapedPath(), "/", "_")
-
+		sanitisedPath := strings.ReplaceAll(strings.TrimPrefix(req.URL.EscapedPath(), "/"), "/", "_")
 		fileExt := getFileExtension(exchange.ResponseHeaders)
-		respFile = path.Join(dir, upstreamHost+"-"+req.Method+"-"+sanitisedPath+"-"+reqId+"-response"+fileExt)
+		fileName := fmt.Sprintf("%s-%s-%s%s%s", upstreamHost, req.Method, sanitisedPath, fileSuffix, fileExt)
+
+		respFile = path.Join(dir, fileName)
 		err := os.WriteFile(respFile, respBody, 0644)
 		if err != nil {
 			return "", fmt.Errorf("failed to write response file %s for %s %v: %v", respFile, req.Method, req.URL, err)

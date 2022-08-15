@@ -75,14 +75,14 @@ func Handle(
 	client := req.RemoteAddr
 	logger.Debugf("received request %v %v from client %v", req.Method, req.URL, client)
 
-	path, clientReqHeaders, requestBody, err := parseRequest(req)
+	path, queryString, clientReqHeaders, requestBody, err := parseRequest(req)
 	if err != nil {
 		logger.Error(err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	statusCode, responseBody, respHeaders, err := forward(upstream, req.Method, path, clientReqHeaders, requestBody)
+	statusCode, responseBody, respHeaders, err := forward(upstream, req.Method, path, queryString, clientReqHeaders, requestBody)
 	if err != nil {
 		logger.Error(err)
 		w.WriteHeader(http.StatusBadGateway)
@@ -102,25 +102,29 @@ func Handle(
 	logger.Infof("proxied %s %v to upstream [status: %v, body %v bytes] for client %v in %v", req.Method, req.URL, statusCode, len(*responseBody), client, elapsed)
 }
 
-func parseRequest(req *http.Request) (path string, headers *http.Header, body *[]byte, err error) {
+func parseRequest(req *http.Request) (path string, queryString string, headers *http.Header, body *[]byte, err error) {
 	defer req.Body.Close()
 	requestBody, err := io.ReadAll(req.Body)
 	if err != nil {
-		return "", nil, nil, fmt.Errorf("error parsing request body: %v", err)
+		return "", "", nil, nil, fmt.Errorf("error parsing request body: %v", err)
 	}
-	return req.URL.Path, &req.Header, &requestBody, nil
+	return req.URL.Path, req.URL.RawQuery, &req.Header, &requestBody, nil
 }
 
 func forward(
 	upstream string,
 	httpMethod string,
 	path string,
+	queryString string,
 	clientRequestHeaders *http.Header,
 	requestBody *[]byte,
 ) (statusCode int, responseBody *[]byte, upstreamRespHeaders *http.Header, err error) {
 	logger.Debugf("invoking upstream %s with %s %s [body: %v bytes]", upstream, httpMethod, path, len(*requestBody))
 
 	upstreamUrl, err := url.JoinPath(upstream, path)
+	if queryString != "" {
+		upstreamUrl += "?" + queryString
+	}
 	if err != nil {
 		return 0, nil, nil, fmt.Errorf("failed to build upstream URL: %v", err)
 	}
