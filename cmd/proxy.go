@@ -30,6 +30,7 @@ var proxyFlags = struct {
 	rewrite                   bool
 	ignoreDuplicateRequests   bool
 	recordOnlyResponseHeaders []string
+	flatResponseFileStructure bool
 }{}
 
 // proxyCmd represents the up command
@@ -53,6 +54,7 @@ var proxyCmd = &cobra.Command{
 		options := proxy.RecorderOptions{
 			IgnoreDuplicateRequests:   proxyFlags.ignoreDuplicateRequests,
 			RecordOnlyResponseHeaders: proxyFlags.recordOnlyResponseHeaders,
+			FlatResponseFileStructure: proxyFlags.flatResponseFileStructure,
 		}
 		proxyUpstream(upstream, proxyFlags.port, outputDir, proxyFlags.rewrite, options)
 	},
@@ -64,6 +66,7 @@ func init() {
 	proxyCmd.Flags().BoolVarP(&proxyFlags.rewrite, "rewrite-urls", "r", false, "Rewrite upstream URL in response body to proxy URL")
 	proxyCmd.Flags().BoolVarP(&proxyFlags.ignoreDuplicateRequests, "ignore-duplicate-requests", "i", true, "Ignore duplicate requests with same method and URI")
 	proxyCmd.Flags().StringSliceVarP(&proxyFlags.recordOnlyResponseHeaders, "response-headers", "H", nil, "Record only these response headers")
+	proxyCmd.Flags().BoolVar(&proxyFlags.flatResponseFileStructure, "flat", false, "Flatten the response file structure")
 	rootCmd.AddCommand(proxyCmd)
 }
 

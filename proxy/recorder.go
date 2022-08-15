@@ -27,12 +27,14 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 )
 
 type RecorderOptions struct {
 	IgnoreDuplicateRequests   bool
 	RecordOnlyResponseHeaders []string
+	FlatResponseFileStructure bool
 }
 
 func StartRecorder(upstream string, dir string, options RecorderOptions) (chan HttpExchange, error) {
@@ -106,17 +108,27 @@ func formatUpstreamHostPort(upstream string) (string, error) {
 }
 
 func record(upstreamHost string, dir string, responseHashes *map[string]string, fileSuffix string, exchange HttpExchange, options RecorderOptions) (resource *impostermodel.Resource, err error) {
-	respFile, err := getResponseFile(upstreamHost, dir, responseHashes, fileSuffix, exchange)
+	respFile, err := getResponseFile(upstreamHost, dir, options, exchange, responseHashes, fileSuffix)
 	if err != nil {
 		return nil, err
 	}
-	r := buildResource(exchange, options, respFile)
+	r, err := buildResource(dir, options, exchange, respFile)
+	if err != nil {
+		return nil, err
+	}
 	return &r, nil
 }
 
 // getResponseFile checks the map for the hash of the response body to see if it has already been
 // written. If not, a new file is written and its hash stored in the map.
-func getResponseFile(upstreamHost string, dir string, fileHashes *map[string]string, fileSuffix string, exchange HttpExchange) (string, error) {
+func getResponseFile(
+	upstreamHost string,
+	dir string,
+	options RecorderOptions,
+	exchange HttpExchange,
+	fileHashes *map[string]string,
+	fileSuffix string,
+) (string, error) {
 	var respFile string
 
 	req := exchange.Request
@@ -127,11 +139,26 @@ func getResponseFile(upstreamHost string, dir string, fileHashes *map[string]str
 		respFile = existing
 		logger.Debugf("reusing identical response file %s for %s %v", respFile, req.Method, req.URL)
 	} else {
-		sanitisedPath := strings.ReplaceAll(strings.TrimPrefix(req.URL.EscapedPath(), "/"), "/", "_")
+		sanitisedPath := strings.TrimPrefix(req.URL.EscapedPath(), "/")
 		fileExt := getFileExtension(exchange.ResponseHeaders)
-		fileName := fmt.Sprintf("%s-%s-%s%s%s", upstreamHost, req.Method, sanitisedPath, fileSuffix, fileExt)
 
-		respFile = path.Join(dir, fileName)
+		var parentDir, respFileName string
+		if options.FlatResponseFileStructure {
+			flatPath := strings.ReplaceAll(sanitisedPath, "/", "_")
+			parentDir = dir
+			respFileName = upstreamHost + "-" + req.Method + "-" + flatPath
+
+		} else {
+			respFullPath := path.Join(dir, sanitisedPath)
+			respDir, err := ensureParentDirExists(respFullPath)
+			if err != nil {
+				return "", err
+			}
+			parentDir = respDir
+			respFileName = req.Method + "-" + path.Base(respFullPath)
+		}
+
+		respFile = path.Join(parentDir, respFileName+fileSuffix+fileExt)
 		err := os.WriteFile(respFile, respBody, 0644)
 		if err != nil {
 			return "", fmt.Errorf("failed to write response file %s for %s %v: %v", respFile, req.Method, req.URL, err)
@@ -152,14 +179,34 @@ func getFileExtension(respHeaders *http.Header) string {
 	return ".txt"
 }
 
-func buildResource(exchange HttpExchange, options RecorderOptions, respFile string) impostermodel.Resource {
+func ensureParentDirExists(respFullPath string) (string, error) {
+	respDir := path.Dir(respFullPath)
+	_, err := os.Stat(respDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			err := os.MkdirAll(respDir, 0700)
+			if err != nil {
+				return "", fmt.Errorf("failed to create response file dir: %s: %v", respDir, err)
+			}
+		} else {
+			return "", fmt.Errorf("failed to stat response file dir: %s: %v", respDir, err)
+		}
+	}
+	return respDir, nil
+}
+
+func buildResource(dir string, options RecorderOptions, exchange HttpExchange, respFile string) (impostermodel.Resource, error) {
 	req := *exchange.Request
+	relResponseFile, err := filepath.Rel(dir, respFile)
+	if err != nil {
+		return impostermodel.Resource{}, fmt.Errorf("failed to get relative path for response file: %s: %v", respFile, err)
+	}
 	resource := impostermodel.Resource{
 		Path:   req.URL.Path,
 		Method: req.Method,
 		Response: &impostermodel.ResponseConfig{
 			StatusCode: exchange.StatusCode,
-			StaticFile: path.Base(respFile),
+			StaticFile: relResponseFile,
 		},
 	}
 	if len(req.URL.Query()) > 0 {
@@ -185,7 +232,7 @@ func buildResource(exchange HttpExchange, options RecorderOptions, respFile stri
 		}
 		resource.Response.Headers = &headers
 	}
-	return resource
+	return resource, nil
 }
 
 // getRequestHash generates a hash for a request based on the HTTP method and the URL. It does
