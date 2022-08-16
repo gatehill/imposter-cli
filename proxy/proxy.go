@@ -21,11 +21,19 @@ import (
 	"fmt"
 	"gatehill.io/imposter/logging"
 	"gatehill.io/imposter/stringutil"
+	"github.com/spf13/viper"
 	"io"
 	"net/http"
 	"net/url"
 	"time"
 )
+
+type HttpExchange struct {
+	Request         *http.Request
+	StatusCode      int
+	ResponseBody    *[]byte
+	ResponseHeaders *http.Header
+}
 
 var skipProxyHeaders = []string{
 	"Accept-Encoding",
@@ -57,11 +65,15 @@ var skipRecordHeaders = []string{
 
 var logger = logging.GetLogger()
 
-type HttpExchange struct {
-	Request         *http.Request
-	StatusCode      int
-	ResponseBody    *[]byte
-	ResponseHeaders *http.Header
+var transport *http.Transport
+
+func init() {
+	transport = &http.Transport{
+		DisableCompression: true,
+		MaxIdleConns:       viper.GetInt("proxy.maxIdleConns"),
+		IdleConnTimeout:    viper.GetDuration("proxy.idleConnTimeout"),
+	}
+	logger.Tracef("initialised proxy transport: %+v", transport)
 }
 
 func Handle(
@@ -134,13 +146,7 @@ func forward(
 	upstreamReqHeaders := req.Header
 	copyHeaders(clientRequestHeaders, &upstreamReqHeaders)
 
-	tr := &http.Transport{
-		//MaxIdleConns:       10,
-		//IdleConnTimeout:    30 * time.Second,
-		DisableCompression: true,
-	}
-	client := &http.Client{Transport: tr}
-
+	client := &http.Client{Transport: transport}
 	resp, err := client.Do(req)
 	if err != nil {
 		return 0, nil, nil, err
