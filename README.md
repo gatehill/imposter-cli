@@ -1,6 +1,6 @@
-# Imposter: A scriptable, multipurpose mock server
+# Imposter: Scriptable, multipurpose mock server
 
-Reliable, scriptable and extensible mock server for REST APIs, OpenAPI (and Swagger) specifications, Salesforce and HBase APIs. 
+Reliable, scriptable and extensible mock server for REST APIs, OpenAPI (and Swagger) specifications, SOAP/WSDL Web Services, Salesforce and HBase APIs. 
 
 Start a live mock of an OpenAPI specification with just:
 
@@ -12,6 +12,24 @@ starting server on port 8080...
 ...
 mock server up and running at http://localhost:8080
 ```
+
+You now have a live mock of your OpenAPI spec running on localhost.
+
+---
+
+Or create a mock by proxying an exising endpoint:
+```shell
+$ imposter proxy https://example.com
+
+starting proxy on port 8080
+...
+wrote response file /users.json for request GET /users
+wrote config file example.com-config.yaml
+```
+
+Once you've recorded the HTTP exchanges, just run `imposter up` to start your mock. 
+
+---
 
 Features:
 
@@ -73,6 +91,7 @@ Available Commands:
   down              Stop running mocks
   list              List running mocks
   plugin install    Install plugin
+  proxy             Proxy an endpoint and record HTTP exchanges
   version           Print CLI version
   remote config     Configure remote
   remote deploy     Deploy active workspace
@@ -139,6 +158,30 @@ Flags:
   -f  --force-overwrite        Force overwrite of destination file(s) if already exist
       --generate-resources     Generate Imposter resources from OpenAPI paths (default true)
   -s  --script-engine string   Generate placeholder Imposter script (none|groovy|js) (default "none")
+```
+
+#### Proxy HTTP(S) endpoint and record HTTP exhanges
+
+Example:
+
+    imposter proxy https://example.com
+
+Usage:
+
+```
+Proxies an endpoint and records HTTP exchanges to file, in Imposter format.
+
+Usage:
+  imposter proxy [URL] [flags]
+
+Flags:
+      --flat                        Flatten the response file structure
+  -h, --help                        help for proxy
+  -i, --ignore-duplicate-requests   Ignore duplicate requests with same method and URI (default true)
+  -o, --output-dir string           Directory in which HTTP exchanges are recorded (default: current working directory)
+  -p, --port int                    Port on which to listen (default 8080)
+  -H, --response-headers strings    Record only these response headers
+  -r, --rewrite-urls                Rewrite upstream URL in response body to proxy URL
 ```
 
 #### Pull engine
