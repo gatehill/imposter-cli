@@ -309,7 +309,7 @@ func (d *DockerMockEngine) StopAllManaged() int {
 
 func (d *DockerMockEngine) GetVersionString() (string, error) {
 	if !d.provider.Satisfied() {
-		if err := d.provider.Provide(engine.PullIfNotPresent); err != nil {
+		if err := d.provider.Provide(engine.PullSkip); err != nil {
 			return "", err
 		}
 	}

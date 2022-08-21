@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"gatehill.io/imposter/engine"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
@@ -24,36 +25,84 @@ import (
 )
 
 func Test_describeVersions(t *testing.T) {
-	// set an explicit version
-	viper.Set("version", "3.0.2")
-
 	type args struct {
 		engineType engine.EngineType
+		version    string
+		format     outputFormat
 	}
 	tests := []struct {
 		name string
 		args args
 	}{
 		{
-			name: "print version with docker engine",
+			name: "print explicit version with docker engine",
 			args: args{
 				engineType: engine.EngineTypeDocker,
+				version:    "3.0.2",
+				format:     outputFormatPlain,
 			},
 		},
 		{
-			name: "print version with jvm engine",
+			name: "print explicit version with jvm engine",
 			args: args{
 				engineType: engine.EngineTypeJvmSingleJar,
+				version:    "3.0.2",
+				format:     outputFormatPlain,
+			},
+		},
+		{
+			name: "print latest version",
+			args: args{
+				engineType: engine.EngineTypeDocker,
+				version:    "latest",
+				format:     outputFormatPlain,
+			},
+		},
+		{
+			name: "print explicit version in JSON format",
+			args: args{
+				engineType: engine.EngineTypeDocker,
+				version:    "3.0.2",
+				format:     outputFormatJson,
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			want := `imposter-cli dev
-imposter-engine 3.0.2
-engine-output 3.0.2
-`
-			got := describeVersions(tt.args.engineType, outputFormatPlain, false)
+			viper.Set("version", tt.args.version)
+
+			var expectedVersion string
+			if tt.args.version == "latest" {
+				latestVersion, err := engine.ResolveLatestToVersion(true)
+				if err != nil {
+					t.Fatal(err)
+				}
+				library := engine.GetLibrary(tt.args.engineType)
+				provider := library.GetProvider(latestVersion)
+				if err := provider.Provide(engine.PullIfNotPresent); err != nil {
+					t.Fatal(err)
+				}
+				expectedVersion = latestVersion
+			} else {
+				expectedVersion = tt.args.version
+			}
+
+			var want string
+			if tt.args.format == outputFormatPlain {
+				want = fmt.Sprintf(`imposter-cli dev
+imposter-engine %[1]s
+engine-output %[1]s
+`, expectedVersion)
+
+			} else {
+				want = fmt.Sprintf(`{
+  "imposter-cli": "dev",
+  "imposter-engine": "%[1]s",
+  "engine-output": "%[1]s"
+}`, expectedVersion)
+			}
+
+			got := describeVersions(tt.args.engineType, tt.args.format)
 			require.Equal(t, want, got, "version should match")
 		})
 	}

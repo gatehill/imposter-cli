@@ -182,7 +182,7 @@ func (j *JvmMockEngine) StopAllManaged() int {
 
 func (j *JvmMockEngine) GetVersionString() (string, error) {
 	if !(*j.provider).Satisfied() {
-		if err := (*j.provider).Provide(engine.PullIfNotPresent); err != nil {
+		if err := (*j.provider).Provide(engine.PullSkip); err != nil {
 			return "", err
 		}
 	}

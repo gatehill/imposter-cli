@@ -3,6 +3,7 @@ module gatehill.io/imposter
 go 1.19
 
 require (
+	github.com/coreos/go-semver v0.3.0
 	github.com/docker/docker v20.10.17+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/google/uuid v1.1.2

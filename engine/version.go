@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"gatehill.io/imposter/prefs"
+	"github.com/coreos/go-semver/semver"
 	"io"
 	"net/http"
 	"strings"
@@ -33,6 +34,23 @@ func ResolveLatestToVersion(allowCached bool) (string, error) {
 
 	logger.Tracef("resolved latest version: %s", latest)
 	return latest, nil
+}
+
+func GetHighestVersion(engines []EngineMetadata) string {
+	var highest *semver.Version
+	for _, engine := range engines {
+		v, err := semver.NewVersion(engine.Version)
+		if err != nil {
+			continue
+		}
+		if highest == nil || highest.LessThan(*v) {
+			highest = v
+		}
+	}
+	if highest != nil {
+		return highest.String()
+	}
+	return ""
 }
 
 func loadCached(now int64) string {
