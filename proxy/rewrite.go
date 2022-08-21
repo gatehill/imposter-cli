@@ -50,7 +50,7 @@ func Rewrite(respHeaders *http.Header, respBody *[]byte, upstream string, port i
 		}
 	}
 	if !rewrite {
-		logger.Debugf("unsupported content type %s for rewrite - skipping rewrite: %v", mediaType, err)
+		logger.Debugf("unsupported content type %s for rewrite - skipping rewrite", mediaType)
 		return respBody
 	}
 	rewritten := bytes.ReplaceAll(*respBody, []byte(upstream), []byte(fmt.Sprintf("http://localhost:%d", port)))
