@@ -21,7 +21,6 @@ import (
 	"gatehill.io/imposter/impostermodel"
 	"gatehill.io/imposter/stringutil"
 	"github.com/google/uuid"
-	"mime"
 	"net"
 	"net/http"
 	"net/url"
@@ -58,20 +57,20 @@ func StartRecorder(upstream string, dir string, options RecorderOptions) (chan H
 		for {
 			exchange := <-recordC
 
-			var responseFileSuffix string
+			var responseFilePrefix string
 			requestHash := getRequestHash(exchange.Request)
 			if stringutil.Contains(requestHashes, requestHash) {
-				responseFileSuffix = "-" + uuid.New().String()
+				responseFilePrefix = uuid.New().String() + "-"
 				if options.IgnoreDuplicateRequests {
 					logger.Debugf("skipping recording of duplicate request %s %v", exchange.Request.Method, exchange.Request.URL)
 					continue
 				}
 			} else {
-				responseFileSuffix = ""
+				responseFilePrefix = ""
 			}
 			requestHashes = append(requestHashes, requestHash)
 
-			resource, err := record(upstreamHost, dir, &responseHashes, responseFileSuffix, exchange, options)
+			resource, err := record(upstreamHost, dir, &responseHashes, responseFilePrefix, exchange, options)
 			if err != nil {
 				logger.Warn(err)
 				continue
@@ -107,8 +106,8 @@ func formatUpstreamHostPort(upstream string) (string, error) {
 	}
 }
 
-func record(upstreamHost string, dir string, responseHashes *map[string]string, fileSuffix string, exchange HttpExchange, options RecorderOptions) (resource *impostermodel.Resource, err error) {
-	respFile, err := getResponseFile(upstreamHost, dir, options, exchange, responseHashes, fileSuffix)
+func record(upstreamHost string, dir string, responseHashes *map[string]string, prefix string, exchange HttpExchange, options RecorderOptions) (resource *impostermodel.Resource, err error) {
+	respFile, err := getResponseFile(upstreamHost, dir, options, exchange, responseHashes, prefix)
 	if err != nil {
 		return nil, err
 	}
@@ -127,72 +126,28 @@ func getResponseFile(
 	options RecorderOptions,
 	exchange HttpExchange,
 	fileHashes *map[string]string,
-	fileSuffix string,
+	prefix string,
 ) (string, error) {
-	var respFile string
-
 	req := exchange.Request
 	respBody := *exchange.ResponseBody
 	bodyHash := stringutil.Sha1hash(respBody)
 
 	if existing := (*fileHashes)[bodyHash]; existing != "" {
-		respFile = existing
-		logger.Debugf("reusing identical response file %s for %s %v", respFile, req.Method, req.URL)
+		logger.Debugf("reusing identical response file %s for %s %v", existing, req.Method, req.URL)
+		return existing, nil
+
 	} else {
-		sanitisedPath := strings.TrimPrefix(req.URL.EscapedPath(), "/")
-		fileExt := getFileExtension(exchange.ResponseHeaders)
-
-		var parentDir, respFileName string
-		if options.FlatResponseFileStructure {
-			flatPath := strings.ReplaceAll(sanitisedPath, "/", "_")
-			parentDir = dir
-			respFileName = upstreamHost + "-" + req.Method + "-" + flatPath
-
-		} else {
-			respFullPath := path.Join(dir, sanitisedPath)
-			respDir, err := ensureParentDirExists(respFullPath)
-			if err != nil {
-				return "", err
-			}
-			parentDir = respDir
-			respFileName = req.Method + "-" + path.Base(respFullPath)
-		}
-
-		respFile = path.Join(parentDir, respFileName+fileSuffix+fileExt)
-		err := os.WriteFile(respFile, respBody, 0644)
+		respFile, err := generateRespFileName(upstreamHost, dir, options, exchange, prefix)
 		if err != nil {
+			return "", err
+		}
+		if err = os.WriteFile(respFile, respBody, 0644); err != nil {
 			return "", fmt.Errorf("failed to write response file %s for %s %v: %v", respFile, req.Method, req.URL, err)
 		}
 		logger.Debugf("wrote response file %s for %s %v [%d bytes]", respFile, req.Method, req.URL, len(respBody))
 		(*fileHashes)[bodyHash] = respFile
+		return respFile, nil
 	}
-	return respFile, nil
-}
-
-func getFileExtension(respHeaders *http.Header) string {
-	contentType := respHeaders.Get("Content-Type")
-	if contentType != "" {
-		if extensions, err := mime.ExtensionsByType(contentType); err == nil && len(extensions) > 0 {
-			return extensions[0]
-		}
-	}
-	return ".txt"
-}
-
-func ensureParentDirExists(respFullPath string) (string, error) {
-	respDir := path.Dir(respFullPath)
-	_, err := os.Stat(respDir)
-	if err != nil {
-		if os.IsNotExist(err) {
-			err := os.MkdirAll(respDir, 0700)
-			if err != nil {
-				return "", fmt.Errorf("failed to create response file dir: %s: %v", respDir, err)
-			}
-		} else {
-			return "", fmt.Errorf("failed to stat response file dir: %s: %v", respDir, err)
-		}
-	}
-	return respDir, nil
 }
 
 func buildResource(dir string, options RecorderOptions, exchange HttpExchange, respFile string) (impostermodel.Resource, error) {

@@ -77,10 +77,11 @@ func proxyUpstream(upstream string, port int, dir string, rewrite bool, options 
 		logger.Fatal(err)
 	}
 
-	http.HandleFunc("/system/status", func(writer http.ResponseWriter, request *http.Request) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/system/status", func(writer http.ResponseWriter, request *http.Request) {
 		_, _ = fmt.Fprintf(writer, "ok\n")
 	})
-	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
+	mux.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
 		proxy.Handle(upstream, writer, request, func(statusCode int, respBody *[]byte, respHeaders *http.Header) (*[]byte, *http.Header) {
 			if rewrite {
 				respBody = proxy.Rewrite(respHeaders, respBody, upstream, port)
@@ -95,7 +96,7 @@ func proxyUpstream(upstream string, port int, dir string, rewrite bool, options 
 		})
 	})
 
-	err = http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
+	err = http.ListenAndServe(fmt.Sprintf(":%d", port), mux)
 	if err != nil {
 		logger.Fatal(err)
 	}

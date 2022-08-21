@@ -69,25 +69,39 @@ func CheckMockStatus(port int) error {
 
 func WaitUntilUp(port int, shutDownC chan bool) (success bool) {
 	url := getStatusUrl(port)
-	logger.Tracef("waiting for mock engine to come up at %v", url)
+	return WaitForUrl(fmt.Sprintf("status endpoint to return HTTP 200 at %v", url), url, shutDownC)
+}
 
-	startedC := make(chan bool)
-	max := time.NewTimer(getStartTimeout())
+func getStatusUrl(port int) string {
+	return fmt.Sprintf("http://localhost:%d/system/status", port)
+}
+
+func WaitForUrl(desc string, url string, abortC chan bool) (success bool) {
+	return WaitForOp(desc, getStartTimeout(), abortC, func() bool {
+		resp, err := http.Get(url)
+		if err != nil {
+			return false
+		}
+		if _, err := io.ReadAll(resp.Body); err != nil {
+			return false
+		}
+		_ = resp.Body.Close()
+		return resp.StatusCode == 200
+	})
+}
+
+func WaitForOp(desc string, timeout time.Duration, abortC chan bool, operation func() bool) (success bool) {
+	logger.Tracef("waiting for %s", desc)
+
+	successC := make(chan bool)
+	max := time.NewTimer(timeout)
 	defer max.Stop()
 
 	go func() {
 		for {
 			time.Sleep(100 * time.Millisecond)
-			resp, err := http.Get(url)
-			if err != nil {
-				continue
-			}
-			if _, err := io.ReadAll(resp.Body); err != nil {
-				continue
-			}
-			_ = resp.Body.Close()
-			if resp.StatusCode == 200 {
-				startedC <- true
+			if operation() {
+				successC <- true
 				break
 			}
 		}
@@ -97,22 +111,18 @@ func WaitUntilUp(port int, shutDownC chan bool) (success bool) {
 	select {
 	case <-max.C:
 		finished = true
-		logger.Fatalf("timed out waiting for engine to start: could not reach status endpoint: %s", url)
+		logger.Fatalf("timed out waiting for %s", desc)
 		return false
-	case <-startedC:
+	case <-successC:
 		finished = true
-		logger.Tracef("engine started")
+		logger.Tracef("successfully waited for %s", desc)
 		return true
-	case <-shutDownC:
+	case <-abortC:
 		if !finished {
-			logger.Debugf("aborted health probe")
+			logger.Debugf("aborted waiting for %s", desc)
 		}
 		return false
 	}
-}
-
-func getStatusUrl(port int) string {
-	return fmt.Sprintf("http://localhost:%d/system/status", port)
 }
 
 func PopulateHealth(mock *ManagedMock) {

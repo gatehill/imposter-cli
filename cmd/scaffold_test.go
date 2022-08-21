@@ -26,7 +26,7 @@ import (
 )
 
 func init() {
-	logrus.SetLevel(logrus.TraceLevel)
+	logger.SetLevel(logrus.TraceLevel)
 }
 
 func Test_createMockConfig(t *testing.T) {
