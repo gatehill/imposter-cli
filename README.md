@@ -137,7 +137,7 @@ Flags:
   -v, --version string            Imposter engine version (default "latest")
 ```
 
-#### Generate Imposter configuration from OpenAPI specification files
+#### Generate Imposter configuration
 
 Example:
 
@@ -146,8 +146,9 @@ Example:
 Usage:
 
 ```
-Creates Imposter configuration from one or more OpenAPI/Swagger specification files
-in a directory.
+Creates Imposter configuration files. If one or more OpenAPI/Swagger
+specification files are present, they are used as the basis for the generated
+resources. If no specification files are present, a simple REST mock is created.
 
 If DIR is not specified, the current working directory is used.
 

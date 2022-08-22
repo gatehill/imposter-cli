@@ -32,9 +32,10 @@ var scaffoldFlags = struct {
 // scaffoldCmd represents the up command
 var scaffoldCmd = &cobra.Command{
 	Use:   "scaffold [DIR]",
-	Short: "Create Imposter configuration from OpenAPI specs",
-	Long: `Creates Imposter configuration from one or more OpenAPI/Swagger specification files
-in a directory.
+	Short: "Create Imposter configuration",
+	Long: `Creates Imposter configuration files. If one or more OpenAPI/Swagger
+specification files are present, they are used as the basis for the generated
+resources. If no specification files are present, a simple REST mock is created.
 
 If DIR is not specified, the current working directory is used.`,
 	Args: cobra.RangeArgs(0, 1),
