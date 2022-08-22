@@ -17,22 +17,25 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"gatehill.io/imposter/remote"
 	"github.com/spf13/cobra"
 	"os"
+	"strings"
 )
 
 var remoteConfigFlags = struct {
 	remoteType string
 	token      string
-	url        string
+	server     string
 }{}
 
 // remoteConfigCmd represents the remoteConfig command
 var remoteConfigCmd = &cobra.Command{
-	Use:   "config",
+	Use:   "config [key=value]",
 	Short: "Configure remote",
 	Long:  `Configures the remote for the active workspace.`,
+	Args:  cobra.MinimumNArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
 		var dir string
 		if remoteFlags.path != "" {
@@ -42,31 +45,49 @@ var remoteConfigCmd = &cobra.Command{
 		}
 
 		configured := false
-		token := cmd.Flag("token")
-		if token != nil && token.Changed {
-			setRemoteConfigToken(dir, remoteConfigFlags.token)
-			configured = true
-		}
 		if remoteConfigFlags.remoteType != "" {
 			setRemoteConfigType(dir, remoteConfigFlags.remoteType)
 			configured = true
 		}
-		url := cmd.Flag("server")
-		if url != nil && url.Changed {
-			setRemoteConfigUrl(dir, remoteConfigFlags.url)
+
+		// convenience flags
+		token := cmd.Flag("token")
+		if token != nil && token.Changed {
+			args = append(args, "token="+remoteConfigFlags.token)
+		}
+		server := cmd.Flag("server")
+		if server != nil && server.Changed {
+			args = append(args, "server="+remoteConfigFlags.server)
+		}
+
+		if len(args) > 0 {
+			for _, arg := range args {
+				if !strings.Contains(arg, "=") {
+					logger.Warnf("invalid config item: %s", arg)
+					continue
+				}
+				splitArgs := strings.Split(arg, "=")
+				setRemoteConfigItem(dir, splitArgs[0], splitArgs[1])
+			}
 			configured = true
 		}
 
 		if !configured {
-			cobra.CheckErr(cmd.Help())
+			printRemoteConfigHelp(cmd, dir)
 		}
 	},
+}
+
+func printRemoteConfigHelp(cmd *cobra.Command, dir string) {
+	supported := strings.Join(listSupportedKeys(dir), ", ")
+	fmt.Fprintf(os.Stderr, "%v\nSupported config keys: %s\n", cmd.UsageString(), supported)
+	os.Exit(1)
 }
 
 func init() {
 	remoteConfigCmd.Flags().StringVar(&remoteConfigFlags.remoteType, "provider", "", "Set deployment provider")
 	remoteConfigCmd.Flags().StringVarP(&remoteConfigFlags.token, "token", "t", "", "Set deployment token")
-	remoteConfigCmd.Flags().StringVarP(&remoteConfigFlags.url, "server", "s", "", "Set deployment server URL")
+	remoteConfigCmd.Flags().StringVarP(&remoteConfigFlags.server, "server", "s", "", "Set deployment server URL")
 	remoteCmd.AddCommand(remoteConfigCmd)
 }
 
@@ -78,26 +99,22 @@ func setRemoteConfigType(dir string, remoteType string) {
 	logger.Infof("set remote type to '%s' for remote: %s", remoteType, active.Name)
 }
 
-func setRemoteConfigUrl(dir string, url string) {
+func setRemoteConfigItem(dir string, key string, value string) {
 	active, r, err := remote.LoadActive(dir)
 	if err != nil {
 		logger.Fatalf("failed to load remote: %s", err)
 	}
-	err = (*r).SetUrl(url)
+	err = (*r).SetConfigValue(key, value)
 	if err != nil {
-		logger.Fatalf("failed to set remote URL: %s", err)
+		logger.Fatalf("failed to set remote %s: %s", key, err)
 	}
-	logger.Infof("set remote URL to '%s' for remote: %s", url, active.Name)
+	logger.Infof("set %s for remote: %s", key, active.Name)
 }
 
-func setRemoteConfigToken(dir string, token string) {
-	active, r, err := remote.LoadActive(dir)
+func listSupportedKeys(dir string) []string {
+	_, r, err := remote.LoadActive(dir)
 	if err != nil {
 		logger.Fatalf("failed to load remote: %s", err)
 	}
-	err = (*r).SetToken(token)
-	if err != nil {
-		logger.Fatalf("failed to set remote token: %s", err)
-	}
-	logger.Infof("set remote token for remote: %s", active.Name)
+	return (*r).GetConfigKeys()
 }

@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func (m Remote) syncFiles(dir string) error {
+func (m CloudMocksRemote) syncFiles(dir string) error {
 	logger.Debugf("synchronising files from: %s", dir)
 
 	r, err := m.listRemote()
@@ -33,9 +33,9 @@ func (m Remote) syncFiles(dir string) error {
 	return nil
 }
 
-func (m Remote) listRemote() ([]string, error) {
+func (m CloudMocksRemote) listRemote() ([]string, error) {
 	var resp []string
-	err := m.request("GET", fmt.Sprintf("/api/mocks/%s/files", m.config.MockId), &resp)
+	err := m.request("GET", fmt.Sprintf("/api/mocks/%s/files", m.Config[configKeyMockId]), &resp)
 	if err != nil {
 		return nil, fmt.Errorf("error listing files: %s", err)
 	}
@@ -43,7 +43,7 @@ func (m Remote) listRemote() ([]string, error) {
 }
 
 // calculateDelta determines the remote files that are not present in dir
-func (m Remote) calculateDelta(dir string, remote []string, local []string) []string {
+func (m CloudMocksRemote) calculateDelta(dir string, remote []string, local []string) []string {
 	var delta []string
 	for _, r := range remote {
 		if !arrayContains(local, dir+"/", r) {
@@ -66,10 +66,10 @@ func arrayContains(search []string, trimPrefix string, term string) bool {
 	return found
 }
 
-func (m Remote) uploadFiles(files []string) error {
+func (m CloudMocksRemote) uploadFiles(files []string) error {
 	for _, f := range files {
 		logger.Infof("uploading: %s", f)
-		err := m.upload("POST", fmt.Sprintf("/api/mocks/%s/spec", m.config.MockId), f)
+		err := m.upload("POST", fmt.Sprintf("/api/mocks/%s/spec", m.Config[configKeyMockId]), f)
 		if err != nil {
 			return fmt.Errorf("failed to upload file: %s: %s", f, err)
 		}
@@ -77,11 +77,11 @@ func (m Remote) uploadFiles(files []string) error {
 	return nil
 }
 
-func (m Remote) deleteRemote(files []string) error {
+func (m CloudMocksRemote) deleteRemote(files []string) error {
 	for _, f := range files {
 		logger.Infof("deleting remote file: %s", f)
 		var resp interface{}
-		err := m.request("DELETE", fmt.Sprintf("/api/mocks/%s/files/%s", m.config.MockId, f), &resp)
+		err := m.request("DELETE", fmt.Sprintf("/api/mocks/%s/files/%s", m.Config[configKeyMockId], f), &resp)
 		if err != nil {
 			return fmt.Errorf("failed to delete remote file: %s: %s", f, err)
 		}

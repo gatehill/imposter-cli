@@ -26,10 +26,10 @@ type getEndpointResponse struct {
 	SpecUrl string `json:"specUrl"`
 }
 
-func (m Remote) Deploy() (*remote.EndpointDetails, error) {
-	if m.config.Url == "" {
+func (m CloudMocksRemote) Deploy() (*remote.EndpointDetails, error) {
+	if m.Config[configKeyUrl] == "" {
 		return nil, fmt.Errorf("URL cannot be null")
-	} else if token, _ := m.GetObfuscatedToken(); token == "" {
+	} else if token, _ := m.getObfuscatedToken(); token == "" {
 		return nil, fmt.Errorf("auth token cannot be null")
 	}
 
@@ -43,7 +43,7 @@ func (m Remote) Deploy() (*remote.EndpointDetails, error) {
 		return nil, err
 	}
 
-	err = m.syncFiles(m.dir)
+	err = m.syncFiles(m.Dir)
 	if err != nil {
 		return nil, err
 	}
@@ -68,8 +68,8 @@ func (m Remote) Deploy() (*remote.EndpointDetails, error) {
 	return details, nil
 }
 
-func (m Remote) ensureMockExists() error {
-	if m.config.MockId == "" {
+func (m CloudMocksRemote) ensureMockExists() error {
+	if m.Config[configKeyMockId] == "" {
 		logger.Debugf("creating new mock")
 
 		var resp createMockResponse
@@ -79,22 +79,22 @@ func (m Remote) ensureMockExists() error {
 		}
 
 		logger.Debugf("created mock with ID: %s", resp.MockId)
-		m.config.MockId = resp.MockId
-		err = m.saveConfig()
+		m.Config[configKeyMockId] = resp.MockId
+		err = m.SaveConfig()
 		if err != nil {
 			return fmt.Errorf("failed to save mock ID: %s", err)
 		}
 
 	} else {
-		logger.Debugf("using existing mock with ID: %s", m.config.MockId)
+		logger.Debugf("using existing mock with ID: %s", m.Config[configKeyMockId])
 	}
 	return nil
 }
 
-func (m Remote) setMockState(state string) error {
+func (m CloudMocksRemote) setMockState(state string) error {
 	logger.Debugf("setting mock state to: %s", state)
 	var resp interface{}
-	err := m.request("PATCH", fmt.Sprintf("/api/mocks/%s/state/%s", m.config.MockId, state), &resp)
+	err := m.request("PATCH", fmt.Sprintf("/api/mocks/%s/state/%s", m.Config[configKeyMockId], state), &resp)
 	if err != nil {
 		return fmt.Errorf("failed to set mock state to: %s: %s", state, err)
 	}
@@ -102,25 +102,25 @@ func (m Remote) setMockState(state string) error {
 	return nil
 }
 
-func (m Remote) getStatus() (*getStatusResponse, error) {
+func (m CloudMocksRemote) getStatus() (*getStatusResponse, error) {
 	var resp getStatusResponse
-	err := m.request("GET", fmt.Sprintf("/api/mocks/%s/status", m.config.MockId), &resp)
+	err := m.request("GET", fmt.Sprintf("/api/mocks/%s/status", m.Config[configKeyMockId]), &resp)
 	if err != nil {
 		return nil, fmt.Errorf("error getting status: %s", err)
 	}
 	return &resp, nil
 }
 
-func (m Remote) getEndpoint() (*getEndpointResponse, error) {
+func (m CloudMocksRemote) getEndpoint() (*getEndpointResponse, error) {
 	var resp getEndpointResponse
-	err := m.request("GET", fmt.Sprintf("/api/mocks/%s/endpoint", m.config.MockId), &resp)
+	err := m.request("GET", fmt.Sprintf("/api/mocks/%s/endpoint", m.Config[configKeyMockId]), &resp)
 	if err != nil {
 		return nil, fmt.Errorf("error getting endpoint: %s", err)
 	}
 	return &resp, nil
 }
 
-func (m Remote) waitForStatus(s string, shutDownC chan bool) bool {
+func (m CloudMocksRemote) waitForStatus(s string, shutDownC chan bool) bool {
 	logger.Infof("waiting for mock status to be: %s...", s)
 
 	finishedC := make(chan bool)
@@ -162,8 +162,8 @@ func (m Remote) waitForStatus(s string, shutDownC chan bool) bool {
 	}
 }
 
-func (m Remote) request(method string, path string, response interface{}) error {
-	url := m.config.Url + path
+func (m CloudMocksRemote) request(method string, path string, response interface{}) error {
+	url := m.Config[configKeyUrl] + path
 	client := http.Client{}
 	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
@@ -196,7 +196,7 @@ func (m Remote) request(method string, path string, response interface{}) error 
 	return nil
 }
 
-func (m Remote) upload(method string, path string, src string) error {
+func (m CloudMocksRemote) upload(method string, path string, src string) error {
 	file, err := os.Open(src)
 	if err != nil {
 		return err
@@ -225,7 +225,7 @@ func (m Remote) upload(method string, path string, src string) error {
 		return err
 	}
 
-	url := m.config.Url + path
+	url := m.Config[configKeyUrl] + path
 	client := http.Client{}
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {

@@ -1,35 +1,32 @@
 package awslambda
 
 import (
-	"encoding/json"
 	"fmt"
 	"gatehill.io/imposter/logging"
-	"gatehill.io/imposter/prefs"
 	"gatehill.io/imposter/remote"
 	"gatehill.io/imposter/workspace"
 	"github.com/araddon/dateparse"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"net/url"
-	"os"
 	"strings"
 )
 
 const remoteType = "awslambda"
-const defaultUrl = "https://lambda.us-east-1.amazonaws.com"
+const defaultRegion = "us-east-1"
+const configKeyRegion = "region"
+const configKeyFuncName = "functionName"
 
-type Remote struct {
-	workspace *workspace.Workspace
-	dir       string
-	config    config
-}
-
-type config struct {
-	MockId string `json:"mockId"`
-	Url    string `json:"url"`
+var configKeys = []string{
+	configKeyFuncName,
+	configKeyRegion,
 }
 
 var logger = logging.GetLogger()
+
+type LambdaRemote struct {
+	remote.RemoteMetadata
+}
 
 func Register() {
 	remote.Register(remoteType, func(dir string, workspace *workspace.Workspace) (remote.Remote, error) {
@@ -37,61 +34,54 @@ func Register() {
 	})
 }
 
-func Load(dir string, w *workspace.Workspace) (Remote, error) {
-	c, err := loadConfig(dir, w)
+func Load(dir string, w *workspace.Workspace) (LambdaRemote, error) {
+	c, err := remote.LoadConfig(dir, w, func() *map[string]string {
+		return &map[string]string{
+			configKeyRegion: defaultRegion,
+		}
+	})
 	if err != nil {
-		return Remote{}, err
+		return LambdaRemote{}, err
 	}
 
-	r := Remote{
-		workspace: w,
-		dir:       dir,
-		config:    c,
+	r := LambdaRemote{
+		remote.RemoteMetadata{
+			Workspace: w,
+			Dir:       dir,
+			Config:    *c,
+		},
 	}
 	return r, nil
 }
 
-func (Remote) GetType() string {
+func (LambdaRemote) GetType() string {
 	return remoteType
 }
 
-func (m Remote) GetUrl() string {
-	return m.config.Url
+func (LambdaRemote) GetConfigKeys() []string {
+	return configKeys
 }
 
-func (m Remote) SetUrl(u string) error {
-	u = strings.TrimSuffix(u, "/")
-	if _, err := url.Parse(u); err != nil {
-		return fmt.Errorf("failed to parse URL: %s: %s", u, err)
+func (m LambdaRemote) SetConfigValue(key string, value string) error {
+	if err := m.CheckConfigKey(m.GetConfigKeys(), key); err != nil {
+		return err
 	}
-	m.config.Url = u
-	return m.saveConfig()
-}
 
-func (m Remote) getCleartextToken() (string, error) {
-	cleartext, err := getCredsPrefs().ReadPropertyString(m.config.Url)
-	if err != nil {
-		return "", err
+	if key == configKeyRegion {
+		value = strings.TrimSuffix(value, "/")
+		if _, err := url.Parse(value); err != nil {
+			return fmt.Errorf("failed to parse URL: %s: %s", value, err)
+		}
 	}
-	return cleartext, nil
+	m.Config[key] = value
+	return m.SaveConfig()
 }
 
-func (m Remote) GetObfuscatedToken() (string, error) {
-	cleartext, err := m.getCleartextToken()
-	if err != nil {
-		return "", err
-	} else if cleartext == "" {
-		return "", nil
-	}
-	obfuscated := strings.Repeat("*", 8) + cleartext[len(cleartext)-4:]
-	return obfuscated, nil
+func (m LambdaRemote) GetConfig() (*map[string]string, error) {
+	return remote.CloneMap(&m.Config), nil
 }
 
-func (m Remote) SetToken(token string) error {
-	return getCredsPrefs().WriteProperty(m.config.Url, token)
-}
-
-func (m Remote) GetStatus() (*remote.Status, error) {
+func (m LambdaRemote) GetStatus() (*remote.Status, error) {
 	functionStatus, lastModified, err := m.getFunctionStatus()
 	if err != nil {
 		return nil, err
@@ -103,50 +93,8 @@ func (m Remote) GetStatus() (*remote.Status, error) {
 	return &status, nil
 }
 
-func getCredsPrefs() prefs.Prefs {
-	return prefs.Load("credentials.json")
-}
-
-func loadConfig(dir string, w *workspace.Workspace) (c config, err error) {
-	exists, remoteFilePath, err := remote.GetConfigPath(dir, w)
-	if err != nil {
-		return config{}, err
-	} else if !exists {
-		c := config{
-			Url: defaultUrl,
-		}
-		return c, nil
-	}
-
-	j, err := os.ReadFile(remoteFilePath)
-	if err != nil {
-		return config{}, fmt.Errorf("failed to load remote config file: %s: %s", remoteFilePath, err)
-	}
-	err = json.Unmarshal(j, &c)
-	if err != nil {
-		return config{}, fmt.Errorf("failed to unmarshall remote config file: %s: %s", remoteFilePath, err)
-	}
-	return c, nil
-}
-
-func (m Remote) saveConfig() error {
-	_, remoteFilePath, err := remote.GetConfigPath(m.dir, m.workspace)
-	if err != nil {
-		return err
-	}
-	j, err := json.Marshal(m.config)
-	if err != nil {
-		return fmt.Errorf("failed to marshall remote config for workspace: %s: %s", m.workspace.Name, err)
-	}
-	err = os.WriteFile(remoteFilePath, j, 0644)
-	if err != nil {
-		return fmt.Errorf("failed to write remote config file: %s: %s", remoteFilePath, err)
-	}
-	return nil
-}
-
-func (m Remote) getFunctionStatus() (status string, lastModified int, err error) {
-	_, sess := startAwsSession()
+func (m LambdaRemote) getFunctionStatus() (status string, lastModified int, err error) {
+	_, sess := m.startAwsSession()
 	svc := lambda.New(sess)
 	functionName := m.getFunctionName()
 	result, err := checkFunctionExists(svc, functionName)

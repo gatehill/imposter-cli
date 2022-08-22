@@ -11,12 +11,11 @@ import (
 
 type Remote interface {
 	GetType() string
-	GetUrl() string
-	SetUrl(url string) error
-	GetObfuscatedToken() (string, error)
-	SetToken(token string) error
+	GetConfig() (*map[string]string, error)
+	SetConfigValue(key string, value string) error
 	Deploy() (*EndpointDetails, error)
 	GetStatus() (*Status, error)
+	GetConfigKeys() []string
 }
 
 type EndpointDetails struct {

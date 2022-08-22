@@ -1,29 +1,29 @@
 package cloudmocks
 
 import (
-	"encoding/json"
 	"fmt"
 	"gatehill.io/imposter/logging"
 	"gatehill.io/imposter/prefs"
 	"gatehill.io/imposter/remote"
 	"gatehill.io/imposter/workspace"
 	"net/url"
-	"os"
 	"strings"
 )
 
 const remoteType = "cloudmocks"
 const defaultUrl = "https://api.mocks.cloud"
+const configKeyMockId = "mockId"
+const configKeyToken = "token"
+const configKeyUrl = "url"
 
-type Remote struct {
-	workspace *workspace.Workspace
-	dir       string
-	config    config
+type CloudMocksRemote struct {
+	remote.RemoteMetadata
 }
 
-type config struct {
-	MockId string `json:"mockId"`
-	Url    string `json:"url"`
+var configKeys = []string{
+	configKeyMockId,
+	configKeyToken,
+	configKeyUrl,
 }
 
 var logger = logging.GetLogger()
@@ -34,46 +34,83 @@ func Register() {
 	})
 }
 
-func Load(dir string, w *workspace.Workspace) (Remote, error) {
-	c, err := loadConfig(dir, w)
+func Load(dir string, w *workspace.Workspace) (CloudMocksRemote, error) {
+	c, err := remote.LoadConfig(dir, w, func() *map[string]string {
+		return &map[string]string{
+			configKeyUrl: defaultUrl,
+		}
+	})
 	if err != nil {
-		return Remote{}, err
+		return CloudMocksRemote{}, err
 	}
 
-	r := Remote{
-		workspace: w,
-		dir:       dir,
-		config:    c,
+	r := CloudMocksRemote{
+		remote.RemoteMetadata{
+			Workspace: w,
+			Dir:       dir,
+			Config:    *c,
+		},
 	}
 	return r, nil
 }
 
-func (Remote) GetType() string {
+func (CloudMocksRemote) GetType() string {
 	return remoteType
 }
 
-func (m Remote) GetUrl() string {
-	return m.config.Url
+func (CloudMocksRemote) GetConfigKeys() []string {
+	return configKeys
 }
 
-func (m Remote) SetUrl(u string) error {
-	u = strings.TrimSuffix(u, "/")
-	if _, err := url.Parse(u); err != nil {
-		return fmt.Errorf("failed to parse URL: %s: %s", u, err)
+func (m CloudMocksRemote) SetConfigValue(key string, value string) error {
+	if err := m.CheckConfigKey(m.GetConfigKeys(), key); err != nil {
+		return err
 	}
-	m.config.Url = u
-	return m.saveConfig()
+
+	switch key {
+	case configKeyUrl:
+		value = strings.TrimSuffix(value, "/")
+		if _, err := url.Parse(value); err != nil {
+			return fmt.Errorf("failed to parse URL: %s: %s", value, err)
+		}
+		break
+
+	case configKeyToken:
+		token := value
+		value = ""
+		if err := m.setToken(token); err != nil {
+			return err
+		}
+		// do not persist token to config
+		return nil
+	}
+	m.Config[key] = value
+	return m.SaveConfig()
 }
 
-func (m Remote) getCleartextToken() (string, error) {
-	cleartext, err := getCredsPrefs().ReadPropertyString(m.config.Url)
+func (m CloudMocksRemote) GetConfig() (*map[string]string, error) {
+	cfg := *remote.CloneMap(&m.Config)
+	token, err := m.getObfuscatedToken()
+	if err != nil {
+		return nil, err
+	}
+	cfg["token"] = token
+	return &cfg, nil
+}
+
+func (m CloudMocksRemote) setToken(token string) error {
+	return getCredsPrefs().WriteProperty(m.Config[configKeyUrl], token)
+}
+
+func (m CloudMocksRemote) getCleartextToken() (string, error) {
+	cleartext, err := getCredsPrefs().ReadPropertyString(m.Config[configKeyUrl])
 	if err != nil {
 		return "", err
 	}
 	return cleartext, nil
 }
 
-func (m Remote) GetObfuscatedToken() (string, error) {
+func (m CloudMocksRemote) getObfuscatedToken() (string, error) {
 	cleartext, err := m.getCleartextToken()
 	if err != nil {
 		return "", err
@@ -84,11 +121,7 @@ func (m Remote) GetObfuscatedToken() (string, error) {
 	return obfuscated, nil
 }
 
-func (m Remote) SetToken(token string) error {
-	return getCredsPrefs().WriteProperty(m.config.Url, token)
-}
-
-func (m Remote) GetStatus() (*remote.Status, error) {
+func (m CloudMocksRemote) GetStatus() (*remote.Status, error) {
 	s, err := m.getStatus()
 	if err != nil {
 		return nil, err
@@ -102,42 +135,4 @@ func (m Remote) GetStatus() (*remote.Status, error) {
 
 func getCredsPrefs() prefs.Prefs {
 	return prefs.Load("credentials.json")
-}
-
-func loadConfig(dir string, w *workspace.Workspace) (c config, err error) {
-	exists, remoteFilePath, err := remote.GetConfigPath(dir, w)
-	if err != nil {
-		return config{}, err
-	} else if !exists {
-		c := config{
-			Url: defaultUrl,
-		}
-		return c, nil
-	}
-
-	j, err := os.ReadFile(remoteFilePath)
-	if err != nil {
-		return config{}, fmt.Errorf("failed to load remote config file: %s: %s", remoteFilePath, err)
-	}
-	err = json.Unmarshal(j, &c)
-	if err != nil {
-		return config{}, fmt.Errorf("failed to unmarshall remote config file: %s: %s", remoteFilePath, err)
-	}
-	return c, nil
-}
-
-func (m Remote) saveConfig() error {
-	_, remoteFilePath, err := remote.GetConfigPath(m.dir, m.workspace)
-	if err != nil {
-		return err
-	}
-	j, err := json.Marshal(m.config)
-	if err != nil {
-		return fmt.Errorf("failed to marshall remote config for workspace: %s: %s", m.workspace.Name, err)
-	}
-	err = os.WriteFile(remoteFilePath, j, 0644)
-	if err != nil {
-		return fmt.Errorf("failed to write remote config file: %s: %s", remoteFilePath, err)
-	}
-	return nil
 }

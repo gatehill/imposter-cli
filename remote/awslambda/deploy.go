@@ -13,19 +13,17 @@ import (
 	"io"
 	"os"
 	"path"
+	"strings"
 )
 
 var defaultIamRoleName = "ImposterLambdaExecutionRole"
 
-func (m Remote) Deploy() (*remote.EndpointDetails, error) {
-	if m.config.Url == "" {
-		return nil, fmt.Errorf("URL cannot be null")
+func (m LambdaRemote) Deploy() (*remote.EndpointDetails, error) {
+	if m.Config[configKeyRegion] == "" {
+		return nil, fmt.Errorf("region cannot be null")
 	}
-	//else if token, _ := m.GetObfuscatedToken(); token == "" {
-	//	return nil, fmt.Errorf("auth token cannot be null")
-	//}
 
-	region, sess := startAwsSession()
+	region, sess := m.startAwsSession()
 
 	roleArn, err := ensureIamRole(sess, defaultIamRoleName)
 	if err != nil {
@@ -33,7 +31,7 @@ func (m Remote) Deploy() (*remote.EndpointDetails, error) {
 	}
 
 	// FIXME
-	zipContents, err := createDeploymentPackage("3.0.4", m.dir)
+	zipContents, err := createDeploymentPackage("3.0.4", m.Dir)
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -60,12 +58,20 @@ func (m Remote) Deploy() (*remote.EndpointDetails, error) {
 	return details, nil
 }
 
-func (m Remote) getFunctionName() string {
-	return "imposter-example"
+func (m LambdaRemote) getFunctionName() string {
+	configuredFuncName := m.Config[configKeyFuncName]
+	if configuredFuncName != "" {
+		return configuredFuncName
+	}
+	funcName := path.Base(m.Dir)
+	if !strings.HasPrefix(strings.ToLower(funcName), "imposter") {
+		funcName = "imposter-" + funcName
+	}
+	return funcName[:64]
 }
 
-func startAwsSession() (string, *awssession.Session) {
-	region := getAwsRegion()
+func (m LambdaRemote) startAwsSession() (string, *awssession.Session) {
+	region := m.getAwsRegion()
 	sess := awssession.Must(awssession.NewSessionWithOptions(awssession.Options{
 		SharedConfigState: awssession.SharedConfigEnable,
 		Config: aws.Config{
@@ -176,9 +182,11 @@ func ensureUrlConfigured(svc *lambda.Lambda, funcArn string) (string, error) {
 	return functionUrl, nil
 }
 
-func getAwsRegion() string {
+func (m LambdaRemote) getAwsRegion() string {
 	if defaultRegion, ok := os.LookupEnv("AWS_DEFAULT_REGION"); ok {
 		return defaultRegion
+	} else if configuredRegion := m.Config[configKeyRegion]; configuredRegion != "" {
+		return configuredRegion
 	}
 	panic("no AWS default region set")
 }

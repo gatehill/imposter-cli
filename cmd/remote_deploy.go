@@ -47,7 +47,7 @@ func remoteDeploy(dir string) {
 	if err != nil {
 		logger.Fatalf("failed to load remote: %s", err)
 	}
-	logger.Infof("deploying workspace '%s' to remote: %s", active.Name, (*r).GetUrl())
+	logger.Infof("deploying workspace '%s' to %s remote", active.Name, active.RemoteType)
 
 	endpoint, err := (*r).Deploy()
 	if err != nil {

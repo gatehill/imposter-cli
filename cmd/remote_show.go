@@ -17,9 +17,11 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"gatehill.io/imposter/remote"
 	"github.com/spf13/cobra"
 	"os"
+	"strings"
 )
 
 // remoteShowCmd represents the remoteShow command
@@ -49,14 +51,17 @@ func showRemote(dir string) {
 	}
 
 	remoteType := (*r).GetType()
-	url := (*r).GetUrl()
-	token, err := (*r).GetObfuscatedToken()
+	config, err := (*r).GetConfig()
 	if err != nil {
-		logger.Fatalf("failed to get remote token: %s", err)
+		logger.Fatalf("failed to get remote config: %s", err)
+	}
+	formattedCfg := ""
+	for key, value := range *config {
+		formattedCfg += strings.Repeat(" ", 4) + key + ": " + value + "\n"
 	}
 
-	logger.Infof(`Workspace '%s' remote:
+	fmt.Printf(`Workspace '%s' remote:
   Type: %s
-  URL: %s
-  Token: %s`, active.Name, remoteType, url, token)
+  Configuration:
+%v`, active.Name, remoteType, formattedCfg)
 }
