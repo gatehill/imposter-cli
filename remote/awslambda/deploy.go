@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"gatehill.io/imposter/engine"
 	"gatehill.io/imposter/remote"
+	"gatehill.io/imposter/stringutil"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	awssession "github.com/aws/aws-sdk-go/aws/session"
@@ -26,7 +27,9 @@ func (m LambdaRemote) Deploy() (*remote.EndpointDetails, error) {
 
 	region, sess := m.startAwsSession()
 
-	roleArn, err := ensureIamRole(sess, defaultIamRoleName)
+	roleName := stringutil.GetFirstNonEmpty(m.Config[configKeyIamRoleName], defaultIamRoleName)
+
+	roleArn, err := ensureIamRole(sess, roleName)
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -40,7 +43,7 @@ func (m LambdaRemote) Deploy() (*remote.EndpointDetails, error) {
 	svc := lambda.New(sess)
 
 	funcName := m.getFunctionName()
-	funcArn, err := ensureFunctionExists(svc, region, funcName, roleArn, zipContents)
+	funcArn, err := ensureFunctionExists(svc, region, funcName, roleArn, m.getMemorySize(), zipContents)
 	if err != nil {
 		return nil, err
 	}
@@ -49,14 +52,72 @@ func (m LambdaRemote) Deploy() (*remote.EndpointDetails, error) {
 		return nil, err
 	}
 
+	permitAnonAccess := m.Config[configKeyAnonAccess] == "true"
+	err = configureUrlAccess(svc, funcArn, permitAnonAccess)
+	if err != nil {
+		return nil, err
+	}
+
 	details := &remote.EndpointDetails{
 		BaseUrl:   functionUrl,
 		StatusUrl: remote.MustJoinPath(functionUrl, "/system/status"),
 
-		// UI not supported on lambda
-		SpecUrl: remote.MustJoinPath(functionUrl, "/_spec/combined.json"),
+		// spec not supported on lambda
+		SpecUrl: "",
 	}
 	return details, nil
+}
+
+func configureUrlAccess(svc *lambda.Lambda, funcArn string, anonAccess bool) error {
+	const statementId = "PermitAnonymousAccessToFunctionUrl"
+	if anonAccess {
+		if err := createAnonUrlAccessPolicy(svc, funcArn, statementId); err != nil {
+			return err
+		}
+	} else {
+		_, err := svc.RemovePermission(&lambda.RemovePermissionInput{
+			FunctionName: aws.String(funcArn),
+			StatementId:  aws.String(statementId),
+		})
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				if awsErr.Code() == lambda.ErrCodeResourceNotFoundException {
+					logger.Debugf("anonymous URL access permission did not exist")
+					return nil
+				} else {
+					return fmt.Errorf("failed to delete anonymous URL access permission: %v", err)
+				}
+			} else {
+				return fmt.Errorf("failed to delete anonymous URL access permission: %v", err)
+			}
+		}
+		logger.Debugf("deleted anonymous URL access permission")
+	}
+	return nil
+}
+
+func createAnonUrlAccessPolicy(svc *lambda.Lambda, funcArn string, statementId string) error {
+	_, err := svc.AddPermission(&lambda.AddPermissionInput{
+		StatementId:         aws.String(statementId),
+		Action:              aws.String("lambda:InvokeFunctionUrl"),
+		FunctionName:        aws.String(funcArn),
+		FunctionUrlAuthType: aws.String(lambda.FunctionUrlAuthTypeNone),
+		Principal:           aws.String("*"),
+	})
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() == lambda.ErrCodeResourceConflictException {
+				logger.Debugf("anonymous URL access permission already exists")
+				return nil
+			} else {
+				return fmt.Errorf("failed to add anonymous URL access permission: %v", err)
+			}
+		} else {
+			return fmt.Errorf("failed to add anonymous URL access permission: %v", err)
+		}
+	}
+	logger.Debugf("added anonymous URL access permission")
+	return nil
 }
 
 func (m LambdaRemote) getFunctionName() string {
@@ -82,13 +143,20 @@ func (m LambdaRemote) startAwsSession() (string, *awssession.Session) {
 	return region, sess
 }
 
-func ensureFunctionExists(svc *lambda.Lambda, region string, funcName string, roleArn string, zipContents *[]byte) (string, error) {
+func ensureFunctionExists(
+	svc *lambda.Lambda,
+	region string,
+	funcName string,
+	roleArn string,
+	memoryMb int64,
+	zipContents *[]byte,
+) (string, error) {
 	var funcArn string
 	result, err := checkFunctionExists(svc, funcName)
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
 			if awsErr.Code() == lambda.ErrCodeResourceNotFoundException {
-				functionArn, err := createFunction(svc, region, funcName, roleArn, zipContents)
+				functionArn, err := createFunction(svc, region, funcName, roleArn, memoryMb, zipContents)
 				if err != nil {
 					return "", err
 				}
@@ -116,7 +184,14 @@ func checkFunctionExists(svc *lambda.Lambda, functionName string) (*lambda.GetFu
 	return result, err
 }
 
-func createFunction(svc *lambda.Lambda, region string, funcName string, roleArn string, zipContents *[]byte) (arn string, err error) {
+func createFunction(
+	svc *lambda.Lambda,
+	region string,
+	funcName string,
+	roleArn string,
+	memoryMb int64,
+	zipContents *[]byte,
+) (arn string, err error) {
 	logger.Debugf("creating function: %s in region: %s", funcName, region)
 
 	result, err := svc.CreateFunction(&lambda.CreateFunctionInput{
@@ -125,7 +200,7 @@ func createFunction(svc *lambda.Lambda, region string, funcName string, roleArn 
 		},
 		FunctionName: aws.String(funcName),
 		Handler:      aws.String("io.gatehill.imposter.awslambda.HandlerV2"),
-		MemorySize:   aws.Int64(768),
+		MemorySize:   aws.Int64(memoryMb),
 		Role:         aws.String(roleArn),
 		Runtime:      aws.String("java11"),
 		Environment:  buildEnv(),
@@ -226,7 +301,7 @@ func ensureIamRole(session *awssession.Session, roleName string) (string, error)
 
 func createRole(svc *iam.IAM, roleName string) (string, error) {
 	description := "Default IAM role for Imposter Lambda"
-	assumeRolPolicy := `{
+	assumeRolePolicy := `{
   "Version": "2012-10-17",
   "Statement": [
     {
@@ -241,7 +316,7 @@ func createRole(svc *iam.IAM, roleName string) (string, error) {
 	createRoleOutput, err := svc.CreateRole(&iam.CreateRoleInput{
 		Description:              &description,
 		RoleName:                 &roleName,
-		AssumeRolePolicyDocument: &assumeRolPolicy,
+		AssumeRolePolicyDocument: &assumeRolePolicy,
 	})
 	if err != nil {
 		logger.Fatalf("failed to create role: %s: %v", roleName, err)
@@ -306,7 +381,7 @@ func addFilesToZip(zipPath string, files []string) (*bytes.Buffer, error) {
 		_, err = io.Copy(targetItem, zipItemReader)
 	}
 
-	logger.Debugf("bundling %d files from workspace", len(files))
+	logger.Infof("bundling %d files from workspace", len(files))
 	for _, localFile := range files {
 		logger.Tracef("bundling %s", localFile)
 		f, err := zw.Create(path.Join("config", path.Base(localFile)))

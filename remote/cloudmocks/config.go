@@ -12,6 +12,7 @@ import (
 
 const remoteType = "cloudmocks"
 const defaultUrl = "https://api.mocks.cloud"
+
 const configKeyMockId = "mockId"
 const configKeyToken = "token"
 const configKeyUrl = "url"

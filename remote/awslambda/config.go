@@ -9,18 +9,27 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/service/lambda"
+	"strconv"
 )
 
 const remoteType = "awslambda"
 const defaultRegion = "us-east-1"
-const configKeyRegion = "region"
-const configKeyFuncName = "functionName"
+const defaultMemory = 768
+
+const configKeyAnonAccess = "anonAccess"
 const configKeyEngineVersion = "engineVersion"
+const configKeyFuncName = "functionName"
+const configKeyIamRoleName = "iamRoleName"
+const configKeyMemory = "memory"
+const configKeyRegion = "region"
 
 var configKeys = []string{
-	configKeyFuncName,
-	configKeyRegion,
+	configKeyAnonAccess,
 	configKeyEngineVersion,
+	configKeyFuncName,
+	configKeyIamRoleName,
+	configKeyMemory,
+	configKeyRegion,
 }
 
 var logger = logging.GetLogger()
@@ -123,4 +132,15 @@ func (m LambdaRemote) getFunctionStatus() (status string, lastModified int64, er
 		}
 	}
 	return "", 0, err
+}
+
+func (m LambdaRemote) getMemorySize() int64 {
+	if configuredMem := m.Config[configKeyMemory]; configuredMem != "" {
+		mem, err := strconv.Atoi(configuredMem)
+		if err != nil {
+			panic(fmt.Errorf("failed to get memory configuration value: %v", err))
+		}
+		return int64(mem)
+	}
+	return defaultMemory
 }
