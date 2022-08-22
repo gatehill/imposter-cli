@@ -69,7 +69,7 @@ func describeVersions(engineType engine.EngineType, format outputFormat) string 
 	if len(engines) == 0 {
 		output += formatProperty(format, "imposter-engine", "none", true)
 	} else {
-		engineConfigVersion := engine.GetConfiguredVersion("", true)
+		engineConfigVersion := engine.GetConfiguredVersionOrResolve("", true, false)
 		if engineConfigVersion == "latest" {
 			engineConfigVersion = engine.GetHighestVersion(engines)
 		}
