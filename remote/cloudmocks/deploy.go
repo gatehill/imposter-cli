@@ -63,7 +63,7 @@ func (m Remote) Deploy() (*remote.EndpointDetails, error) {
 	details := &remote.EndpointDetails{
 		BaseUrl:   endpoint.BaseUrl,
 		SpecUrl:   endpoint.SpecUrl,
-		StatusUrl: endpoint.BaseUrl + "/system/status",
+		StatusUrl: remote.MustJoinPath(endpoint.BaseUrl, "/system/status"),
 	}
 	return details, nil
 }

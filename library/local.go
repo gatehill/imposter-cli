@@ -15,8 +15,7 @@ func EnsureDirUsingConfig(settingsKey string, homeSubDirPath string) (string, er
 	if err != nil {
 		return "", err
 	}
-	err = EnsureDir(dirPath)
-	if err != nil {
+	if err = EnsureDir(dirPath); err != nil {
 		return "", err
 	}
 	logger.Tracef("ensured directory: %v", dirPath)

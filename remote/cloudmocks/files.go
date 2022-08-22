@@ -2,8 +2,7 @@ package cloudmocks
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
+	"gatehill.io/imposter/remote"
 	"strings"
 )
 
@@ -15,7 +14,7 @@ func (m Remote) syncFiles(dir string) error {
 		return err
 	}
 
-	local, err := m.listLocal(dir)
+	local, err := remote.ListLocal(dir)
 	if err != nil {
 		return err
 	}
@@ -32,25 +31,6 @@ func (m Remote) syncFiles(dir string) error {
 	}
 
 	return nil
-}
-
-func (m Remote) listLocal(dir string) ([]string, error) {
-	logger.Tracef("listing files in: %s", dir)
-
-	var files []string
-	filenames, err := os.ReadDir(dir)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list directory contents: %s: %s", dir, err)
-	}
-	for _, filename := range filenames {
-		if filename.IsDir() || strings.HasPrefix(filename.Name(), ".") {
-			// TODO optionally recurse
-			continue
-		}
-		f := filepath.Join(dir, filename.Name())
-		files = append(files, f)
-	}
-	return files, nil
 }
 
 func (m Remote) listRemote() ([]string, error) {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gatehill.io/imposter/logging"
 	"gatehill.io/imposter/workspace"
+	"net/url"
 	"os"
 	"path/filepath"
 )
@@ -98,4 +99,12 @@ func GetConfigPath(dir string, w *workspace.Workspace) (exists bool, remoteFileP
 	}
 	logger.Tracef("found remote config file for workspace: %s: %s", w.Name, remoteFilePath)
 	return true, remoteFilePath, nil
+}
+
+func MustJoinPath(base string, elem string) string {
+	result, err := url.JoinPath(base, elem)
+	if err != nil {
+		panic(fmt.Errorf("failed to join base URL %s to %s", base, elem))
+	}
+	return result
 }

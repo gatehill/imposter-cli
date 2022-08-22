@@ -22,6 +22,7 @@ import (
 	"gatehill.io/imposter/engine/docker"
 	"gatehill.io/imposter/engine/jvm"
 	"gatehill.io/imposter/logging"
+	"gatehill.io/imposter/remote/awslambda"
 	"gatehill.io/imposter/remote/cloudmocks"
 	"gatehill.io/imposter/stringutil"
 	"os"
@@ -48,7 +49,8 @@ func main() {
 	jvm.EnableSingleJarEngine()
 	jvm.EnableUnpackedDistroEngine()
 
-	// backends
+	// remotes
+	awslambda.Register()
 	cloudmocks.Register()
 
 	cmd.Execute()
