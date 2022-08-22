@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"fmt"
+	"gatehill.io/imposter/engine"
 	"gatehill.io/imposter/remote"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -30,8 +31,8 @@ func (m LambdaRemote) Deploy() (*remote.EndpointDetails, error) {
 		logger.Fatal(err)
 	}
 
-	// FIXME
-	zipContents, err := createDeploymentPackage("3.0.4", m.Dir)
+	engineVersion := engine.GetConfiguredVersion(m.Config[configKeyEngineVersion], true)
+	zipContents, err := createDeploymentPackage(engineVersion, m.Dir)
 	if err != nil {
 		logger.Fatal(err)
 	}

@@ -128,7 +128,7 @@ func (m CloudMocksRemote) GetStatus() (*remote.Status, error) {
 	}
 	status := remote.Status{
 		Status:       s.Status,
-		LastModified: s.LastModified,
+		LastModified: int64(s.LastModified),
 	}
 	return &status, nil
 }

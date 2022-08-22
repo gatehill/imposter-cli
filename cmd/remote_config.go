@@ -26,8 +26,6 @@ import (
 
 var remoteConfigFlags = struct {
 	remoteType string
-	token      string
-	server     string
 }{}
 
 // remoteConfigCmd represents the remoteConfig command
@@ -36,6 +34,19 @@ var remoteConfigCmd = &cobra.Command{
 	Short: "Configure remote",
 	Long:  `Configures the remote for the active workspace.`,
 	Args:  cobra.MinimumNArgs(0),
+	ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		var dir string
+		if remoteFlags.path != "" {
+			dir = remoteFlags.path
+		} else {
+			dir, _ = os.Getwd()
+		}
+		var formattedKeys []string
+		for _, k := range listSupportedKeys(dir) {
+			formattedKeys = append(formattedKeys, k+"=VAL")
+		}
+		return formattedKeys, cobra.ShellCompDirectiveNoFileComp
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		var dir string
 		if remoteFlags.path != "" {
@@ -48,16 +59,6 @@ var remoteConfigCmd = &cobra.Command{
 		if remoteConfigFlags.remoteType != "" {
 			setRemoteConfigType(dir, remoteConfigFlags.remoteType)
 			configured = true
-		}
-
-		// convenience flags
-		token := cmd.Flag("token")
-		if token != nil && token.Changed {
-			args = append(args, "token="+remoteConfigFlags.token)
-		}
-		server := cmd.Flag("server")
-		if server != nil && server.Changed {
-			args = append(args, "server="+remoteConfigFlags.server)
 		}
 
 		if len(args) > 0 {
@@ -78,17 +79,15 @@ var remoteConfigCmd = &cobra.Command{
 	},
 }
 
+func init() {
+	remoteConfigCmd.Flags().StringVarP(&remoteConfigFlags.remoteType, "provider", "p", "", "Set deployment provider")
+	remoteCmd.AddCommand(remoteConfigCmd)
+}
+
 func printRemoteConfigHelp(cmd *cobra.Command, dir string) {
 	supported := strings.Join(listSupportedKeys(dir), ", ")
 	fmt.Fprintf(os.Stderr, "%v\nSupported config keys: %s\n", cmd.UsageString(), supported)
 	os.Exit(1)
-}
-
-func init() {
-	remoteConfigCmd.Flags().StringVar(&remoteConfigFlags.remoteType, "provider", "", "Set deployment provider")
-	remoteConfigCmd.Flags().StringVarP(&remoteConfigFlags.token, "token", "t", "", "Set deployment token")
-	remoteConfigCmd.Flags().StringVarP(&remoteConfigFlags.server, "server", "s", "", "Set deployment server URL")
-	remoteCmd.AddCommand(remoteConfigCmd)
 }
 
 func setRemoteConfigType(dir string, remoteType string) {

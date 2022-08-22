@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"gatehill.io/imposter/remote"
 	"github.com/spf13/cobra"
 	"os"
@@ -27,7 +28,7 @@ import (
 var remoteStatusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Show remote status",
-	Long:  `Show the status of the remote for the active workspace.`,
+	Long:  `Shows the status of the remote for the active workspace.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var dir string
 		if remoteFlags.path != "" {
@@ -54,6 +55,11 @@ func showRemoteStatus(dir string) {
 		logger.Fatalf("failed to get remote status: %s", err)
 	}
 
-	lastModified := time.UnixMilli(int64(status.LastModified))
-	logger.Infof("Workspace '%s' remote status: %s\nLast modified: %v", active.Name, status.Status, lastModified)
+	var lastModified string
+	if status.LastModified > 0 {
+		lastModified = fmt.Sprintf("%v", time.UnixMilli(int64(status.LastModified)))
+	} else {
+		lastModified = "never"
+	}
+	logger.Infof("Workspace '%s' remote status: %s\nLast modified: %s", active.Name, status.Status, lastModified)
 }

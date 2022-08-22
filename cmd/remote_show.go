@@ -27,8 +27,8 @@ import (
 // remoteShowCmd represents the remoteShow command
 var remoteShowCmd = &cobra.Command{
 	Use:   "show",
-	Short: "Show remote",
-	Long:  `Shows the remote for the active workspace.`,
+	Short: "Show remote details",
+	Long:  `Shows the remote configuration for the active workspace.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var dir string
 		if remoteFlags.path != "" {
@@ -61,7 +61,7 @@ func showRemote(dir string) {
 	}
 
 	fmt.Printf(`Workspace '%s' remote:
-  Type: %s
+  Provider: %s
   Configuration:
 %v`, active.Name, remoteType, formattedCfg)
 }

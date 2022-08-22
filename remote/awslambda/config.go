@@ -7,19 +7,20 @@ import (
 	"gatehill.io/imposter/workspace"
 	"github.com/araddon/dateparse"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/service/lambda"
-	"net/url"
-	"strings"
 )
 
 const remoteType = "awslambda"
 const defaultRegion = "us-east-1"
 const configKeyRegion = "region"
 const configKeyFuncName = "functionName"
+const configKeyEngineVersion = "engineVersion"
 
 var configKeys = []string{
 	configKeyFuncName,
 	configKeyRegion,
+	configKeyEngineVersion,
 }
 
 var logger = logging.GetLogger()
@@ -68,9 +69,17 @@ func (m LambdaRemote) SetConfigValue(key string, value string) error {
 	}
 
 	if key == configKeyRegion {
-		value = strings.TrimSuffix(value, "/")
-		if _, err := url.Parse(value); err != nil {
-			return fmt.Errorf("failed to parse URL: %s: %s", value, err)
+		regionFound := false
+		for _, p := range endpoints.DefaultPartitions() {
+			for r := range p.Regions() {
+				if value == r {
+					regionFound = true
+					break
+				}
+			}
+		}
+		if !regionFound {
+			return fmt.Errorf("invalid region: %s", value)
 		}
 	}
 	m.Config[key] = value
@@ -93,17 +102,16 @@ func (m LambdaRemote) GetStatus() (*remote.Status, error) {
 	return &status, nil
 }
 
-func (m LambdaRemote) getFunctionStatus() (status string, lastModified int, err error) {
+func (m LambdaRemote) getFunctionStatus() (status string, lastModified int64, err error) {
 	_, sess := m.startAwsSession()
 	svc := lambda.New(sess)
 	functionName := m.getFunctionName()
 	result, err := checkFunctionExists(svc, functionName)
 	if err == nil {
-		lastModified := 0
 		if result.Configuration.LastModified != nil {
 			logger.Tracef("function configuration: %+v", result.Configuration)
 			if parsed, err := dateparse.ParseStrict(*result.Configuration.LastModified); err == nil {
-				lastModified = int(parsed.UnixMilli())
+				lastModified = parsed.UnixMilli()
 			}
 		}
 		return *result.Configuration.State, lastModified, nil

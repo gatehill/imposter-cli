@@ -26,7 +26,7 @@ type EndpointDetails struct {
 
 type Status struct {
 	Status       string
-	LastModified int
+	LastModified int64
 }
 
 var logger = logging.GetLogger()
