@@ -26,12 +26,12 @@ var workspaceFlags struct {
 
 // workspaceCmd represents the workspace command
 var workspaceCmd = &cobra.Command{
-	Use:   "workspace",
-	Short: "Workspace management commands",
+	Use:     "workspace",
+	Short:   "Workspace management commands",
+	Aliases: []string{"ws"},
 }
 
 func init() {
 	workspaceCmd.PersistentFlags().StringVarP(&workspaceFlags.path, "workspace", "w", "", "workspace path")
-
 	rootCmd.AddCommand(workspaceCmd)
 }
