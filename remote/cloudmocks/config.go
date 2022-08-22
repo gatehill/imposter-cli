@@ -77,6 +77,8 @@ func (m Remote) GetObfuscatedToken() (string, error) {
 	cleartext, err := m.getCleartextToken()
 	if err != nil {
 		return "", err
+	} else if cleartext == "" {
+		return "", nil
 	}
 	obfuscated := strings.Repeat("*", 8) + cleartext[len(cleartext)-4:]
 	return obfuscated, nil

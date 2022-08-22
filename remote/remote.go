@@ -71,7 +71,7 @@ func LoadActive(dir string) (*workspace.Workspace, *Remote, error) {
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to load workspace: %s", err)
 	} else if active == nil {
-		return nil, nil, fmt.Errorf("no active remote")
+		return nil, nil, fmt.Errorf("no active workspace")
 	}
 
 	r, err := Load(dir, active)
