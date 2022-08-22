@@ -161,7 +161,7 @@ Flags:
   -s  --script-engine string   Generate placeholder Imposter script (none|groovy|js) (default "none")
 ```
 
-#### Proxy HTTP(S) endpoint and record HTTP exhanges
+#### Proxy HTTP(S) endpoint and record HTTP exchanges
 
 Example:
 
