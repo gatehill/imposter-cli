@@ -52,7 +52,14 @@ func checkPrereqs() string {
 
 	var summary string
 	if dockerOk || jvmOk {
-		summary = "🚀 You should be able to run Imposter, as you have support for one or more engines.\nPass '--engine-type docker' or '--engine-type jvm' when running 'imposter up' to select engine type."
+		var hints []string
+		if dockerOk {
+			hints = append(hints, "'--engine-type docker'")
+		}
+		if jvmOk {
+			hints = append(hints, "'--engine-type jvm'")
+		}
+		summary = fmt.Sprintf("🚀 You should be able to run Imposter, as you have support for one or more engines.\nPass %s when running 'imposter up' to select a supported engine type.", strings.Join(hints, " or "))
 	} else {
 		summary = "😭 You may not be able to run Imposter, as you do not have support for at least one engine."
 	}
