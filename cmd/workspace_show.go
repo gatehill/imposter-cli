@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"fmt"
+	"gatehill.io/imposter/remote"
 	"gatehill.io/imposter/workspace"
 	"github.com/spf13/cobra"
 	"os"
@@ -49,7 +50,15 @@ func printActiveWorkspace(dir string) {
 		logger.Fatalf("failed to get active workspace: %s", err)
 	}
 	if active != nil {
-		fmt.Printf("Active workspace: %s\n", active.Name)
+		var remoteType string
+		rem, err := remote.Load(dir, active)
+		if err != nil {
+			logger.Trace(err)
+			remoteType = "unknown"
+		} else {
+			remoteType = (*rem).GetType()
+		}
+		fmt.Printf("Active workspace: %s\nRemote provider: %s\n", active.Name, remoteType)
 	} else {
 		fmt.Printf("No active workspace\n")
 	}
