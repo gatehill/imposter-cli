@@ -68,7 +68,7 @@ var remoteConfigCmd = &cobra.Command{
 					continue
 				}
 				splitArgs := strings.Split(arg, "=")
-				setRemoteConfigItem(dir, splitArgs[0], splitArgs[1])
+				setRemoteConfigItem(dir, splitArgs[0], strings.Trim(splitArgs[1], `"`))
 			}
 			configured = true
 		}
