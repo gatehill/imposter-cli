@@ -28,6 +28,9 @@ var workspaceDeleteCmd = &cobra.Command{
 	Short: "Delete a workspace",
 	Long:  `Deletes a workspace, if it exists.`,
 	Args:  cobra.ExactArgs(1),
+	ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return suggestWorkspaceNames()
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		var dir string
 		if workspaceFlags.path != "" {

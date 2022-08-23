@@ -17,7 +17,9 @@ limitations under the License.
 package cmd
 
 import (
+	"gatehill.io/imposter/workspace"
 	"github.com/spf13/cobra"
+	"os"
 )
 
 var remoteFlags struct {
@@ -34,4 +36,25 @@ func init() {
 	remoteCmd.PersistentFlags().StringVarP(&remoteFlags.path, "workspace", "w", "", "workspace path")
 
 	rootCmd.AddCommand(remoteCmd)
+}
+
+func getWorkspaceDir() string {
+	var dir string
+	if remoteFlags.path != "" {
+		dir = remoteFlags.path
+	} else {
+		dir, _ = os.Getwd()
+	}
+	return dir
+}
+
+func suggestWorkspaceNames() ([]string, cobra.ShellCompDirective) {
+	if workspaces, err := workspace.List(getWorkspaceDir()); err == nil {
+		var wsNames []string
+		for _, w := range workspaces {
+			wsNames = append(wsNames, w.Name)
+		}
+		return wsNames, cobra.ShellCompDirectiveNoFileComp
+	}
+	return nil, cobra.ShellCompDirectiveNoFileComp
 }

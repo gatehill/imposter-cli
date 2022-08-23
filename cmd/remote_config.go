@@ -35,25 +35,14 @@ var remoteConfigCmd = &cobra.Command{
 	Long:  `Configures the remote for the active workspace.`,
 	Args:  cobra.MinimumNArgs(0),
 	ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		var dir string
-		if remoteFlags.path != "" {
-			dir = remoteFlags.path
-		} else {
-			dir, _ = os.Getwd()
-		}
 		var formattedKeys []string
-		for _, k := range listSupportedKeys(dir) {
+		for _, k := range listSupportedKeys(getWorkspaceDir()) {
 			formattedKeys = append(formattedKeys, k+"=VAL")
 		}
 		return formattedKeys, cobra.ShellCompDirectiveNoFileComp
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		var dir string
-		if remoteFlags.path != "" {
-			dir = remoteFlags.path
-		} else {
-			dir, _ = os.Getwd()
-		}
+		dir := getWorkspaceDir()
 
 		configured := false
 		if remoteConfigFlags.remoteType != "" {

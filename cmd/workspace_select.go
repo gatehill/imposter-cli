@@ -28,6 +28,9 @@ var workspaceSelectCmd = &cobra.Command{
 	Short: "Set the active workspace",
 	Long:  `Sets the active workspace, if it exists.`,
 	Args:  cobra.ExactArgs(1),
+	ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return suggestWorkspaceNames()
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
 		var dir string
