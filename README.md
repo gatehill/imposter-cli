@@ -1,6 +1,8 @@
 # Imposter: Scriptable, multipurpose mock server
 
-Reliable, scriptable and extensible mock server for REST APIs, OpenAPI (and Swagger) specifications, SOAP/WSDL Web Services, Salesforce and HBase APIs. 
+Reliable, scriptable and extensible mock server for REST APIs, OpenAPI (and Swagger) specifications, SOAP/WSDL Web Services, Salesforce and HBase APIs.
+
+> This project is the CLI tool for the [Imposter mock engine](https://www.imposter.sh).
 
 Start a live mock of an OpenAPI specification with just:
 
@@ -18,6 +20,7 @@ You now have a live mock of your OpenAPI spec running on localhost.
 ---
 
 Or create a mock by proxying an exising endpoint:
+
 ```shell
 $ imposter proxy https://example.com
 
@@ -31,25 +34,36 @@ Once you've recorded the HTTP exchanges, just run `imposter up` to start your mo
 
 ---
 
-Features:
+Or create a mock from an existing OpenAPI file:
+
+```shell
+$ imposter scaffold
+
+found 1 OpenAPI spec(s)
+generated 1 resources from spec
+wrote Imposter config: /Users/mary/example/petstore-config.yaml
+```
+
+Just run `imposter up` to start your mock.
+
+<img src="./docs/img/imposter-scaffold.gif" alt="Screenshot of scaffold command" width="67%">
+
+---
+
+## Features
 
 - run standalone mocks in place of real systems
 - turn an OpenAPI/Swagger file into a mock API for testing or QA (even before the real API is built)
 - decouple your integration tests from the cloud/various back-end systems and take control of your dependencies
 - validate your API requests against an OpenAPI specification
 - capture data and validate later or use response templates to provide conditional responses
+- proxy an existing endpoint to replay its responses as a mock
 
 Send dynamic responses:
 
 - Provide mock responses using static files or customise behaviour based on characteristics of the request.
 - Power users can control mock responses with JavaScript or Java/Groovy script engines.
 - Advanced users can write their own plugins in a JVM language of their choice.
-
-> This project is the CLI tool for the [Imposter mock engine](https://www.imposter.sh).
-
-You can also generate Imposter configuration from OpenAPI files:
-
-<img src="./docs/img/imposter-scaffold.gif" alt="Screenshot of scaffold command" width="67%">
 
 ## Getting started & documentation
 
@@ -74,7 +88,7 @@ Or, use this one liner (macOS and Linux only):
 curl -L https://raw.githubusercontent.com/gatehill/imposter-cli/main/install/install_imposter.sh | bash -
 ```
 
-### Usage
+## Usage
 
 Top level command:
 
@@ -104,7 +118,7 @@ Available Commands:
   help              Help about any command
 ```
 
-#### Create and start mocks
+### Create and start mocks
 
 Example:
 
@@ -137,7 +151,7 @@ Flags:
   -v, --version string            Imposter engine version (default "latest")
 ```
 
-#### Generate Imposter configuration
+### Generate Imposter configuration
 
 Example:
 
@@ -161,7 +175,7 @@ Flags:
   -s  --script-engine string   Generate placeholder Imposter script (none|groovy|js) (default "none")
 ```
 
-#### Proxy HTTP(S) endpoint and record HTTP exchanges
+### Proxy HTTP(S) endpoint and record HTTP exchanges
 
 Example:
 
@@ -185,7 +199,7 @@ Flags:
   -r, --rewrite-urls                Rewrite upstream URL in response body to proxy URL
 ```
 
-#### Pull engine
+### Pull engine
 
 Example:
 
@@ -208,7 +222,7 @@ Flags:
   -v, --version string        Imposter engine version (default "latest")
 ```
 
-#### List installed engines
+### List installed engines
 
 Example:
 
@@ -229,7 +243,7 @@ Flags:
   -h, --help                 help for list
 ```
 
-#### Diagnose engine problems
+### Diagnose engine problems
 
 ```
 Checks prerequisites for running Imposter, including those needed
@@ -239,7 +253,7 @@ Usage:
   imposter doctor
 ```
 
-#### Stop all running mocks
+### Stop all running mocks
 
 Example:
 
@@ -258,7 +272,7 @@ Flags:
   -h, --help                 help for down
 ```
 
-#### List all running mocks
+### List all running mocks
 
 Example:
 
@@ -278,7 +292,7 @@ Flags:
   -h, --help                 help for down
 ```
 
-#### Install plugin
+### Install plugin
 
 Example:
 
@@ -308,7 +322,7 @@ Flags:
   -v, --version string   Imposter engine version (default "latest")
 ```
 
-#### Help
+### Help
 
 ```
 Provides help for any command in the application.
@@ -318,7 +332,7 @@ Usage:
   imposter help [command] [flags]
 ```
 
-### Logging
+## Logging
 
 The default log level is `debug`. You can override this by setting the `LOG_LEVEL` environment variable:
 
@@ -328,7 +342,7 @@ The default log level is `debug`. You can override this by setting the `LOG_LEVE
 
     imposter up --log-level trace
 
-### Configuration
+## Configuration
 
 Learn more about [configuration](./docs/config.md).
 
@@ -336,13 +350,11 @@ Learn more about [configuration](./docs/config.md).
 
 ## About Imposter
 
-[Imposter](https://www.imposter.sh) is a reliable, scriptable and extensible mock server for REST APIs, OpenAPI (and Swagger) specifications, Salesforce and HBase APIs.
+[Imposter](https://www.imposter.sh) is a mock server for REST APIs, OpenAPI (and Swagger) specifications, SOAP web services (and WSDL files), Salesforce and HBase APIs.
 
-Scripting support for both JavaScript or Groovy/Java.
+📖 **[Read the user documentation here](https://docs.imposter.sh)**
 
-### User documentation
-
-**[Read the user documentation here](https://docs.imposter.sh)**
+![Imposter logo](https://raw.githubusercontent.com/outofcoffee/imposter/main/docs/images/composite_logo13_cropped.png)
 
 ---
 
