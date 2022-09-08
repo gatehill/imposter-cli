@@ -23,11 +23,21 @@ import (
 	"os"
 )
 
+type OperationResponse struct {
+	Description string
+
+	// key is content type
+	Content map[string]interface{}
+}
+
 type Operation struct {
+	// key is status code
+	Responses   map[string]OperationResponse
 	Description string
 }
 
 type PartialModel struct {
+	// key is path
 	Paths map[string]map[string]Operation
 }
 

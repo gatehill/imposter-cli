@@ -18,38 +18,14 @@ package impostermodel
 
 import (
 	"gatehill.io/imposter/openapi"
+	"sort"
+	"strconv"
 	"strings"
 )
 
 type ResourceGenerationOptions struct {
 	ScriptEngine   ScriptEngine
 	ScriptFileName string
-}
-
-func GenerateResourcesFromSpec(specFilePath string, options ResourceGenerationOptions) []Resource {
-	var resources []Resource
-	partialSpec, err := openapi.Parse(specFilePath)
-	if err != nil {
-		logger.Fatalf("unable to parse openapi spec: %v: %v", specFilePath, err)
-	}
-	if partialSpec != nil {
-		for path, pathDetail := range partialSpec.Paths {
-			for verb := range pathDetail {
-				resource := Resource{
-					Path:   path,
-					Method: strings.ToUpper(verb),
-				}
-				if IsScriptEngineEnabled(options.ScriptEngine) {
-					resource.Response = &ResponseConfig{
-						ScriptFile: options.ScriptFileName,
-					}
-				}
-				resources = append(resources, resource)
-			}
-		}
-
-	}
-	return resources
 }
 
 func writeOpenapiMockConfig(specFilePath string, generateResources bool, forceOverwrite bool, scriptEngine ScriptEngine, scriptFileName string) {
@@ -75,4 +51,51 @@ func buildOpenapiResources(specFilePath string, scriptEngine ScriptEngine, scrip
 	})
 	logger.Debugf("generated %d resources from spec", len(resources))
 	return resources
+}
+
+func GenerateResourcesFromSpec(specFilePath string, options ResourceGenerationOptions) []Resource {
+	var resources []Resource
+	partialSpec, err := openapi.Parse(specFilePath)
+	if err != nil {
+		logger.Fatalf("unable to parse openapi spec: %v: %v", specFilePath, err)
+	}
+	if partialSpec != nil {
+		for path, pathDetail := range partialSpec.Paths {
+			for verb, resp := range pathDetail {
+				resource := Resource{
+					Path:   path,
+					Method: strings.ToUpper(verb),
+					Response: &ResponseConfig{
+						StatusCode: chooseOpStatusCode(resp),
+					},
+				}
+				if IsScriptEngineEnabled(options.ScriptEngine) {
+					resource.Response.ScriptFile = options.ScriptFileName
+				}
+				resources = append(resources, resource)
+			}
+		}
+
+	}
+	return resources
+}
+
+func chooseOpStatusCode(resp openapi.Operation) int {
+	if len(resp.Responses) == 0 {
+		logger.Tracef("no responses found for openapi operation - guessing 200 status code")
+		return 200
+	}
+	var statusCodes []int
+	for statusCode := range resp.Responses {
+		if sc, err := strconv.Atoi(statusCode); err == nil && sc >= 200 {
+			statusCodes = append(statusCodes, sc)
+		}
+	}
+	sort.Ints(statusCodes)
+	if len(statusCodes) > 0 {
+		return statusCodes[0]
+	}
+
+	logger.Tracef("unable to determine status code found for openapi operation - guessing 200")
+	return 200
 }
