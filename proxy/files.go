@@ -18,6 +18,8 @@ package proxy
 
 import (
 	"fmt"
+	"gatehill.io/imposter/stringutil"
+	"github.com/google/uuid"
 	"mime"
 	"net/http"
 	"os"
@@ -25,6 +27,7 @@ import (
 	"strings"
 )
 
+// generateRespFileName returns a unique filename for the given response
 func generateRespFileName(
 	upstreamHost string,
 	dir string,
@@ -41,9 +44,6 @@ func generateRespFileName(
 	baseFileName := path.Base(req.URL.EscapedPath())
 	if baseFileName == "/" || baseFileName == "." {
 		baseFileName = "index"
-	}
-	if path.Ext(baseFileName) == "" {
-		baseFileName += getFileExtension(exchange.ResponseHeaders)
 	}
 	baseFileName = prefix + baseFileName
 
@@ -64,7 +64,25 @@ func generateRespFileName(
 		respFileName = req.Method + "-" + baseFileName
 	}
 
-	respFile = path.Join(parentDir, respFileName)
+	var suffix string
+	if path.Ext(baseFileName) == "" {
+		suffix = getFileExtension(exchange.ResponseHeaders)
+	} else {
+		suffix = ""
+	}
+	respFile = path.Join(parentDir, respFileName+suffix)
+
+	if _, err = os.Stat(respFile); err == nil {
+		// already exists - add url hash
+		suffix = "_" + stringutil.Sha1hashString(req.URL.String()) + suffix
+		respFile = path.Join(parentDir, respFileName+suffix)
+	}
+	if _, err = os.Stat(respFile); err == nil {
+		// already exists - add uuid
+		suffix = "_" + uuid.New().String() + suffix
+		respFile = path.Join(parentDir, respFileName+suffix)
+	}
+
 	return respFile, nil
 }
 
