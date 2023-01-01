@@ -60,11 +60,11 @@ func StartRecorder(upstream string, dir string, options RecorderOptions) (chan H
 			var responseFilePrefix string
 			requestHash := getRequestHash(exchange.Request)
 			if stringutil.Contains(requestHashes, requestHash) {
-				responseFilePrefix = uuid.New().String() + "-"
 				if options.IgnoreDuplicateRequests {
 					logger.Debugf("skipping recording of duplicate request %s %v", exchange.Request.Method, exchange.Request.URL)
 					continue
 				}
+				responseFilePrefix = uuid.New().String() + "-"
 			} else {
 				responseFilePrefix = ""
 			}
@@ -106,7 +106,14 @@ func formatUpstreamHostPort(upstream string) (string, error) {
 	}
 }
 
-func record(upstreamHost string, dir string, responseHashes *map[string]string, prefix string, exchange HttpExchange, options RecorderOptions) (resource *impostermodel.Resource, err error) {
+func record(
+	upstreamHost string,
+	dir string,
+	responseHashes *map[string]string,
+	prefix string,
+	exchange HttpExchange,
+	options RecorderOptions,
+) (resource *impostermodel.Resource, err error) {
 	respFile, err := getResponseFile(upstreamHost, dir, options, exchange, responseHashes, prefix)
 	if err != nil {
 		return nil, err
@@ -118,8 +125,9 @@ func record(upstreamHost string, dir string, responseHashes *map[string]string, 
 	return &r, nil
 }
 
-// getResponseFile checks the map for the hash of the response body to see if it has already been
-// written. If not, a new file is written and its hash stored in the map.
+// getResponseFile checks if there is a response body. If not, an empty string is returned.
+// If a body is not empty, the file hashes are checked for the hash of the response body to
+// see if it has already been written. If not, a new file is written and its hash stored in the map.
 func getResponseFile(
 	upstreamHost string,
 	dir string,
@@ -130,6 +138,10 @@ func getResponseFile(
 ) (string, error) {
 	req := exchange.Request
 	respBody := *exchange.ResponseBody
+	if len(respBody) == 0 {
+		logger.Debugf("empty response body for %s %v", req.Method, req.URL)
+		return "", nil
+	}
 	bodyHash := stringutil.Sha1hash(respBody)
 
 	if existing := (*fileHashes)[bodyHash]; existing != "" {
@@ -152,17 +164,20 @@ func getResponseFile(
 
 func buildResource(dir string, options RecorderOptions, exchange HttpExchange, respFile string) (impostermodel.Resource, error) {
 	req := *exchange.Request
-	relResponseFile, err := filepath.Rel(dir, respFile)
-	if err != nil {
-		return impostermodel.Resource{}, fmt.Errorf("failed to get relative path for response file: %s: %v", respFile, err)
+	response := &impostermodel.ResponseConfig{
+		StatusCode: exchange.StatusCode,
+	}
+	if len(respFile) > 0 {
+		relResponseFile, err := filepath.Rel(dir, respFile)
+		if err != nil {
+			return impostermodel.Resource{}, fmt.Errorf("failed to get relative path for response file: %s: %v", respFile, err)
+		}
+		response.StaticFile = relResponseFile
 	}
 	resource := impostermodel.Resource{
-		Path:   req.URL.Path,
-		Method: req.Method,
-		Response: &impostermodel.ResponseConfig{
-			StatusCode: exchange.StatusCode,
-			StaticFile: relResponseFile,
-		},
+		Path:     req.URL.Path,
+		Method:   req.Method,
+		Response: response,
 	}
 	if len(req.URL.Query()) > 0 {
 		queryParams := make(map[string]string)
