@@ -105,6 +105,7 @@ Available Commands:
   down              Stop running mocks
   list              List running mocks
   plugin install    Install plugin
+  plugin list       List installed plugins
   proxy             Proxy an endpoint and record HTTP exchanges
   version           Print CLI version
   remote config     Configure remote
