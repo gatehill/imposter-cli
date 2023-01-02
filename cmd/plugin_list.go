@@ -17,7 +17,6 @@ limitations under the License.
 package cmd
 
 import (
-	"gatehill.io/imposter/engine"
 	"gatehill.io/imposter/plugin"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
@@ -32,11 +31,20 @@ var pluginListFlags = struct {
 var pluginListCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
-	Short:   "List the plugins in the cache",
-	Long:    `Lists all versions of plugins installed.`,
+	Short:   "List installed plugins",
+	Long:    `Lists all versions of installed plugins.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		var version = engine.GetConfiguredVersion(pluginListFlags.engineVersion, true)
-		listPlugins([]string{version})
+		var versions []string
+		if pluginListFlags.engineVersion != "" {
+			versions = []string{pluginListFlags.engineVersion}
+		} else {
+			v, err := plugin.ListVersionDirs()
+			if err != nil {
+				logger.Fatal(err)
+			}
+			versions = v
+		}
+		listPlugins(versions)
 	},
 }
 
@@ -47,9 +55,11 @@ func listPlugins(versions []string) {
 	for _, version := range versions {
 		plugins, err := plugin.List(version)
 		if err != nil {
-			logger.Fatal(err)
+			logger.Debugf("could not list plugins for version: %s", version)
+			logger.Trace(err)
+		} else {
+			available = append(available, plugins...)
 		}
-		available = append(available, plugins...)
 	}
 
 	var rows [][]string
@@ -69,6 +79,6 @@ func renderPlugins(rows [][]string) {
 }
 
 func init() {
-	pluginListCmd.Flags().StringVarP(&pluginListFlags.engineVersion, "version", "v", "", "Imposter engine version (default \"latest\")")
+	pluginListCmd.Flags().StringVarP(&pluginListFlags.engineVersion, "version", "v", "", "Only show plugins for a specific engine version (default show all versions)")
 	pluginCmd.AddCommand(pluginListCmd)
 }

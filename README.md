@@ -331,7 +331,7 @@ Example:
 Usage:
 
 ```
-Lists all versions of plugins installed.
+Lists all versions of installed plugins.
 
 Usage:
   imposter plugin list [flags]
@@ -340,8 +340,8 @@ Aliases:
   list, ls
 
 Flags:
+  -v, --version string   Only show plugins for a specific engine version (default show all versions)
   -h, --help             help for list
-  -v, --version string   Imposter engine version (default "latest")
 ```
 
 ### Help

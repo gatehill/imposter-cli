@@ -103,13 +103,17 @@ func getFullPluginDir(version string) (dir string, err error) {
 	// use IMPOSTER_PLUGIN_DIR directly, if set
 	fullPluginDir := viper.GetString("plugin.dir")
 	if fullPluginDir == "" {
-		basePluginDir, err := library.EnsureDirUsingConfig("plugin.baseDir", pluginBaseDir)
+		basePluginDir, err := getBasePluginDir()
 		if err != nil {
 			return "", err
 		}
 		fullPluginDir = filepath.Join(basePluginDir, version)
 	}
 	return fullPluginDir, nil
+}
+
+func getBasePluginDir() (string, error) {
+	return library.EnsureDirUsingConfig("plugin.baseDir", pluginBaseDir)
 }
 
 func downloadPlugin(pluginName string, version string) error {
@@ -196,7 +200,7 @@ func parseConfigFile() (*viper.Viper, error) {
 }
 
 func List(version string) ([]PluginMetadata, error) {
-	pluginDir, err := EnsurePluginDir(version)
+	pluginDir, err := getFullPluginDir(version)
 	if err != nil {
 		return nil, err
 	}
@@ -216,4 +220,26 @@ func List(version string) ([]PluginMetadata, error) {
 		})
 	}
 	return available, nil
+}
+
+// ListVersionDirs returns the names of the versioned directories under
+// the plugin base dir. This is only the list of versions, not fully qualified
+// paths.
+func ListVersionDirs() ([]string, error) {
+	basePluginDir, err := getBasePluginDir()
+	if err != nil {
+		return nil, err
+	}
+	files, err := os.ReadDir(basePluginDir)
+	if err != nil {
+		return nil, fmt.Errorf("error reading plugin base directory: %v: %v", basePluginDir, err)
+	}
+	var dirs []string
+	for _, file := range files {
+		if !file.IsDir() {
+			continue
+		}
+		dirs = append(dirs, file.Name())
+	}
+	return dirs, nil
 }
