@@ -12,6 +12,11 @@ import (
 	"strings"
 )
 
+type PluginMetadata struct {
+	Name    string
+	Version string
+}
+
 const pluginBaseDir = ".imposter/plugins/"
 
 var logger = logging.GetLogger()
@@ -82,7 +87,7 @@ func EnsurePlugin(pluginName string, version string) error {
 }
 
 func EnsurePluginDir(version string) (string, error) {
-	fullPluginDir, err := getPluginDir(version)
+	fullPluginDir, err := getFullPluginDir(version)
 	if err != nil {
 		return "", err
 	}
@@ -94,7 +99,7 @@ func EnsurePluginDir(version string) (string, error) {
 	return fullPluginDir, nil
 }
 
-func getPluginDir(version string) (dir string, err error) {
+func getFullPluginDir(version string) (dir string, err error) {
 	// use IMPOSTER_PLUGIN_DIR directly, if set
 	fullPluginDir := viper.GetString("plugin.dir")
 	if fullPluginDir == "" {
@@ -188,4 +193,27 @@ func parseConfigFile() (*viper.Viper, error) {
 	// sink if does not exist
 	_ = v.ReadInConfig()
 	return v, nil
+}
+
+func List(version string) ([]PluginMetadata, error) {
+	pluginDir, err := EnsurePluginDir(version)
+	if err != nil {
+		return nil, err
+	}
+	files, err := os.ReadDir(pluginDir)
+	if err != nil {
+		return nil, fmt.Errorf("error reading plugin directory: %v: %v", pluginDir, err)
+	}
+	var available []PluginMetadata
+	for _, file := range files {
+		if !strings.HasSuffix(file.Name(), ".jar") || file.IsDir() {
+			continue
+		}
+		pluginName := strings.TrimPrefix(strings.TrimSuffix(file.Name(), ".jar"), "imposter-plugin-")
+		available = append(available, PluginMetadata{
+			Name:    pluginName,
+			Version: version,
+		})
+	}
+	return available, nil
 }

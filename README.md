@@ -322,6 +322,28 @@ Flags:
   -v, --version string   Imposter engine version (default "latest")
 ```
 
+### List plugins
+
+Example:
+
+    imposter plugin list
+
+Usage:
+
+```
+Lists all versions of plugins installed.
+
+Usage:
+  imposter plugin list [flags]
+
+Aliases:
+  list, ls
+
+Flags:
+  -h, --help             help for list
+  -v, --version string   Imposter engine version (default "latest")
+```
+
 ### Help
 
 ```
