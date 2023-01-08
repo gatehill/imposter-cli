@@ -37,6 +37,16 @@ func Register(remoteType string, fn func(dir string, workspace *workspace.Worksp
 	providers[remoteType] = fn
 }
 
+func ListTypes() []string {
+	types := make([]string, len(providers))
+	i := 0
+	for t := range providers {
+		types[i] = t
+		i++
+	}
+	return types
+}
+
 func SaveActiveRemoteType(dir string, remoteType string) (*workspace.Workspace, error) {
 	f := providers[remoteType]
 	if f == nil {

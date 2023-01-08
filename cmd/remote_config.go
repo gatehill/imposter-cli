@@ -1,5 +1,5 @@
 /*
-Copyright © 2021 Pete Cornish <outofcoffee@gmail.com>
+Copyright © 2021-2023 Pete Cornish <outofcoffee@gmail.com>
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,10 +24,6 @@ import (
 	"strings"
 )
 
-var remoteConfigFlags = struct {
-	remoteType string
-}{}
-
 // remoteConfigCmd represents the remoteConfig command
 var remoteConfigCmd = &cobra.Command{
 	Use:   "config [key=value]",
@@ -45,11 +41,6 @@ var remoteConfigCmd = &cobra.Command{
 		dir := getWorkspaceDir()
 
 		configured := false
-		if remoteConfigFlags.remoteType != "" {
-			setRemoteConfigType(dir, remoteConfigFlags.remoteType)
-			configured = true
-		}
-
 		if len(args) > 0 {
 			for _, arg := range args {
 				if !strings.Contains(arg, "=") {
@@ -69,7 +60,6 @@ var remoteConfigCmd = &cobra.Command{
 }
 
 func init() {
-	remoteConfigCmd.Flags().StringVarP(&remoteConfigFlags.remoteType, "provider", "p", "", "Set deployment provider")
 	remoteCmd.AddCommand(remoteConfigCmd)
 }
 
@@ -77,14 +67,6 @@ func printRemoteConfigHelp(cmd *cobra.Command, dir string) {
 	supported := strings.Join(listSupportedKeys(dir), ", ")
 	fmt.Fprintf(os.Stderr, "%v\nSupported config keys: %s\n", cmd.UsageString(), supported)
 	os.Exit(1)
-}
-
-func setRemoteConfigType(dir string, remoteType string) {
-	active, err := remote.SaveActiveRemoteType(dir, remoteType)
-	if err != nil {
-		logger.Fatalf("failed to set remote type: %s", err)
-	}
-	logger.Infof("set remote type to '%s' for remote: %s", remoteType, active.Name)
 }
 
 func setRemoteConfigItem(dir string, key string, value string) {
