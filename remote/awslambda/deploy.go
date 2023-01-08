@@ -3,6 +3,7 @@ package awslambda
 import (
 	"archive/zip"
 	"bytes"
+	"errors"
 	"fmt"
 	"gatehill.io/imposter/engine"
 	"gatehill.io/imposter/remote"
@@ -210,7 +211,13 @@ func createFunction(
 		Environment:  buildEnv(),
 	})
 	if err != nil {
-		return "", fmt.Errorf("failed to create function %s in region %s: %v", funcName, region, err)
+		var errDetail error
+		if awsErr, ok := err.(awserr.Error); ok {
+			errDetail = errors.New(awsErr.Error())
+		} else {
+			errDetail = err
+		}
+		return "", fmt.Errorf("failed to create function %s in region %s: %v", funcName, region, errDetail)
 	}
 	logger.Infof("created function: %s with arn: %s", funcName, *result.FunctionArn)
 	return *result.FunctionArn, nil
