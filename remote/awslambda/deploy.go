@@ -129,7 +129,11 @@ func (m LambdaRemote) getFunctionName() string {
 	if !strings.HasPrefix(strings.ToLower(funcName), "imposter") {
 		funcName = "imposter-" + funcName
 	}
-	return funcName[:64]
+	if len(funcName) > 64 {
+		return funcName[:64]
+	} else {
+		return funcName
+	}
 }
 
 func (m LambdaRemote) startAwsSession() (string, *awssession.Session) {
