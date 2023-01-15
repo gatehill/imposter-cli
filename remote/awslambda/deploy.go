@@ -21,12 +21,11 @@ import (
 
 var defaultIamRoleName = "ImposterLambdaExecutionRole"
 
-func (m LambdaRemote) Deploy() (*remote.EndpointDetails, error) {
-	if m.Config[configKeyRegion] == "" {
-		return nil, fmt.Errorf("region cannot be null")
+func (m LambdaRemote) Deploy() error {
+	region, sess, svc, err := m.initAws()
+	if err != nil {
+		return err
 	}
-
-	region, sess := m.startAwsSession()
 
 	roleName := stringutil.GetFirstNonEmpty(m.Config[configKeyIamRoleName], defaultIamRoleName)
 
@@ -41,22 +40,46 @@ func (m LambdaRemote) Deploy() (*remote.EndpointDetails, error) {
 		logger.Fatal(err)
 	}
 
-	svc := lambda.New(sess)
-
 	funcName := m.getFunctionName()
 	funcArn, err := ensureFunctionExists(svc, region, funcName, roleArn, m.getMemorySize(), zipContents)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	functionUrl, err := ensureUrlConfigured(svc, funcArn)
+	_, err = ensureUrlConfigured(svc, funcArn)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	permitAnonAccess := m.Config[configKeyAnonAccess] == "true"
 	err = configureUrlAccess(svc, funcArn, permitAnonAccess)
 	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m LambdaRemote) GetEndpoint() (*remote.EndpointDetails, error) {
+	_, _, svc, err := m.initAws()
+	if err != nil {
 		return nil, err
+	}
+
+	var funcArn string
+	funcExists, err := checkFunctionExists(svc, m.getFunctionName())
+	if err != nil {
+		return nil, err
+	} else {
+		funcArn = *funcExists.Configuration.FunctionArn
+		logger.Tracef("function ARN: %s", funcArn)
+	}
+
+	var functionUrl string
+	getUrlResult, err := checkFunctionUrlConfig(svc, funcArn)
+	if err != nil {
+		return nil, err
+	} else {
+		functionUrl = *getUrlResult.FunctionUrl
+		logger.Tracef("function URL: %s", functionUrl)
 	}
 
 	details := &remote.EndpointDetails{
@@ -67,6 +90,15 @@ func (m LambdaRemote) Deploy() (*remote.EndpointDetails, error) {
 		SpecUrl: "",
 	}
 	return details, nil
+}
+
+func (m LambdaRemote) initAws() (region string, sess *awssession.Session, svc *lambda.Lambda, err error) {
+	if m.Config[configKeyRegion] == "" {
+		return "", nil, nil, fmt.Errorf("region cannot be null")
+	}
+	region, sess = m.startAwsSession()
+	svc = lambda.New(sess)
+	return region, sess, svc, nil
 }
 
 func configureUrlAccess(svc *lambda.Lambda, funcArn string, anonAccess bool) error {
@@ -240,9 +272,7 @@ func ensureUrlConfigured(svc *lambda.Lambda, funcArn string) (string, error) {
 	logger.Debugf("configuring URL for function: %s", funcArn)
 
 	var functionUrl string
-	getUrlResult, err := svc.GetFunctionUrlConfig(&lambda.GetFunctionUrlConfigInput{
-		FunctionName: aws.String(funcArn),
-	})
+	getUrlResult, err := checkFunctionUrlConfig(svc, funcArn)
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
 			if awsErr.Code() == lambda.ErrCodeResourceNotFoundException {
@@ -267,6 +297,13 @@ func ensureUrlConfigured(svc *lambda.Lambda, funcArn string) (string, error) {
 		logger.Debugf("function URL already configured: %s", functionUrl)
 	}
 	return functionUrl, nil
+}
+
+func checkFunctionUrlConfig(svc *lambda.Lambda, funcArn string) (*lambda.GetFunctionUrlConfigOutput, error) {
+	getUrlResult, err := svc.GetFunctionUrlConfig(&lambda.GetFunctionUrlConfigInput{
+		FunctionName: aws.String(funcArn),
+	})
+	return getUrlResult, err
 }
 
 func (m LambdaRemote) getAwsRegion() string {

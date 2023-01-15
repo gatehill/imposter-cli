@@ -49,9 +49,13 @@ func remoteDeploy(dir string) {
 	}
 	logger.Infof("deploying workspace '%s' to %s remote", active.Name, active.RemoteType)
 
-	endpoint, err := (*r).Deploy()
+	err = (*r).Deploy()
 	if err != nil {
 		logger.Fatalf("failed to deploy workspace: %s", err)
+	}
+	endpoint, err := (*r).GetEndpoint()
+	if err != nil {
+		logger.Fatalf("failed to get remote details: %s", err)
 	}
 	logger.Infof("deployed workspace '%s'\nBase URL: %s\nSpec: %s\nStatus: %s", active.Name, endpoint.BaseUrl, endpoint.SpecUrl, endpoint.StatusUrl)
 }

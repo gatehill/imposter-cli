@@ -21,6 +21,7 @@ import (
 	"gatehill.io/imposter/remote"
 	"github.com/spf13/cobra"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -61,5 +62,15 @@ func showRemoteStatus(dir string) {
 	} else {
 		lastModified = "never"
 	}
-	logger.Infof("Workspace '%s' remote status: %s\nLast modified: %s", active.Name, status.Status, lastModified)
+	msg := fmt.Sprintf("Workspace '%s' remote status: %s\nLast modified: %s", active.Name, status.Status, lastModified)
+
+	if strings.ToUpper(status.Status) == "ACTIVE" {
+		endpoint, err := (*r).GetEndpoint()
+		if err != nil {
+			logger.Warnf("failed to get remote details: %s", err)
+		} else {
+			msg += fmt.Sprintf("\nBase URL: %s\nSpec: %s\nStatus: %s", endpoint.BaseUrl, endpoint.SpecUrl, endpoint.StatusUrl)
+		}
+	}
+	logger.Info(msg)
 }

@@ -26,40 +26,43 @@ type getEndpointResponse struct {
 	SpecUrl string `json:"specUrl"`
 }
 
-func (m CloudMocksRemote) Deploy() (*remote.EndpointDetails, error) {
+func (m CloudMocksRemote) Deploy() error {
 	if m.Config[configKeyUrl] == "" {
-		return nil, fmt.Errorf("URL cannot be null")
+		return fmt.Errorf("URL cannot be null")
 	} else if token, _ := m.getObfuscatedToken(); token == "" {
-		return nil, fmt.Errorf("auth token cannot be null")
+		return fmt.Errorf("auth token cannot be null")
 	}
 
 	err := m.ensureMockExists()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	err = m.setMockState("DRAFT")
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	err = m.syncFiles(m.Dir)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	err = m.setMockState("LIVE")
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if success := m.waitForStatus("ACTIVE", make(chan bool)); !success {
-		return nil, fmt.Errorf("timed out waiting for mock to reach active status")
+		return fmt.Errorf("timed out waiting for mock to reach active status")
 	}
+	return nil
+}
+
+func (m CloudMocksRemote) GetEndpoint() (*remote.EndpointDetails, error) {
 	endpoint, err := m.getEndpoint()
 	if err != nil {
 		return nil, err
 	}
-
 	details := &remote.EndpointDetails{
 		BaseUrl:   endpoint.BaseUrl,
 		SpecUrl:   endpoint.SpecUrl,

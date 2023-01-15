@@ -13,9 +13,10 @@ type Remote interface {
 	GetType() string
 	GetConfig() (*map[string]string, error)
 	SetConfigValue(key string, value string) error
-	Deploy() (*EndpointDetails, error)
+	Deploy() error
 	GetStatus() (*Status, error)
 	GetConfigKeys() []string
+	GetEndpoint() (*EndpointDetails, error)
 }
 
 type EndpointDetails struct {
