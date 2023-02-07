@@ -32,25 +32,28 @@ type DockerMockEngine struct {
 
 var initialised = false
 
-func EnableEngine() engine.EngineType {
+func EnableEngine() {
 	if !initialised {
 		initialised = true
-
-		engine.RegisterLibrary(engine.EngineTypeDocker, func() engine.EngineLibrary {
-			return getLibrary()
-		})
-		engine.RegisterEngine(engine.EngineTypeDocker, func(configDir string, startOptions engine.StartOptions) engine.MockEngine {
-			return buildEngine(configDir, startOptions)
-		})
+		register(engine.EngineTypeDockerCore)
+		register(engine.EngineTypeDockerAll)
 	}
-	return engine.EngineTypeDocker
 }
 
-func buildEngine(configDir string, options engine.StartOptions) engine.MockEngine {
+func register(engineType engine.EngineType) {
+	engine.RegisterLibrary(engineType, func() engine.EngineLibrary {
+		return getLibrary(engineType)
+	})
+	engine.RegisterEngine(engineType, func(configDir string, startOptions engine.StartOptions) engine.MockEngine {
+		return buildEngine(engineType, configDir, startOptions)
+	})
+}
+
+func buildEngine(engineType engine.EngineType, configDir string, options engine.StartOptions) engine.MockEngine {
 	return &DockerMockEngine{
 		configDir: configDir,
 		options:   options,
-		provider:  getProvider(options.Version),
+		provider:  getProvider(engineType, options.Version),
 		debouncer: debounce.Build(),
 		shutDownC: make(chan bool),
 	}

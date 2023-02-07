@@ -20,11 +20,11 @@ const binCacheDir = ".imposter/engines/"
 var singleJarInitialised = false
 
 // EnableEngine is a convenience function that delegates to EnableSingleJarEngine.
-func EnableEngine() engine.EngineType {
-	return EnableSingleJarEngine()
+func EnableEngine() {
+	EnableSingleJarEngine()
 }
 
-func EnableSingleJarEngine() engine.EngineType {
+func EnableSingleJarEngine() {
 	if !singleJarInitialised {
 		singleJarInitialised = true
 
@@ -36,7 +36,6 @@ func EnableSingleJarEngine() engine.EngineType {
 			return buildEngine(configDir, &provider, startOptions)
 		})
 	}
-	return engine.EngineTypeJvmSingleJar
 }
 
 func getSingleJarLibrary() *JvmEngineLibrary {

@@ -29,11 +29,12 @@ type EngineType string
 
 const (
 	EngineTypeNone         EngineType = ""
-	EngineTypeDocker       EngineType = "docker"
+	EngineTypeDockerCore   EngineType = "docker"
+	EngineTypeDockerAll    EngineType = "docker-all"
 	EngineTypeJvmSingleJar EngineType = "jvm"
 	EngineTypeJvmUnpacked  EngineType = "unpacked"
 )
-const defaultEngineType = EngineTypeDocker
+const defaultEngineType = EngineTypeDockerCore
 
 var logger = logging.GetLogger()
 
@@ -98,7 +99,7 @@ func build(engineType EngineType, configDir string, startOptions StartOptions) M
 
 func validateEngineType(engineType EngineType) error {
 	switch engineType {
-	case EngineTypeDocker, EngineTypeJvmSingleJar, EngineTypeJvmUnpacked:
+	case EngineTypeDockerCore, EngineTypeDockerAll, EngineTypeJvmSingleJar, EngineTypeJvmUnpacked:
 		return nil
 	}
 	return fmt.Errorf("unsupported engine type: %v", engineType)

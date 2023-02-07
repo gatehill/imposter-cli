@@ -18,7 +18,7 @@ const mainClass = "io.gatehill.imposter.cmd.ImposterLauncher"
 
 var unpackedDistroInitialised = false
 
-func EnableUnpackedDistroEngine() engine.EngineType {
+func EnableUnpackedDistroEngine() {
 	if !unpackedDistroInitialised {
 		unpackedDistroInitialised = true
 
@@ -30,7 +30,6 @@ func EnableUnpackedDistroEngine() engine.EngineType {
 			return buildEngine(configDir, &provider, startOptions)
 		})
 	}
-	return engine.EngineTypeJvmUnpacked
 }
 
 func getUnpackedDistroLibrary() *JvmEngineLibrary {

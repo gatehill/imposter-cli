@@ -47,7 +47,7 @@ by the engines.`,
 }
 
 func checkPrereqs() string {
-	dockerOk, dockerMsgs := engine.GetLibrary(engine.EngineTypeDocker).CheckPrereqs()
+	dockerOk, dockerMsgs := engine.GetLibrary(engine.EngineTypeDockerCore).CheckPrereqs()
 	jvmOk, jvmMsgs := engine.GetLibrary(engine.EngineTypeJvmSingleJar).CheckPrereqs()
 
 	var summary string

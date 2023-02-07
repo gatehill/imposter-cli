@@ -33,17 +33,22 @@ func Test_pull(t *testing.T) {
 	}{
 		{name: "pull latest docker always", args: args{
 			version:    "latest",
-			engineType: engine.EngineTypeDocker,
+			engineType: engine.EngineTypeDockerCore,
 			pullPolicy: engine.PullAlways,
 		}},
 		{name: "pull specific docker version always", args: args{
 			version:    "3.0.2",
-			engineType: engine.EngineTypeDocker,
+			engineType: engine.EngineTypeDockerCore,
 			pullPolicy: engine.PullAlways,
 		}},
 		{name: "pull specific docker version if not present", args: args{
 			version:    "3.0.2",
-			engineType: engine.EngineTypeDocker,
+			engineType: engine.EngineTypeDockerCore,
+			pullPolicy: engine.PullIfNotPresent,
+		}},
+		{name: "pull docker all distro if not present", args: args{
+			version:    "3.0.2",
+			engineType: engine.EngineTypeDockerAll,
 			pullPolicy: engine.PullIfNotPresent,
 		}},
 		{name: "pull latest jvm always", args: args{

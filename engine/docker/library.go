@@ -9,10 +9,12 @@ import (
 	"strings"
 )
 
-type DockerEngineLibrary struct{}
+type DockerEngineLibrary struct {
+	engineType engine.EngineType
+}
 
-func getLibrary() *DockerEngineLibrary {
-	return &DockerEngineLibrary{}
+func getLibrary(engineType engine.EngineType) *DockerEngineLibrary {
+	return &DockerEngineLibrary{engineType}
 }
 
 func (DockerEngineLibrary) CheckPrereqs() (bool, []string) {
@@ -38,14 +40,15 @@ func (DockerEngineLibrary) CheckPrereqs() (bool, []string) {
 	return true, msgs
 }
 
-func (DockerEngineLibrary) List() ([]engine.EngineMetadata, error) {
+func (l DockerEngineLibrary) List() ([]engine.EngineMetadata, error) {
 	ctx, cli, err := BuildCliClient()
 	if err != nil {
 		return nil, fmt.Errorf("error building CLI client: %s", err)
 	}
+	imageRepo := getImageRepo(l.engineType)
 	var available []engine.EngineMetadata
 	imageSummaries, err := cli.ImageList(ctx, types.ImageListOptions{
-		Filters: filters.NewArgs(filters.Arg("reference", engineDockerImage+":*")),
+		Filters: filters.NewArgs(filters.Arg("reference", imageRepo+":*")),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error listing images: %s", err)
@@ -53,7 +56,7 @@ func (DockerEngineLibrary) List() ([]engine.EngineMetadata, error) {
 	for _, imageSummary := range imageSummaries {
 		for _, tag := range imageSummary.RepoTags {
 			available = append(available, engine.EngineMetadata{
-				EngineType: engine.EngineTypeDocker,
+				EngineType: engine.EngineTypeDockerCore,
 				Version:    strings.Split(tag, ":")[1],
 			})
 		}
@@ -62,9 +65,16 @@ func (DockerEngineLibrary) List() ([]engine.EngineMetadata, error) {
 }
 
 func (l DockerEngineLibrary) GetProvider(version string) engine.Provider {
-	return getProvider(version)
+	return getProvider(l.engineType, version)
 }
 
 func (l DockerEngineLibrary) IsSealedDistro() bool {
-	return false
+	switch l.engineType {
+	case engine.EngineTypeDockerCore:
+		return false
+	case engine.EngineTypeDockerAll:
+		return true
+	default:
+		panic(fmt.Errorf("unsupported engine type: %s for Docker library", l.engineType))
+	}
 }

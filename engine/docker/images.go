@@ -27,17 +27,15 @@ import (
 	"os"
 )
 
-const engineDockerImage = "outofcoffee/imposter"
-
 type EngineImageProvider struct {
 	engine.EngineMetadata
 	imageAndTag string
 }
 
-func getProvider(version string) *EngineImageProvider {
+func getProvider(engineType engine.EngineType, version string) *EngineImageProvider {
 	return &EngineImageProvider{
 		EngineMetadata: engine.EngineMetadata{
-			EngineType: engine.EngineTypeDocker,
+			EngineType: engineType,
 			Version:    version,
 		},
 	}
@@ -48,7 +46,7 @@ func (d *EngineImageProvider) Provide(policy engine.PullPolicy) error {
 	if err != nil {
 		return err
 	}
-	imageAndTag, err := ensureContainerImage(cli, ctx, d.Version, policy)
+	imageAndTag, err := ensureContainerImage(cli, ctx, d.EngineType, d.Version, policy)
 	if err != nil {
 		return err
 	}
@@ -64,8 +62,14 @@ func (d *EngineImageProvider) GetEngineType() engine.EngineType {
 	return d.EngineType
 }
 
-func ensureContainerImage(cli *client.Client, ctx context.Context, imageTag string, imagePullPolicy engine.PullPolicy) (imageAndTag string, e error) {
-	imageAndTag = engineDockerImage + ":" + imageTag
+func ensureContainerImage(
+	cli *client.Client,
+	ctx context.Context,
+	engineType engine.EngineType,
+	imageTag string,
+	imagePullPolicy engine.PullPolicy,
+) (imageAndTag string, e error) {
+	imageAndTag = getImageRepo(engineType) + ":" + imageTag
 
 	if imagePullPolicy == engine.PullSkip {
 		return imageAndTag, nil
@@ -112,4 +116,19 @@ func pullImage(cli *client.Client, ctx context.Context, imageTag string, imageAn
 		return err
 	}
 	return nil
+}
+
+func getImageRepo(engineType engine.EngineType) string {
+	var imageRepo string
+	switch engineType {
+	case engine.EngineTypeDockerCore:
+		imageRepo = "outofcoffee/imposter"
+		break
+	case engine.EngineTypeDockerAll:
+		imageRepo = "outofcoffee/imposter-all"
+		break
+	default:
+		panic("Unsupported engine type: " + engineType)
+	}
+	return imageRepo
 }
