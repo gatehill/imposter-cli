@@ -68,12 +68,16 @@ func (l DockerEngineLibrary) GetProvider(version string) engine.Provider {
 	return getProvider(l.engineType, version)
 }
 
-func (l DockerEngineLibrary) IsSealedDistro() bool {
+func (DockerEngineLibrary) IsSealedDistro() bool {
+	return false
+}
+
+func (l DockerEngineLibrary) ShouldEnsurePlugins() bool {
 	switch l.engineType {
 	case engine.EngineTypeDockerCore:
-		return false
-	case engine.EngineTypeDockerAll:
 		return true
+	case engine.EngineTypeDockerAll:
+		return false
 	default:
 		panic(fmt.Errorf("unsupported engine type: %s for Docker library", l.engineType))
 	}

@@ -76,3 +76,7 @@ func (j JvmEngineLibrary) IsSealedDistro() bool {
 		panic(fmt.Errorf("unsupported engine type: %s for JVM library", j.engineType))
 	}
 }
+
+func (j JvmEngineLibrary) ShouldEnsurePlugins() bool {
+	return !j.IsSealedDistro()
+}

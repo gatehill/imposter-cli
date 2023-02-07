@@ -70,6 +70,10 @@ type EngineLibrary interface {
 	// Fixed distributions have a single version, so do not support version
 	// resolution or fetching engine binaries.
 	IsSealedDistro() bool
+
+	// ShouldEnsurePlugins indicates whether missing default plugins should be
+	// installed before starting the engine.
+	ShouldEnsurePlugins() bool
 }
 
 type MockHealth string
