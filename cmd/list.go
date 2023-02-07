@@ -44,6 +44,7 @@ var listCmd = &cobra.Command{
 func init() {
 	listCmd.Flags().StringVarP(&listFlags.engineType, "engine-type", "t", "", "Imposter engine type (valid: docker,jvm - default \"docker\")")
 	listCmd.Flags().BoolVarP(&listFlags.healthExitCode, "exit-code-health", "x", false, "Set exit code based on mock health")
+	registerEngineTypeCompletions(listCmd)
 	rootCmd.AddCommand(listCmd)
 }
 

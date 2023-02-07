@@ -80,5 +80,6 @@ func renderEngines(rows [][]string) {
 
 func init() {
 	engineListCmd.Flags().StringVarP(&engineListFlags.engineType, "engine-type", "t", "", "Imposter engine type (valid: docker,jvm - default is all")
+	registerEngineTypeCompletions(engineListCmd)
 	engineCmd.AddCommand(engineListCmd)
 }
