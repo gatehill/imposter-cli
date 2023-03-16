@@ -110,5 +110,6 @@ func initConfig() {
 func initLogging() {
 	if rootFlags.logLevel != "" {
 		logging.SetLogLevel(rootFlags.logLevel)
+		config.Config.LogLevel = strings.ToUpper(rootFlags.logLevel)
 	}
 }
