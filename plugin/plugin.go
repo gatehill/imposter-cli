@@ -171,11 +171,11 @@ func writeDefaultPlugins(plugins []string) error {
 	}
 	v.Set("default.plugins", plugins)
 
-	configDir, err := config.GetConfigDir()
+	configDir, err := config.GetGlobalConfigDir()
 	if err != nil {
 		return err
 	}
-	configFilePath := filepath.Join(configDir, config.ConfigFileName+".yaml")
+	configFilePath := filepath.Join(configDir, config.GlobalConfigFileName+".yaml")
 	err = v.WriteConfigAs(configFilePath)
 	if err != nil {
 		return fmt.Errorf("error writing default plugin configuration to: %s: %s", configFilePath, err)
@@ -187,12 +187,12 @@ func writeDefaultPlugins(plugins []string) error {
 
 func parseConfigFile() (*viper.Viper, error) {
 	v := viper.New()
-	configDir, err := config.GetConfigDir()
+	configDir, err := config.GetGlobalConfigDir()
 	if err != nil {
 		return nil, err
 	}
 	v.AddConfigPath(configDir)
-	v.SetConfigName(config.ConfigFileName)
+	v.SetConfigName(config.GlobalConfigFileName)
 
 	// sink if does not exist
 	_ = v.ReadInConfig()

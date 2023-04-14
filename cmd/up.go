@@ -60,6 +60,25 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		injectExplicitEnvironment()
 
+		var configDir string
+		if len(args) == 0 {
+			configDir, _ = os.Getwd()
+		} else {
+			configDir, _ = filepath.Abs(args[0])
+		}
+		if err := validateConfigExists(configDir, upFlags.scaffoldMissing); err != nil {
+			logger.Fatal(err)
+		}
+
+		// Search for CLI config files in the mock config dir.
+		viper.AddConfigPath(configDir)
+		viper.SetConfigName(config.LocalDirConfigFileName)
+
+		// If a local CLI config file is found, read it in.
+		if err := viper.MergeInConfig(); err == nil {
+			logger.Tracef("using local CLI config file: %v", viper.ConfigFileUsed())
+		}
+
 		var pullPolicy engine.PullPolicy
 		if upFlags.forcePull {
 			pullPolicy = engine.PullAlways
@@ -82,16 +101,6 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 					logger.Fatal(err)
 				}
 			}
-		}
-
-		var configDir string
-		if len(args) == 0 {
-			configDir, _ = os.Getwd()
-		} else {
-			configDir, _ = filepath.Abs(args[0])
-		}
-		if err := validateConfigExists(configDir, upFlags.scaffoldMissing); err != nil {
-			logger.Fatal(err)
 		}
 
 		startOptions := engine.StartOptions{

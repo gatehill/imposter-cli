@@ -87,13 +87,13 @@ func initConfig() {
 	if rootFlags.cfgFile != "" {
 		viper.SetConfigFile(rootFlags.cfgFile)
 	} else {
-		configDir, err := config.GetConfigDir()
+		globalConfigDir, err := config.GetGlobalConfigDir()
 		cobra.CheckErr(err)
 
-		if _, err := os.Stat(configDir); err == nil {
+		if _, err := os.Stat(globalConfigDir); err == nil {
 			// Search files in config directory with name "config" (without extension).
-			viper.AddConfigPath(configDir)
-			viper.SetConfigName(config.ConfigFileName)
+			viper.AddConfigPath(globalConfigDir)
+			viper.SetConfigName(config.GlobalConfigFileName)
 		}
 	}
 

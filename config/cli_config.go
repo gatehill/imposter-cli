@@ -28,8 +28,11 @@ type CliConfig struct {
 	LogLevel string
 }
 
-// The ConfigFileName is the file name without the file extension.
-const ConfigFileName = "config"
+// The GlobalConfigFileName is the file name without the file extension.
+const GlobalConfigFileName = "config"
+
+// The LocalDirConfigFileName is the file name without the file extension.
+const LocalDirConfigFileName = ".imposter"
 
 var logger = logging.GetLogger()
 
@@ -45,14 +48,14 @@ func init() {
 	}
 }
 
-func GetConfigDir() (string, error) {
+func GetGlobalConfigDir() (string, error) {
 	if DirPath != "" {
 		return DirPath, nil
 	}
-	return getDefaultConfigDir()
+	return getDefaultGlobalConfigDir()
 }
 
-func getDefaultConfigDir() (string, error) {
+func getDefaultGlobalConfigDir() (string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("failed to determine user home directory: %s", err)
