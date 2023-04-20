@@ -1,32 +1,16 @@
-# Installation
+# Upgrade
 
-Imposter can be installed on Linux, macOS and Windows.
-
-> If you're looking to upgrade Imposter, see [Upgrade](./upgrade.md).
-
-## Prerequisites
-
-Imposter supports different mock engine types: Docker (default) and JVM. For more information about configuring the engine type see:
-
-- [Docker engine](./docker_engine.md) (default)
-- [JVM engine](./jvm_engine.md)
-
-**You must have at least one of the engine types configured to use Imposter.**
-
-## Quick start
-
-Use these instructions to get up and running quickly.
+Imposter can be [installed](./install.md) on Linux, macOS and Windows. This document explains how to upgrade Imposter to the latest version.
 
 ### Homebrew
 
-If you have Homebrew installed:
+If you installed Imposter using Homebrew, upgrade as follows:
 
-    brew tap gatehill/imposter
-    brew install imposter
+    brew upgrade imposter
 
 ### Shell script
 
-Or, use this one liner (macOS and Linux only):
+If you used the shell script approach (macOS and Linux only), you can re-run the script to upgrade
 
 ```shell
 curl -L https://raw.githubusercontent.com/gatehill/imposter-cli/main/install/install_imposter.sh | bash -
@@ -37,7 +21,7 @@ curl -L https://raw.githubusercontent.com/gatehill/imposter-cli/main/install/ins
 
 See [Releases](https://github.com/gatehill/imposter-cli/releases) for the latest version.
 
-## Manual install
+## Manual upgrade
 
 ### macOS
 
@@ -85,12 +69,4 @@ unzip.exe imposter.zip
 
 # use command (or add to PATH)
 imposter.exe [command/args]
-```
-
-## Uninstall
-
-To uninstall, remove the `imposter` binary from `/usr/local/bin` (macOS and Linux only).
-
-```shell
-rm /usr/local/bin/imposter
 ```
