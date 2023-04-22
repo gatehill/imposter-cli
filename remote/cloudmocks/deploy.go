@@ -58,6 +58,14 @@ func (m CloudMocksRemote) Deploy() error {
 	return nil
 }
 
+func (m CloudMocksRemote) Undeploy() error {
+	err := m.setMockState("DRAFT")
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (m CloudMocksRemote) GetEndpoint() (*remote.EndpointDetails, error) {
 	endpoint, err := m.getEndpoint()
 	if err != nil {

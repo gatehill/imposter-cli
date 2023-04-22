@@ -40,11 +40,10 @@ func (m LambdaRemote) Deploy() error {
 		logger.Fatal(err)
 	}
 
-	funcName := m.getFunctionName()
 	funcArn, err := ensureFunctionExists(
 		svc,
 		region,
-		funcName,
+		m.getFunctionName(),
 		roleArn,
 		m.getMemorySize(),
 		m.getArchitecture(),
@@ -60,6 +59,39 @@ func (m LambdaRemote) Deploy() error {
 
 	permitAnonAccess := m.Config[configKeyAnonAccess] == "true"
 	err = configureUrlAccess(svc, funcArn, permitAnonAccess)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m LambdaRemote) Undeploy() error {
+	region, _, svc, err := m.initAws()
+	if err != nil {
+		return err
+	}
+
+	funcName := m.getFunctionName()
+
+	var funcArn string
+	funcExists, err := checkFunctionExists(svc, funcName)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() == lambda.ErrCodeResourceNotFoundException {
+				logger.Debugf("function %s does not exist in region %s", funcName, region)
+				return nil
+			} else {
+				return fmt.Errorf("failed to check if function %s exists in region %s: %v", funcName, region, err)
+			}
+		} else {
+			return fmt.Errorf("failed to check if function %s exists in region %s: %v", funcName, region, err)
+		}
+	} else {
+		funcArn = *funcExists.Configuration.FunctionArn
+		logger.Tracef("function ARN: %s", funcArn)
+	}
+
+	err = m.deleteFunction(funcArn, svc)
 	if err != nil {
 		return err
 	}
@@ -249,7 +281,7 @@ func createFunction(
 ) (arn string, err error) {
 	logger.Debugf("creating function: %s in region: %s", funcName, region)
 
-	result, err := svc.CreateFunction(&lambda.CreateFunctionInput{
+	input := &lambda.CreateFunctionInput{
 		Code: &lambda.FunctionCode{
 			ZipFile: *zipContents,
 		},
@@ -260,7 +292,9 @@ func createFunction(
 		Runtime:       aws.String("java11"),
 		Architectures: []*string{aws.String(string(arch))},
 		Environment:   buildEnv(),
-	})
+	}
+
+	result, err := svc.CreateFunction(input)
 	if err != nil {
 		var errDetail error
 		if awsErr, ok := err.(awserr.Error); ok {
@@ -478,4 +512,16 @@ func readFile(binaryPath string) (*[]byte, error) {
 		return nil, fmt.Errorf("failed to read file: %s: %v", binaryPath, err)
 	}
 	return &contents, err
+}
+
+func (m LambdaRemote) deleteFunction(funcArn string, svc *lambda.Lambda) error {
+	logger.Tracef("deleting function: %s", funcArn)
+	_, err := svc.DeleteFunction(&lambda.DeleteFunctionInput{
+		FunctionName: aws.String(funcArn),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to delete function: %s: %v", funcArn, err)
+	}
+	logger.Debugf("deleted function: %s", funcArn)
+	return nil
 }

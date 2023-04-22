@@ -17,6 +17,7 @@ type Remote interface {
 	GetStatus() (*Status, error)
 	GetConfigKeys() []string
 	GetEndpoint() (*EndpointDetails, error)
+	Undeploy() error
 }
 
 type EndpointDetails struct {
