@@ -19,7 +19,7 @@ import (
 	"strings"
 )
 
-var defaultIamRoleName = "ImposterLambdaExecutionRole"
+const defaultIamRoleName = "ImposterLambdaExecutionRole"
 
 func (m LambdaRemote) Deploy() error {
 	region, sess, svc, err := m.initAws()
@@ -41,7 +41,15 @@ func (m LambdaRemote) Deploy() error {
 	}
 
 	funcName := m.getFunctionName()
-	funcArn, err := ensureFunctionExists(svc, region, funcName, roleArn, m.getMemorySize(), zipContents)
+	funcArn, err := ensureFunctionExists(
+		svc,
+		region,
+		funcName,
+		roleArn,
+		m.getMemorySize(),
+		m.getArchitecture(),
+		zipContents,
+	)
 	if err != nil {
 		return err
 	}
@@ -186,6 +194,7 @@ func ensureFunctionExists(
 	funcName string,
 	roleArn string,
 	memoryMb int64,
+	arch LambdaArchitecture,
 	zipContents *[]byte,
 ) (string, error) {
 	var funcArn string
@@ -193,7 +202,15 @@ func ensureFunctionExists(
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
 			if awsErr.Code() == lambda.ErrCodeResourceNotFoundException {
-				functionArn, err := createFunction(svc, region, funcName, roleArn, memoryMb, zipContents)
+				functionArn, err := createFunction(
+					svc,
+					region,
+					funcName,
+					roleArn,
+					memoryMb,
+					arch,
+					zipContents,
+				)
 				if err != nil {
 					return "", err
 				}
@@ -227,6 +244,7 @@ func createFunction(
 	funcName string,
 	roleArn string,
 	memoryMb int64,
+	arch LambdaArchitecture,
 	zipContents *[]byte,
 ) (arn string, err error) {
 	logger.Debugf("creating function: %s in region: %s", funcName, region)
@@ -235,12 +253,13 @@ func createFunction(
 		Code: &lambda.FunctionCode{
 			ZipFile: *zipContents,
 		},
-		FunctionName: aws.String(funcName),
-		Handler:      aws.String("io.gatehill.imposter.awslambda.HandlerV2"),
-		MemorySize:   aws.Int64(memoryMb),
-		Role:         aws.String(roleArn),
-		Runtime:      aws.String("java11"),
-		Environment:  buildEnv(),
+		FunctionName:  aws.String(funcName),
+		Handler:       aws.String("io.gatehill.imposter.awslambda.HandlerV2"),
+		MemorySize:    aws.Int64(memoryMb),
+		Role:          aws.String(roleArn),
+		Runtime:       aws.String("java11"),
+		Architectures: []*string{aws.String(string(arch))},
+		Environment:   buildEnv(),
 	})
 	if err != nil {
 		var errDetail error

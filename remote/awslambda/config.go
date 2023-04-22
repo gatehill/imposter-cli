@@ -12,11 +12,20 @@ import (
 	"strconv"
 )
 
+type LambdaArchitecture string
+
+const (
+	LambdaArchitectureX86_64 LambdaArchitecture = "x86_64"
+	LambdaArchitectureArm64  LambdaArchitecture = "arm64"
+)
+
 const remoteType = "awslambda"
+const defaultArchitecture = LambdaArchitectureX86_64
 const defaultRegion = "us-east-1"
 const defaultMemory = 768
 
 const configKeyAnonAccess = "anonAccess"
+const configKeyArchitecture = "architecture"
 const configKeyEngineVersion = "engineVersion"
 const configKeyFuncName = "functionName"
 const configKeyIamRoleName = "iamRoleName"
@@ -25,6 +34,7 @@ const configKeyRegion = "region"
 
 var configKeys = []string{
 	configKeyAnonAccess,
+	configKeyArchitecture,
 	configKeyEngineVersion,
 	configKeyFuncName,
 	configKeyIamRoleName,
@@ -143,4 +153,11 @@ func (m LambdaRemote) getMemorySize() int64 {
 		return int64(mem)
 	}
 	return defaultMemory
+}
+
+func (m LambdaRemote) getArchitecture() LambdaArchitecture {
+	if configuredArch := m.Config[configKeyArchitecture]; configuredArch != "" {
+		return LambdaArchitecture(configuredArch)
+	}
+	return defaultArchitecture
 }
