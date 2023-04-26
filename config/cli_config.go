@@ -19,6 +19,7 @@ package config
 import (
 	"fmt"
 	"gatehill.io/imposter/logging"
+	"github.com/spf13/viper"
 	"os"
 	"path/filepath"
 )
@@ -62,4 +63,14 @@ func getDefaultGlobalConfigDir() (string, error) {
 	}
 	configFile := filepath.Join(homeDir, ".imposter")
 	return configFile, nil
+}
+
+func MergeCliConfigIfExists(configDir string) {
+	viper.AddConfigPath(configDir)
+	viper.SetConfigName(LocalDirConfigFileName)
+
+	// If a local CLI config file is found, read it in.
+	if err := viper.MergeInConfig(); err == nil {
+		logger.Tracef("using local CLI config file: %v", viper.ConfigFileUsed())
+	}
 }

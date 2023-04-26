@@ -17,10 +17,37 @@ limitations under the License.
 package config
 
 import (
+	"fmt"
+	"gatehill.io/imposter/impostermodel"
+	"github.com/spf13/viper"
 	"os"
 	"path/filepath"
 	"strings"
 )
+
+func ValidateConfigExists(configDir string, scaffoldMissing bool) error {
+	fileInfo, err := os.Stat(configDir)
+	if err != nil {
+		return fmt.Errorf("cannot find config dir: %v", err)
+	}
+	if !fileInfo.IsDir() {
+		return fmt.Errorf("path is not a directory: %v", configDir)
+	}
+
+	// check for IMPOSTER_CONFIG_SCAN_RECURSIVE
+	recursive := viper.GetBool("config.scan.recursive")
+	if ContainsConfigFile(configDir, recursive) {
+		return nil
+	}
+
+	if scaffoldMissing {
+		logger.Infof("scaffolding Imposter configuration files")
+		impostermodel.Create(configDir, false, false, impostermodel.ScriptEngineNone, true)
+		return nil
+	}
+	return fmt.Errorf(`No Imposter configuration files found in: %v
+Consider running 'imposter scaffold' first.`, configDir)
+}
 
 // ContainsConfigFile determines if the specified configDir
 // contains a file match the expected naming format

@@ -17,14 +17,11 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
 	"gatehill.io/imposter/config"
 	"gatehill.io/imposter/engine"
 	"gatehill.io/imposter/fileutil"
-	"gatehill.io/imposter/impostermodel"
 	"gatehill.io/imposter/plugin"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -66,18 +63,12 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 		} else {
 			configDir, _ = filepath.Abs(args[0])
 		}
-		if err := validateConfigExists(configDir, upFlags.scaffoldMissing); err != nil {
+		if err := config.ValidateConfigExists(configDir, upFlags.scaffoldMissing); err != nil {
 			logger.Fatal(err)
 		}
 
 		// Search for CLI config files in the mock config dir.
-		viper.AddConfigPath(configDir)
-		viper.SetConfigName(config.LocalDirConfigFileName)
-
-		// If a local CLI config file is found, read it in.
-		if err := viper.MergeInConfig(); err == nil {
-			logger.Tracef("using local CLI config file: %v", viper.ConfigFileUsed())
-		}
+		config.MergeCliConfigIfExists(configDir)
 
 		var pullPolicy engine.PullPolicy
 		if upFlags.forcePull {
@@ -147,30 +138,6 @@ func init() {
 	upCmd.Flags().BoolVarP(&upFlags.recursiveConfigScan, "recursive-config-scan", "r", false, "Scan for config files in subdirectories")
 	registerEngineTypeCompletions(upCmd)
 	rootCmd.AddCommand(upCmd)
-}
-
-func validateConfigExists(configDir string, scaffoldMissing bool) error {
-	fileInfo, err := os.Stat(configDir)
-	if err != nil {
-		return fmt.Errorf("cannot find config dir: %v", err)
-	}
-	if !fileInfo.IsDir() {
-		return fmt.Errorf("path is not a directory: %v", configDir)
-	}
-
-	// check for IMPOSTER_CONFIG_SCAN_RECURSIVE
-	recursive := viper.GetBool("config.scan.recursive")
-	if config.ContainsConfigFile(configDir, recursive) {
-		return nil
-	}
-
-	if scaffoldMissing {
-		logger.Infof("scaffolding Imposter configuration files")
-		impostermodel.Create(configDir, false, false, impostermodel.ScriptEngineNone, true)
-		return nil
-	}
-	return fmt.Errorf(`No Imposter configuration files found in: %v
-Consider running 'imposter scaffold' first.`, configDir)
 }
 
 func start(lib *engine.EngineLibrary, startOptions engine.StartOptions, configDir string, restartOnChange bool) {
