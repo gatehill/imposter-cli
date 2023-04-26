@@ -14,7 +14,7 @@ func (m CloudMocksRemote) syncFiles(dir string) error {
 		return err
 	}
 
-	local, err := fileutil.ListLocal(dir)
+	local, err := fileutil.ListFiles(dir, false)
 	if err != nil {
 		return err
 	}

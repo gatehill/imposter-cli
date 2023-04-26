@@ -44,8 +44,6 @@ for the AWS Lambda engine type.
 If CONFIG_DIR is not specified, the current working directory is used.`,
 	Args: cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
-		injectExplicitEnvironment()
-
 		var configDir string
 		if len(args) == 0 {
 			configDir, _ = os.Getwd()

@@ -49,7 +49,7 @@ func CreateDeploymentPackage(version string, dir string) (*[]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	local, err := fileutil.ListLocal(dir)
+	local, err := fileutil.ListFiles(dir, false)
 	if err != nil {
 		return nil, err
 	}

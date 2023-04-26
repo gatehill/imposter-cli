@@ -104,7 +104,7 @@ func CopyFile(src string, dest string) error {
 	return nil
 }
 
-func ListLocal(dir string) ([]string, error) {
+func ListFiles(dir string, includeHidden bool) ([]string, error) {
 	logger.Tracef("listing files in: %s", dir)
 
 	var files []string
@@ -113,7 +113,7 @@ func ListLocal(dir string) ([]string, error) {
 		return nil, fmt.Errorf("failed to list directory contents: %s: %s", dir, err)
 	}
 	for _, filename := range filenames {
-		if filename.IsDir() || strings.HasPrefix(filename.Name(), ".") {
+		if filename.IsDir() || (!includeHidden && strings.HasPrefix(filename.Name(), ".")) {
 			// TODO optionally recurse
 			continue
 		}
@@ -123,15 +123,15 @@ func ListLocal(dir string) ([]string, error) {
 	return files, nil
 }
 
-func ReadFile(binaryPath string) (*[]byte, error) {
-	file, err := os.Open(binaryPath)
+func ReadFile(filePath string) (*[]byte, error) {
+	file, err := os.Open(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open file: %s: %v", binaryPath, err)
+		return nil, fmt.Errorf("failed to open file: %s: %v", filePath, err)
 	}
 	defer file.Close()
 	contents, err := io.ReadAll(file)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read file: %s: %v", binaryPath, err)
+		return nil, fmt.Errorf("failed to read file: %s: %v", filePath, err)
 	}
 	return &contents, err
 }
