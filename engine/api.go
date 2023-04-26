@@ -59,6 +59,7 @@ type Provider interface {
 	Provide(policy PullPolicy) error
 	GetEngineType() EngineType
 	Build(configDir string, startOptions StartOptions) MockEngine
+	Bundle(configDir string, destFile string) error
 }
 
 type EngineLibrary interface {

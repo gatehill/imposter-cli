@@ -17,6 +17,7 @@ limitations under the License.
 package docker
 
 import (
+	"fmt"
 	"gatehill.io/imposter/debounce"
 	"gatehill.io/imposter/engine"
 )
@@ -57,4 +58,8 @@ func buildEngine(engineType engine.EngineType, configDir string, options engine.
 		debouncer: debounce.Build(),
 		shutDownC: make(chan bool),
 	}
+}
+
+func (d *EngineImageProvider) Bundle(configDir string, destFile string) error {
+	return fmt.Errorf("docker engine does not support bundling")
 }

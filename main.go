@@ -19,6 +19,7 @@ package main
 import (
 	"gatehill.io/imposter/cmd"
 	"gatehill.io/imposter/config"
+	awslambdaengine "gatehill.io/imposter/engine/awslambda"
 	"gatehill.io/imposter/engine/docker"
 	"gatehill.io/imposter/engine/jvm"
 	"gatehill.io/imposter/logging"
@@ -45,6 +46,7 @@ func main() {
 	}
 
 	// engines
+	awslambdaengine.EnableEngine()
 	docker.EnableEngine()
 	jvm.EnableSingleJarEngine()
 	jvm.EnableUnpackedDistroEngine()

@@ -17,6 +17,7 @@ limitations under the License.
 package jvm
 
 import (
+	"fmt"
 	"gatehill.io/imposter/debounce"
 	"gatehill.io/imposter/engine"
 	"os/exec"
@@ -53,4 +54,8 @@ func buildEngine(configDir string, provider *JvmProvider, options engine.StartOp
 
 func (p *JvmProviderOptions) GetEngineType() engine.EngineType {
 	return p.EngineType
+}
+
+func (p *JvmProviderOptions) Bundle(configDir string, destFile string) error {
+	return fmt.Errorf("JVM engine does not support bundling")
 }

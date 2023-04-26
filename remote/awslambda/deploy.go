@@ -1,11 +1,10 @@
 package awslambda
 
 import (
-	"archive/zip"
-	"bytes"
 	"errors"
 	"fmt"
 	"gatehill.io/imposter/engine"
+	"gatehill.io/imposter/engine/awslambda"
 	"gatehill.io/imposter/remote"
 	"gatehill.io/imposter/stringutil"
 	"github.com/aws/aws-sdk-go/aws"
@@ -13,7 +12,6 @@ import (
 	awssession "github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/lambda"
-	"io"
 	"os"
 	"path"
 	"strings"
@@ -35,7 +33,7 @@ func (m LambdaRemote) Deploy() error {
 	}
 
 	engineVersion := engine.GetConfiguredVersion(m.Config[configKeyEngineVersion], true)
-	zipContents, err := createDeploymentPackage(engineVersion, m.Dir)
+	zipContents, err := awslambda.CreateDeploymentPackage(engineVersion, m.Dir)
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -440,78 +438,6 @@ func createRole(svc *iam.IAM, roleName string) (string, error) {
 	}
 	logger.Debugf("created role: %s with arn: %s", roleName, roleArn)
 	return roleArn, nil
-}
-
-func createDeploymentPackage(version string, dir string) (*[]byte, error) {
-	binaryPath, err := checkOrDownloadBinary(version)
-	if err != nil {
-		return nil, err
-	}
-	local, err := remote.ListLocal(dir)
-	if err != nil {
-		return nil, err
-	}
-	pkg, err := addFilesToZip(binaryPath, local)
-	if err != nil {
-		return nil, err
-	}
-	logger.Debugf("created deployment package")
-	contents := pkg.Bytes()
-	return &contents, nil
-}
-
-func addFilesToZip(zipPath string, files []string) (*bytes.Buffer, error) {
-	zr, err := zip.OpenReader(zipPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open source zip: %s: %v", zipPath, err)
-	}
-	defer zr.Close()
-
-	dst := new(bytes.Buffer)
-	zw := zip.NewWriter(dst)
-	defer zw.Close()
-
-	// copy existing
-	for _, zipItem := range zr.File {
-		zipItemReader, err := zipItem.OpenRaw()
-		if err != nil {
-			return nil, err
-		}
-		header := zipItem.FileHeader
-		targetItem, err := zw.CreateRaw(&header)
-		_, err = io.Copy(targetItem, zipItemReader)
-	}
-
-	logger.Infof("bundling %d files from workspace", len(files))
-	for _, localFile := range files {
-		logger.Tracef("bundling %s", localFile)
-		f, err := zw.Create(path.Join("config", path.Base(localFile)))
-		if err != nil {
-			return nil, err
-		}
-		contents, err := readFile(localFile)
-		if err != nil {
-			return nil, err
-		}
-		if _, err = f.Write(*contents); err != nil {
-			return nil, err
-		}
-	}
-
-	return dst, nil
-}
-
-func readFile(binaryPath string) (*[]byte, error) {
-	file, err := os.Open(binaryPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open file: %s: %v", binaryPath, err)
-	}
-	defer file.Close()
-	contents, err := io.ReadAll(file)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read file: %s: %v", binaryPath, err)
-	}
-	return &contents, err
 }
 
 func (m LambdaRemote) deleteFunction(funcArn string, svc *lambda.Lambda) error {

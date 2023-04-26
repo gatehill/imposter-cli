@@ -103,3 +103,35 @@ func CopyFile(src string, dest string) error {
 
 	return nil
 }
+
+func ListLocal(dir string) ([]string, error) {
+	logger.Tracef("listing files in: %s", dir)
+
+	var files []string
+	filenames, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list directory contents: %s: %s", dir, err)
+	}
+	for _, filename := range filenames {
+		if filename.IsDir() || strings.HasPrefix(filename.Name(), ".") {
+			// TODO optionally recurse
+			continue
+		}
+		f := filepath.Join(dir, filename.Name())
+		files = append(files, f)
+	}
+	return files, nil
+}
+
+func ReadFile(binaryPath string) (*[]byte, error) {
+	file, err := os.Open(binaryPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file: %s: %v", binaryPath, err)
+	}
+	defer file.Close()
+	contents, err := io.ReadAll(file)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file: %s: %v", binaryPath, err)
+	}
+	return &contents, err
+}

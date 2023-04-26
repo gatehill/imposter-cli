@@ -2,7 +2,7 @@ package cloudmocks
 
 import (
 	"fmt"
-	"gatehill.io/imposter/remote"
+	"gatehill.io/imposter/fileutil"
 	"strings"
 )
 
@@ -14,7 +14,7 @@ func (m CloudMocksRemote) syncFiles(dir string) error {
 		return err
 	}
 
-	local, err := remote.ListLocal(dir)
+	local, err := fileutil.ListLocal(dir)
 	if err != nil {
 		return err
 	}
