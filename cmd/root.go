@@ -80,6 +80,8 @@ func init() {
 	// Global flags.
 	rootCmd.PersistentFlags().StringVar(&rootFlags.cfgFile, "config", "", "config file (default is $HOME/.imposter/config.yaml)")
 	rootCmd.PersistentFlags().StringVar(&rootFlags.logLevel, "log-level", "debug", "log level")
+
+	registerLogLevelCompletions(rootCmd)
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -112,4 +114,16 @@ func initLogging() {
 		logging.SetLogLevel(rootFlags.logLevel)
 		config.Config.LogLevel = strings.ToUpper(rootFlags.logLevel)
 	}
+}
+
+func registerLogLevelCompletions(cmd *cobra.Command) {
+	cmd.RegisterFlagCompletionFunc("log-level", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return []string{
+			"trace",
+			"debug",
+			"info",
+			"warn",
+			"error",
+		}, cobra.ShellCompDirectiveNoFileComp
+	})
 }
