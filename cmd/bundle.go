@@ -76,7 +76,7 @@ func init() {
 	bundleCmd.Flags().StringVarP(&bundleFlags.engineVersion, "version", "v", "", "Imposter engine version (default \"latest\")")
 
 	_ = bundleCmd.MarkFlagRequired("engine-type")
-	registerEngineTypeCompletions(bundleCmd)
+	registerEngineTypeCompletions(bundleCmd, engine.EngineTypeAwsLambda)
 	rootCmd.AddCommand(bundleCmd)
 }
 
