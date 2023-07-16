@@ -22,66 +22,57 @@ import (
 	"strings"
 
 	"gatehill.io/imposter/config"
-	"gatehill.io/imposter/remote"
 	"github.com/spf13/cobra"
 )
 
-// remoteConfigCmd represents the remoteConfig command
-var remoteConfigCmd = &cobra.Command{
+// localConfigCmd represents the localConfig command
+var localConfigCmd = &cobra.Command{
 	Use:   "config [key=value]",
-	Short: "Configure remote",
-	Long:  `Configures the remote for the active workspace.`,
+	Short: "Set CLI config for working directory",
+	Long:  `Sets CLI configuration for the working directory.`,
 	Args:  cobra.MinimumNArgs(0),
 	ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		var formattedKeys []string
-		for _, k := range listSupportedKeys(getWorkspaceDir()) {
+		for _, k := range listSupportedLocalKeys() {
 			formattedKeys = append(formattedKeys, k+"=VAL")
 		}
 		return formattedKeys, cobra.ShellCompDirectiveNoFileComp
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		dir := getWorkspaceDir()
+		configDir, _ := os.Getwd()
 
-		configured := false
 		if len(args) > 0 {
-			for _, pair := range config.ParseConfig(args) {
-				setRemoteConfigItem(dir, pair.Key, pair.Value)
+			parsed := config.ParseConfig(args)
+			if len(parsed) == 0 {
+				printLocalConfigHelp(cmd)
+			} else {
+				for _, pair := range parsed {
+					err := config.WriteLocalConfigValue(configDir, pair.Key, pair.Value)
+					if err != nil {
+						panic(err)
+					}
+				}
+				logger.Infof("set CLI config for: %s", configDir)
 			}
-			configured = true
-		}
-
-		if !configured {
-			printRemoteConfigHelp(cmd, dir)
+		} else {
+			printLocalConfigHelp(cmd)
 		}
 	},
 }
 
 func init() {
-	remoteCmd.AddCommand(remoteConfigCmd)
+	rootCmd.AddCommand(localConfigCmd)
 }
 
-func printRemoteConfigHelp(cmd *cobra.Command, dir string) {
-	supported := strings.Join(listSupportedKeys(dir), ", ")
+func printLocalConfigHelp(cmd *cobra.Command) {
+	supported := strings.Join(listSupportedLocalKeys(), ", ")
 	fmt.Fprintf(os.Stderr, "%v\nSupported config keys: %s\n", cmd.UsageString(), supported)
 	os.Exit(1)
 }
 
-func setRemoteConfigItem(dir string, key string, value string) {
-	active, r, err := remote.LoadActive(dir)
-	if err != nil {
-		logger.Fatalf("failed to load remote: %s", err)
+func listSupportedLocalKeys() []string {
+	return []string{
+		"engine",
+		"version",
 	}
-	err = (*r).SetConfigValue(key, value)
-	if err != nil {
-		logger.Fatalf("failed to set remote %s: %s", key, err)
-	}
-	logger.Infof("set %s for remote: %s", key, active.Name)
-}
-
-func listSupportedKeys(dir string) []string {
-	_, r, err := remote.LoadActive(dir)
-	if err != nil {
-		logger.Fatalf("failed to load remote: %s", err)
-	}
-	return (*r).GetConfigKeys()
 }
