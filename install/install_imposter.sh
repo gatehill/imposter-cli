@@ -46,15 +46,15 @@ function is_linux() {
 function find_arch() {
   if is_macos; then
     case "$(uname -m)" in
-    *i386* ) IMPOSTER_ARCH="x86_64" ;;
-    *x86_64* ) IMPOSTER_ARCH="x86_64" ;;
+    *i386* ) IMPOSTER_ARCH="amd64" ;;
+    *x86_64* ) IMPOSTER_ARCH="amd64" ;;
     *arm64* ) IMPOSTER_ARCH="arm64" ;;
     * ) unsupported_arch;;
     esac
   else
     case "$(uname -m)" in
-    *i686* ) IMPOSTER_ARCH="x86_64" ;;
-    *x86_64* ) IMPOSTER_ARCH="x86_64" ;;
+    *i686* ) IMPOSTER_ARCH="amd64" ;;
+    *x86_64* ) IMPOSTER_ARCH="amd64" ;;
     *armv6* ) IMPOSTER_ARCH="arm" ;;
     *armv7* ) IMPOSTER_ARCH="arm" ;;
     *arm64* ) IMPOSTER_ARCH="arm64" ;;
@@ -65,9 +65,9 @@ function find_arch() {
 
 function find_os() {
     if is_macos; then
-      IMPOSTER_OS="macOS"
+      IMPOSTER_OS="darwin"
     elif is_linux; then
-      IMPOSTER_OS="Linux"
+      IMPOSTER_OS="linux"
     else
       unsupported_arch
     fi
