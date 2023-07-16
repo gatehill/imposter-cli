@@ -18,15 +18,23 @@ package config
 
 import (
 	"fmt"
+	"os"
+	"path"
+	"path/filepath"
+	"strings"
+
 	"gatehill.io/imposter/logging"
 	"github.com/spf13/viper"
-	"os"
-	"path/filepath"
 )
 
 type CliConfig struct {
 	Version  string
 	LogLevel string
+}
+
+type ConfigPair struct {
+	Key   string
+	Value string
 }
 
 // The GlobalConfigFileName is the file name without the file extension.
@@ -73,4 +81,39 @@ func MergeCliConfigIfExists(configDir string) {
 	if err := viper.MergeInConfig(); err == nil {
 		logger.Tracef("using local CLI config file: %v", viper.ConfigFileUsed())
 	}
+}
+
+func ParseConfig(args []string) []ConfigPair {
+	var pairs []ConfigPair
+	for _, arg := range args {
+		if !strings.Contains(arg, "=") {
+			logger.Warnf("invalid config item: %s", arg)
+			continue
+		}
+		splitArgs := strings.Split(arg, "=")
+		pairs = append(pairs, ConfigPair{
+			Key:   splitArgs[0],
+			Value: strings.Trim(splitArgs[1], `"`),
+		})
+	}
+	return pairs
+}
+
+func WriteLocalConfigValue(configDir string, key string, value string) error {
+	v := viper.New()
+
+	localConfig := path.Join(configDir, LocalDirConfigFileName+".yaml")
+	v.SetConfigFile(localConfig)
+
+	// sink if does not exist
+	_ = v.ReadInConfig()
+
+	v.Set(key, value)
+	err := v.WriteConfig()
+	if err != nil {
+		return fmt.Errorf("failed to write config file: %s: %v", localConfig, err)
+	}
+
+	logger.Tracef("wrote CLI config to: %s", localConfig)
+	return nil
 }
