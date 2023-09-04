@@ -282,7 +282,8 @@ Example:
 Usage:
 
 ```
-Lists running Imposter mocks for the current engine type.
+Lists running Imposter mocks for the current engine type
+and reports their health.
 
 Usage:
   imposter list [flags]
@@ -296,6 +297,22 @@ Flags:
   -h, --help                 help for list
   -q, --quiet                Quieten output; only print ID
 ```
+
+#### Using as a healthcheck
+
+You can use the `list` command as a healthcheck for running mocks.
+
+```shell
+$ imposter list --quiet --exit-code-health
+```
+
+This will return an exit code of `0` (success) if one or more mocks are running and healthy. If no mocks are running, or if one or more mock is unhealthy, a non-zero exit code will be returned.
+
+> **Note**
+> You can use the short versions of the arguments, so this can also be written:
+> ```shell
+> imposter list -qx
+> ```
 
 ### Install plugin
 

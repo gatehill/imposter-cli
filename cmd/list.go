@@ -36,7 +36,8 @@ var listCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
 	Short:   "List running mocks",
-	Long:    `Lists running Imposter mocks for the current engine type.`,
+	Long: `Lists running Imposter mocks for the current engine type
+and reports their health.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		listMocks(engine.GetConfiguredType(listFlags.engineType), listFlags.quiet)
 	},
