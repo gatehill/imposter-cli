@@ -28,6 +28,7 @@ import (
 var listFlags = struct {
 	engineType     string
 	healthExitCode bool
+	quiet          bool
 }{}
 
 // listCmd represents the list command
@@ -37,18 +38,19 @@ var listCmd = &cobra.Command{
 	Short:   "List running mocks",
 	Long:    `Lists running Imposter mocks for the current engine type.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		listMocks(engine.GetConfiguredType(listFlags.engineType))
+		listMocks(engine.GetConfiguredType(listFlags.engineType), listFlags.quiet)
 	},
 }
 
 func init() {
 	listCmd.Flags().StringVarP(&listFlags.engineType, "engine-type", "t", "", "Imposter engine type (valid: docker,jvm - default \"docker\")")
 	listCmd.Flags().BoolVarP(&listFlags.healthExitCode, "exit-code-health", "x", false, "Set exit code based on mock health")
+	listCmd.Flags().BoolVarP(&listFlags.quiet, "quiet", "q", false, "Quieten output; only print ID")
 	registerEngineTypeCompletions(listCmd)
 	rootCmd.AddCommand(listCmd)
 }
 
-func listMocks(engineType engine.EngineType) {
+func listMocks(engineType engine.EngineType, quiet bool) {
 	configDir := filepath.Join(os.TempDir(), "imposter-list")
 	mockEngine := engine.BuildEngine(engineType, configDir, engine.StartOptions{})
 
@@ -61,12 +63,18 @@ func listMocks(engineType engine.EngineType) {
 	var rows [][]string
 	for _, mock := range mocks {
 		engine.PopulateHealth(&mock)
-		rows = append(rows, []string{mock.ID, mock.Name, strconv.Itoa(mock.Port), string(mock.Health)})
+		if quiet {
+			os.Stdout.WriteString(mock.ID + "\n")
+		} else {
+			rows = append(rows, []string{mock.ID, mock.Name, strconv.Itoa(mock.Port), string(mock.Health)})
+		}
 		if mock.Health != engine.MockHealthHealthy {
 			anyFailed = true
 		}
 	}
-	renderMocks(rows)
+	if !quiet {
+		renderMocks(rows)
+	}
 
 	if listFlags.healthExitCode {
 		// if there is at least one mock, and all mocks are healthy, return status 0

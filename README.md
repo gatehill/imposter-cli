@@ -287,10 +287,14 @@ Lists running Imposter mocks for the current engine type.
 Usage:
   imposter list [flags]
 
+Aliases:
+  list, ls
+
 Flags:
   -t, --engine-type string   Imposter engine type (valid: docker,jvm - default "docker")
   -x, --exit-code-health     Set exit code based on mock health
-  -h, --help                 help for down
+  -h, --help                 help for list
+  -q, --quiet                Quieten output; only print ID
 ```
 
 ### Install plugin
