@@ -29,10 +29,18 @@ func findImposterJvmProcesses() ([]engine.ManagedMock, error) {
 			continue
 		}
 		logger.Tracef("found JVM Imposter process %d: %v", p.Pid, cmdline)
+		port := determinePort(cmdline)
+		if port == 0 {
+			if determineTlsEnabled(cmdline) {
+				port = 8443
+			} else {
+				port = 8080
+			}
+		}
 		mock := engine.ManagedMock{
 			ID:   fmt.Sprintf("%d", p.Pid),
 			Name: procName,
-			Port: determinePort(cmdline),
+			Port: port,
 		}
 		mocks = append(mocks, mock)
 	}
@@ -54,24 +62,44 @@ func isImposterProc(cmdline []string, procName string) bool {
 // determinePort parses the command line arguments to the JVM process
 // to determine the listen port
 func determinePort(cmdline []string) int {
-	for i := range cmdline {
-		arg := cmdline[i]
-		if matched, _ := regexp.MatchString("--listenPort=", arg); matched {
-			// combined form: "--listenPort=NUM"
-			port, err := strconv.Atoi(strings.TrimPrefix(arg, "--listenPort="))
-			if err != nil {
-				return 0
-			}
-			return port
-
-		} else if (arg == "--listenPort" || arg == "-l)") && i < len(cmdline)-1 {
-			// separate form: "--listenPort", "NUM"
-			port, err := strconv.Atoi(cmdline[i+1])
-			if err != nil {
-				return 0
-			}
-			return port
+	portRaw := readArg(cmdline, "listenPort", "-l")
+	if portRaw != "" {
+		port, err := strconv.Atoi(portRaw)
+		if err != nil {
+			return 0
 		}
+		return port
 	}
 	return 0
+}
+
+// determineTlsEnabled parses the command line arguments to the JVM process
+// to determine if TLS is enabled
+func determineTlsEnabled(cmdline []string) bool {
+	tlsRaw := readArg(cmdline, "tlsEnabled", "-t")
+	if tlsRaw != "" {
+		tls, err := strconv.ParseBool(tlsRaw)
+		if err != nil {
+			return false
+		}
+		return tls
+	}
+	return false
+}
+
+// readArg parses the command line arguments to the JVM process
+// to determine the value of the given arg
+func readArg(cmdline []string, longArg string, shortArg string) string {
+	for i := range cmdline {
+		arg := cmdline[i]
+		if matched, _ := regexp.MatchString("--"+longArg+"=", arg); matched {
+			// combined form: "--longArg=VAL"
+			return strings.TrimPrefix(arg, "--"+longArg+"=")
+
+		} else if (arg == "--"+longArg || arg == "-"+shortArg) && i < len(cmdline)-1 {
+			// separate form: "--longArg", "VAL"
+			return cmdline[i+1]
+		}
+	}
+	return ""
 }
