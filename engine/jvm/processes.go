@@ -31,7 +31,7 @@ func findImposterJvmProcesses() ([]engine.ManagedMock, error) {
 		logger.Tracef("found JVM Imposter process %d: %v", p.Pid, cmdline)
 		port := determinePort(cmdline)
 		if port == 0 {
-			if determineTlsEnabled(cmdline) {
+			if isTlsEnabled(cmdline) {
 				port = 8443
 			} else {
 				port = 8080
@@ -64,25 +64,21 @@ func isImposterProc(cmdline []string, procName string) bool {
 func determinePort(cmdline []string) int {
 	portRaw := readArg(cmdline, "listenPort", "-l")
 	if portRaw != "" {
-		port, err := strconv.Atoi(portRaw)
-		if err != nil {
-			return 0
+		if port, err := strconv.Atoi(portRaw); err == nil {
+			return port
 		}
-		return port
 	}
 	return 0
 }
 
-// determineTlsEnabled parses the command line arguments to the JVM process
+// isTlsEnabled parses the command line arguments to the JVM process
 // to determine if TLS is enabled
-func determineTlsEnabled(cmdline []string) bool {
+func isTlsEnabled(cmdline []string) bool {
 	tlsRaw := readArg(cmdline, "tlsEnabled", "-t")
 	if tlsRaw != "" {
-		tls, err := strconv.ParseBool(tlsRaw)
-		if err != nil {
-			return false
+		if tls, err := strconv.ParseBool(tlsRaw); err == nil {
+			return tls
 		}
-		return tls
 	}
 	return false
 }
