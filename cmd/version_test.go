@@ -38,7 +38,7 @@ func Test_describeVersions(t *testing.T) {
 			name: "print explicit version with docker engine",
 			args: args{
 				engineType: engine.EngineTypeDockerCore,
-				version:    "3.0.2",
+				version:    "3.33.3",
 				format:     outputFormatPlain,
 			},
 		},
@@ -46,7 +46,7 @@ func Test_describeVersions(t *testing.T) {
 			name: "print explicit version with jvm engine",
 			args: args{
 				engineType: engine.EngineTypeJvmSingleJar,
-				version:    "3.0.2",
+				version:    "3.33.3",
 				format:     outputFormatPlain,
 			},
 		},
@@ -62,7 +62,7 @@ func Test_describeVersions(t *testing.T) {
 			name: "print explicit version in JSON format",
 			args: args{
 				engineType: engine.EngineTypeDockerCore,
-				version:    "3.0.2",
+				version:    "3.33.3",
 				format:     outputFormatJson,
 			},
 		},
