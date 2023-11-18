@@ -6,6 +6,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v2
         with:
