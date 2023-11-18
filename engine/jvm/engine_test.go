@@ -94,7 +94,7 @@ func TestEngine_List(t *testing.T) {
 
 	tests := []enginetests.EngineTestScenario{
 		{
-			Name: "list docker engine",
+			Name: "list jvm engine",
 			Fields: enginetests.EngineTestFields{
 				ConfigDir: testConfigPath,
 				Options: engine.StartOptions{
