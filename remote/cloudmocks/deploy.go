@@ -207,7 +207,7 @@ func (m CloudMocksRemote) request(method string, path string, response interface
 	return nil
 }
 
-func (m CloudMocksRemote) upload(method string, path string, src string) error {
+func (m CloudMocksRemote) upload(path string, src string) error {
 	file, err := os.Open(src)
 	if err != nil {
 		return err
@@ -238,7 +238,7 @@ func (m CloudMocksRemote) upload(method string, path string, src string) error {
 
 	url := m.Config[configKeyUrl] + path
 	client := http.Client{}
-	req, err := http.NewRequest(method, url, body)
+	req, err := http.NewRequest("POST", url, body)
 	if err != nil {
 		return err
 	}

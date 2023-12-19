@@ -69,7 +69,7 @@ func arrayContains(search []string, trimPrefix string, term string) bool {
 func (m CloudMocksRemote) uploadFiles(files []string) error {
 	for _, f := range files {
 		logger.Infof("uploading: %s", f)
-		err := m.upload("POST", fmt.Sprintf("/api/mocks/%s/spec", m.Config[configKeyMockId]), f)
+		err := m.upload(fmt.Sprintf("/api/mocks/%s/spec", m.Config[configKeyMockId]), f)
 		if err != nil {
 			return fmt.Errorf("failed to upload file: %s: %s", f, err)
 		}
