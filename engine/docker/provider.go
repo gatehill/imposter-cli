@@ -60,6 +60,18 @@ func buildEngine(engineType engine.EngineType, configDir string, options engine.
 	}
 }
 
+// Bundle implements the Docker engine steps to create a mock bundle.
+// destFile is interpreted as the image tag.
 func (d *EngineImageProvider) Bundle(configDir string, destFile string) error {
-	return fmt.Errorf("docker engine does not support bundling")
+	buf, err := addFilesToTar(configDir, d.imageAndTag)
+	if err != nil {
+		return fmt.Errorf("error adding files to build context: %v", err)
+	}
+
+	err = buildImage(buf, destFile)
+	if err != nil {
+		return fmt.Errorf("error building image: %v", err)
+	}
+
+	return nil
 }
