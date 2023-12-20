@@ -14,16 +14,15 @@ import (
 
 const buildContextConfigDir = "config"
 const bundleConfigDestDir = "/opt/imposter/config"
-const bundleImageName = "imposter-mock"
 
 type buildOutput struct {
 	Stream string `json:"stream"`
 	Error  string `json:"error"`
 }
 
-// buildImage builds a Docker image using the specified Dockerfile and build context.
-func buildImage(buildCtx *bytes.Buffer, imageTag string) error {
-	logger.Tracef("building image with tag %s", imageTag)
+// buildImage builds a Docker image using the specified build context.
+func buildImage(buildCtx *bytes.Buffer, destImageAndTag string) error {
+	logger.Tracef("building image with tag %s", destImageAndTag)
 	ctx, cli, err := BuildCliClient()
 	if err != nil {
 		return err
@@ -35,7 +34,7 @@ func buildImage(buildCtx *bytes.Buffer, imageTag string) error {
 		buildCtx,
 		types.ImageBuildOptions{
 			Dockerfile: "Dockerfile",
-			Tags:       []string{bundleImageName + ":" + imageTag},
+			Tags:       []string{destImageAndTag},
 			Labels: map[string]string{
 				"builtwith": "imposter-cli",
 			},
@@ -48,7 +47,7 @@ func buildImage(buildCtx *bytes.Buffer, imageTag string) error {
 }
 
 // addFilesToTar adds the files in the specified directory to a tar archive.
-func addFilesToTar(dir string, imageAndTag string) (*bytes.Buffer, error) {
+func addFilesToTar(dir string, parentImage string) (*bytes.Buffer, error) {
 	buf := new(bytes.Buffer)
 	tarWriter := tar.NewWriter(buf)
 
@@ -64,17 +63,16 @@ func addFilesToTar(dir string, imageAndTag string) (*bytes.Buffer, error) {
 		}
 	}
 
-	// add the Dockerfile
-	err = addDockerfile(tarWriter, imageAndTag)
+	err = addDockerfile(tarWriter, parentImage)
 
 	tarWriter.Close()
 	return buf, nil
 }
 
-func addDockerfile(tarWriter *tar.Writer, imageAndTag string) error {
+func addDockerfile(tarWriter *tar.Writer, parentImage string) error {
 	dockerfileContent := fmt.Sprintf(`FROM %s
 COPY %s %s
-`, imageAndTag, buildContextConfigDir, bundleConfigDestDir)
+`, parentImage, buildContextConfigDir, bundleConfigDestDir)
 
 	header := &tar.Header{
 		Name: "Dockerfile",

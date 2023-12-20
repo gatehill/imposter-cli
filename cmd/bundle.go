@@ -23,12 +23,13 @@ import (
 	"github.com/spf13/cobra"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 var bundleFlags = struct {
 	engineType    string
 	engineVersion string
-	outputFile    string
+	output        string
 }{}
 
 // bundleCmd represents the bundle command
@@ -66,12 +67,12 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 
 		version := engine.GetConfiguredVersion(bundleFlags.engineVersion, true)
 
-		bundle(&lib, version, configDir, getDestFile(configDir))
+		bundle(&lib, version, configDir, getBundleDest(engineType))
 	},
 }
 
 func init() {
-	bundleCmd.Flags().StringVarP(&bundleFlags.outputFile, "output-file", "o", "", "The output file")
+	bundleCmd.Flags().StringVarP(&bundleFlags.output, "output", "o", "", "The destination to write the bundle to. If using the 'docker' engine type, this must be a valid image name. Otherwise, this must be a path to a writeable file. If not specified, a name is generated.")
 	bundleCmd.Flags().StringVarP(&bundleFlags.engineType, "engine-type", "t", "", "Imposter engine type (valid: awslambda,docker,jvm)")
 	bundleCmd.Flags().StringVarP(&bundleFlags.engineVersion, "version", "v", "", "Imposter engine version (default \"latest\")")
 
@@ -80,22 +81,27 @@ func init() {
 	rootCmd.AddCommand(bundleCmd)
 }
 
-func getDestFile(configDir string) string {
-	var destFile string
-	if bundleFlags.outputFile != "" {
-		destFile = bundleFlags.outputFile
+func getBundleDest(engineType engine.EngineType) string {
+	var dest string
+	if bundleFlags.output != "" {
+		dest = bundleFlags.output
 	} else {
-		temp, err := os.CreateTemp(os.TempDir(), "imposter-bundle-*.zip")
-		if err != nil {
-			logger.Fatal(fmt.Errorf("failed to create temporary file: %w", err))
+		if engineType == engine.EngineTypeDockerCore || engineType == engine.EngineTypeDockerAll {
+			imageTag := time.Now().Format("20060102150405")
+			dest = "imposter-bundle:" + imageTag
+		} else {
+			temp, err := os.CreateTemp(os.TempDir(), "imposter-bundle-*.zip")
+			if err != nil {
+				logger.Fatal(fmt.Errorf("failed to create temporary file: %w", err))
+			}
+			dest = temp.Name()
+			_ = os.Remove(dest)
 		}
-		destFile = temp.Name()
-		_ = os.Remove(destFile)
 	}
-	return destFile
+	return dest
 }
 
-func bundle(lib *engine.EngineLibrary, version string, configDir string, destFile string) {
+func bundle(lib *engine.EngineLibrary, version string, configDir string, dest string) {
 	provider := (*lib).GetProvider(version)
 	logger.Debugf("creating %s bundle %s using version %s", provider.GetEngineType(), configDir, version)
 
@@ -104,9 +110,9 @@ func bundle(lib *engine.EngineLibrary, version string, configDir string, destFil
 		logger.Fatal(err)
 	}
 
-	err = provider.Bundle(configDir, destFile)
+	err = provider.Bundle(configDir, dest)
 	if err != nil {
 		logger.Fatal(err)
 	}
-	logger.Infof("created %s bundle: %s", provider.GetEngineType(), destFile)
+	logger.Infof("created %s bundle: %s", provider.GetEngineType(), dest)
 }

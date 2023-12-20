@@ -56,6 +56,6 @@ func (p *JvmProviderOptions) GetEngineType() engine.EngineType {
 	return p.EngineType
 }
 
-func (p *JvmProviderOptions) Bundle(configDir string, destFile string) error {
+func (p *JvmProviderOptions) Bundle(configDir string, dest string) error {
 	return fmt.Errorf("JVM engine does not support bundling")
 }

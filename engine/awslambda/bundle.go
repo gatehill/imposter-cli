@@ -27,19 +27,19 @@ import (
 	"strings"
 )
 
-func (p *LambdaProvider) Bundle(configDir string, destFile string) error {
+func (p *LambdaProvider) Bundle(configDir string, dest string) error {
 	deploymentPackage, err := CreateDeploymentPackage(p.Version, configDir)
 	if err != nil {
 		return fmt.Errorf("failed to create bundle: %v", err)
 	}
 
-	if _, err := os.Stat(destFile); err == nil {
-		return fmt.Errorf("destination bundle file already exists: %s", destFile)
+	if _, err := os.Stat(dest); err == nil {
+		return fmt.Errorf("destination bundle file already exists: %s", dest)
 	}
 
-	err = os.WriteFile(destFile, *deploymentPackage, 0644)
+	err = os.WriteFile(dest, *deploymentPackage, 0644)
 	if err != nil {
-		return fmt.Errorf("error writing bundle file: %s: %v", destFile, err)
+		return fmt.Errorf("error writing bundle file: %s: %v", dest, err)
 	}
 	return nil
 }

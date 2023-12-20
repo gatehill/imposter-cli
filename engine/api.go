@@ -59,7 +59,11 @@ type Provider interface {
 	Provide(policy PullPolicy) error
 	GetEngineType() EngineType
 	Build(configDir string, startOptions StartOptions) MockEngine
-	Bundle(configDir string, destFile string) error
+
+	// Bundle creates a single archive file containing the engine binary and
+	// configuration files. The archive is written to the specified destination.
+	// If the engine type is 'docker', destination should be a valid image name.
+	Bundle(configDir string, dest string) error
 }
 
 type EngineLibrary interface {
