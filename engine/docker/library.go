@@ -19,7 +19,7 @@ func getLibrary(engineType engine.EngineType) *DockerEngineLibrary {
 
 func (DockerEngineLibrary) CheckPrereqs() (bool, []string) {
 	var msgs []string
-	ctx, cli, err := BuildCliClient()
+	ctx, cli, err := buildCliClient()
 	if err != nil {
 		msgs = append(msgs, fmt.Sprintf("❌ Failed to build Docker client: %v", err))
 		return false, msgs
@@ -41,7 +41,7 @@ func (DockerEngineLibrary) CheckPrereqs() (bool, []string) {
 }
 
 func (l DockerEngineLibrary) List() ([]engine.EngineMetadata, error) {
-	ctx, cli, err := BuildCliClient()
+	ctx, cli, err := buildCliClient()
 	if err != nil {
 		return nil, fmt.Errorf("error building CLI client: %s", err)
 	}

@@ -23,7 +23,7 @@ type buildOutput struct {
 // buildImage builds a Docker image using the specified build context.
 func buildImage(buildCtx *bytes.Buffer, destImageAndTag string) error {
 	logger.Tracef("building image with tag %s", destImageAndTag)
-	ctx, cli, err := BuildCliClient()
+	ctx, cli, err := buildCliClient()
 	if err != nil {
 		return err
 	}

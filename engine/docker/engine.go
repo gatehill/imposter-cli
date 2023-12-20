@@ -53,7 +53,7 @@ func (d *DockerMockEngine) Start(wg *sync.WaitGroup) bool {
 
 func (d *DockerMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.StartOptions) (success bool) {
 	logger.Infof("starting mock engine on port %d - press ctrl+c to stop", options.Port)
-	ctx, cli, err := BuildCliClient()
+	ctx, cli, err := buildCliClient()
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -229,7 +229,7 @@ func streamLogs(cli *client.Client, ctx context.Context, containerId string, out
 	return nil
 }
 
-func BuildCliClient() (context.Context, *client.Client, error) {
+func buildCliClient() (context.Context, *client.Client, error) {
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
@@ -280,7 +280,7 @@ func (d *DockerMockEngine) Restart(wg *sync.WaitGroup) {
 }
 
 func (d *DockerMockEngine) ListAllManaged() ([]engine.ManagedMock, error) {
-	cli, ctx, err := BuildCliClient()
+	cli, ctx, err := buildCliClient()
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -296,7 +296,7 @@ func (d *DockerMockEngine) ListAllManaged() ([]engine.ManagedMock, error) {
 }
 
 func (d *DockerMockEngine) StopAllManaged() int {
-	cli, ctx, err := BuildCliClient()
+	cli, ctx, err := buildCliClient()
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -317,7 +317,7 @@ func (d *DockerMockEngine) GetVersionString() (string, error) {
 	output := new(strings.Builder)
 	errOutput := new(strings.Builder)
 
-	ctx, cli, err := BuildCliClient()
+	ctx, cli, err := buildCliClient()
 	resp, err := cli.ContainerCreate(ctx, &container.Config{
 		Image: d.provider.imageAndTag,
 		Cmd: []string{

@@ -37,7 +37,7 @@ func removeContainers(d *DockerMockEngine, containerIds []string) {
 }
 
 func removeContainer(d *DockerMockEngine, wg *sync.WaitGroup, containerId string) {
-	ctx, cli, err := BuildCliClient()
+	ctx, cli, err := buildCliClient()
 	if err != nil {
 		logger.Fatal(err)
 	}

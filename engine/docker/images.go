@@ -42,7 +42,7 @@ func getProvider(engineType engine.EngineType, version string) *EngineImageProvi
 }
 
 func (d *EngineImageProvider) Provide(policy engine.PullPolicy) error {
-	ctx, cli, err := BuildCliClient()
+	ctx, cli, err := buildCliClient()
 	if err != nil {
 		return err
 	}
