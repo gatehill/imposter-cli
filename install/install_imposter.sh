@@ -58,6 +58,7 @@ function find_arch() {
     *armv6* ) IMPOSTER_ARCH="arm" ;;
     *armv7* ) IMPOSTER_ARCH="arm" ;;
     *arm64* ) IMPOSTER_ARCH="arm64" ;;
+    *aarch64* ) IMPOSTER_ARCH="arm64" ;;
     * ) unsupported_arch;;
     esac
   fi
