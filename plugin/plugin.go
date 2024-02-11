@@ -19,6 +19,8 @@ type PluginMetadata struct {
 
 const pluginBaseDir = ".imposter/plugins/"
 
+var supportedPluginExtensions = []string{".jar", ".zip"}
+
 var logger = logging.GetLogger()
 
 func EnsurePlugins(plugins []string, version string, saveDefault bool) (int, error) {
@@ -129,13 +131,24 @@ func downloadPlugin(pluginName string, version string) error {
 	return nil
 }
 
-func getPluginFilePath(pluginName string, version string) (string, string, error) {
+func getPluginFilePath(pluginName string, version string) (fullPluginFileName string, pluginFilePath string, err error) {
 	pluginDir, err := EnsurePluginDir(version)
 	if err != nil {
 		return "", "", err
 	}
-	fullPluginFileName := fmt.Sprintf("imposter-plugin-%s.jar", pluginName)
-	pluginFilePath := filepath.Join(pluginDir, fullPluginFileName)
+
+	// archive format plugins use .zip extension
+	// supported since engine v3.35.0
+	var pluginExtension string
+	if strings.HasSuffix(pluginName, ":zip") {
+		pluginName = strings.TrimSuffix(pluginName, ":zip")
+		pluginExtension = "zip"
+	} else {
+		pluginExtension = "jar"
+	}
+
+	fullPluginFileName = fmt.Sprintf("imposter-plugin-%s.%s", pluginName, pluginExtension)
+	pluginFilePath = filepath.Join(pluginDir, fullPluginFileName)
 	return fullPluginFileName, pluginFilePath, err
 }
 
@@ -210,10 +223,11 @@ func List(version string) ([]PluginMetadata, error) {
 	}
 	var available []PluginMetadata
 	for _, file := range files {
-		if !strings.HasSuffix(file.Name(), ".jar") || file.IsDir() {
+		supportedSuffix := stringutil.GetMatchingSuffix(file.Name(), supportedPluginExtensions)
+		if supportedSuffix == "" || file.IsDir() {
 			continue
 		}
-		pluginName := strings.TrimPrefix(strings.TrimSuffix(file.Name(), ".jar"), "imposter-plugin-")
+		pluginName := strings.TrimPrefix(strings.TrimSuffix(file.Name(), supportedSuffix), "imposter-plugin-")
 		available = append(available, PluginMetadata{
 			Name:    pluginName,
 			Version: version,

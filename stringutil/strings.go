@@ -61,6 +61,17 @@ func ContainsPrefix(entries []string, searchTerm string) bool {
 	return false
 }
 
+// GetMatchingSuffix checks if entry has at least one of the given suffixes.
+// If a suffix matches, it is returned, otherwise an empty string is returned.
+func GetMatchingSuffix(entry string, suffixes []string) string {
+	for _, suffix := range suffixes {
+		if strings.HasSuffix(entry, suffix) {
+			return suffix
+		}
+	}
+	return ""
+}
+
 // Sha1hashString returns a SHA1 checksum of the given input string. This
 // *must not* be used for cryptographic purposes, as SHA1 is not secure.
 func Sha1hashString(input string) string {

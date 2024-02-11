@@ -96,3 +96,52 @@ func TestEnsurePlugins(t *testing.T) {
 		})
 	}
 }
+
+func Test_getPluginFilePath(t *testing.T) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	type args struct {
+		pluginName string
+		version    string
+	}
+	tests := []struct {
+		name                   string
+		args                   args
+		wantFullPluginFileName string
+		wantPluginFilePath     string
+		wantErr                bool
+	}{
+		{
+			name:                   "get plugin file path",
+			args:                   args{pluginName: "store-redis", version: "3.33.3"},
+			wantFullPluginFileName: "imposter-plugin-store-redis.jar",
+			wantPluginFilePath:     filepath.Join(homeDir, pluginBaseDir, "3.33.3", "imposter-plugin-store-redis.jar"),
+			wantErr:                false,
+		},
+		{
+			name:                   "get plugin file path with zip suffix",
+			args:                   args{pluginName: "js-graal:zip", version: "3.33.3"},
+			wantFullPluginFileName: "imposter-plugin-js-graal.zip",
+			wantPluginFilePath:     filepath.Join(homeDir, pluginBaseDir, "3.33.3", "imposter-plugin-js-graal.zip"),
+			wantErr:                false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotFullPluginFileName, gotPluginFilePath, err := getPluginFilePath(tt.args.pluginName, tt.args.version)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("getPluginFilePath() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if gotFullPluginFileName != tt.wantFullPluginFileName {
+				t.Errorf("getPluginFilePath() gotFullPluginFileName = %v, want %v", gotFullPluginFileName, tt.wantFullPluginFileName)
+			}
+			if gotPluginFilePath != tt.wantPluginFilePath {
+				t.Errorf("getPluginFilePath() gotPluginFilePath = %v, want %v", gotPluginFilePath, tt.wantPluginFilePath)
+			}
+		})
+	}
+}
