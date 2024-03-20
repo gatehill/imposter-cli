@@ -6,7 +6,7 @@ require (
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/aws/aws-sdk-go v1.44.248
 	github.com/coreos/go-semver v0.3.1
-	github.com/docker/docker v20.10.26+incompatible
+	github.com/docker/docker v24.0.9+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/google/uuid v1.4.0
 	github.com/olekukonko/tablewriter v0.0.5
