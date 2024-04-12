@@ -98,6 +98,10 @@ default:
   plugins:
     - store-dynamodb
     - store-redis
+
+# Map of environment variables to set
+env:
+  IMPOSTER_EXAMPLE: "some-value"
 ```
 
 ## Environment variables

@@ -21,6 +21,7 @@ import (
 	"gatehill.io/imposter/engine"
 	"gatehill.io/imposter/fileutil"
 	"gatehill.io/imposter/plugin"
+	"gatehill.io/imposter/stringutil"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"os"
@@ -56,7 +57,7 @@ var upCmd = &cobra.Command{
 If CONFIG_DIR is not specified, the current working directory is used.`,
 	Args: cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
-		injectExplicitEnvironment()
+		injectExplicitEnvironment(upFlags.environment)
 
 		var configDir string
 		if len(args) == 0 {
@@ -101,7 +102,7 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 			Deduplicate:     upFlags.deduplicate,
 			EnablePlugins:   upFlags.enablePlugins,
 			EnableFileCache: upFlags.enableFileCache,
-			Environment:     upFlags.environment,
+			Environment:     buildStartEnvironment(upFlags.environment),
 			DirMounts:       upFlags.dirMounts,
 		}
 		start(&lib, startOptions, configDir, upFlags.restartOnChange)
@@ -126,8 +127,8 @@ func init() {
 	rootCmd.AddCommand(upCmd)
 }
 
-func injectExplicitEnvironment() {
-	for _, env := range upFlags.environment {
+func injectExplicitEnvironment(cliEnvArgs []string) {
+	for _, env := range cliEnvArgs {
 		envParts := strings.Split(env, "=")
 		if len(envParts) > 1 {
 			_ = os.Setenv(envParts[0], envParts[1])
@@ -136,6 +137,27 @@ func injectExplicitEnvironment() {
 	if upFlags.recursiveConfigScan {
 		_ = os.Setenv("IMPOSTER_CONFIG_SCAN_RECURSIVE", "true")
 	}
+}
+
+func buildStartEnvironment(cliEnvArgs []string) []string {
+	env := append([]string{}, cliEnvArgs...)
+
+	// include environment variables from CLI config file, under the 'env' key, such as:
+	// ```yaml
+	// env:
+	//   IMPOSTER_FOO: bar
+	//   IMPOSTER_BAZ: qux
+	// ```
+	for k, v := range viper.GetStringMapString("env") {
+		envKey := strings.ToUpper(k)
+		// environment variables passed as command-line arguments take precedence
+		// over those in the config file
+		if !stringutil.ContainsPrefix(env, envKey+"=") {
+			env = append(env, envKey+"="+v)
+		}
+	}
+
+	return env
 }
 
 func ensurePlugins(version string) {
