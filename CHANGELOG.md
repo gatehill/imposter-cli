@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.39.0] - 2024-04-15
+### Added
+- feat: allow plugins to be specified in CLI config.
+
+### Changed
+- docs: adds changelog.
+
+### Fixed
+- fix: don't quieten the default logger if trace is enabled.
+
 ## [0.38.0] - 2024-03-08
 ### Added
 - feat: allows lambda binary path to be configured.
