@@ -22,6 +22,7 @@ import (
 	"gatehill.io/imposter/fileutil"
 	"gatehill.io/imposter/plugin"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -87,10 +88,7 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 
 			// only ensure (and potentially fetch) default plugins if not a sealed distro
 			if upFlags.ensurePlugins && lib.ShouldEnsurePlugins() {
-				_, err := plugin.EnsureDefaultPlugins(version)
-				if err != nil {
-					logger.Fatal(err)
-				}
+				ensurePlugins(version)
 			}
 		}
 
@@ -110,18 +108,6 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 	},
 }
 
-func injectExplicitEnvironment() {
-	for _, env := range upFlags.environment {
-		envParts := strings.Split(env, "=")
-		if len(envParts) > 1 {
-			_ = os.Setenv(envParts[0], envParts[1])
-		}
-	}
-	if upFlags.recursiveConfigScan {
-		_ = os.Setenv("IMPOSTER_CONFIG_SCAN_RECURSIVE", "true")
-	}
-}
-
 func init() {
 	upCmd.Flags().StringVarP(&upFlags.engineType, "engine-type", "t", "", "Imposter engine type (valid: docker,jvm - default \"docker\")")
 	upCmd.Flags().StringVarP(&upFlags.engineVersion, "version", "v", "", "Imposter engine version (default \"latest\")")
@@ -138,6 +124,34 @@ func init() {
 	upCmd.Flags().BoolVarP(&upFlags.recursiveConfigScan, "recursive-config-scan", "r", false, "Scan for config files in subdirectories")
 	registerEngineTypeCompletions(upCmd)
 	rootCmd.AddCommand(upCmd)
+}
+
+func injectExplicitEnvironment() {
+	for _, env := range upFlags.environment {
+		envParts := strings.Split(env, "=")
+		if len(envParts) > 1 {
+			_ = os.Setenv(envParts[0], envParts[1])
+		}
+	}
+	if upFlags.recursiveConfigScan {
+		_ = os.Setenv("IMPOSTER_CONFIG_SCAN_RECURSIVE", "true")
+	}
+}
+
+func ensurePlugins(version string) {
+	_, err := plugin.EnsureDefaultPlugins(version)
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	localCliConfigPlugins := viper.GetStringSlice("plugins")
+	if len(localCliConfigPlugins) > 0 {
+		logger.Tracef("picked up plugins from CLI config: %v", localCliConfigPlugins)
+		_, err := plugin.EnsurePlugins(localCliConfigPlugins, version, false)
+		if err != nil {
+			logger.Fatal(err)
+		}
+	}
 }
 
 func start(lib *engine.EngineLibrary, startOptions engine.StartOptions, configDir string, restartOnChange bool) {
