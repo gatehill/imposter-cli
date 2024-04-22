@@ -102,6 +102,10 @@ default:
 # Map of environment variables to set
 env:
   IMPOSTER_EXAMPLE: "some-value"
+
+cli:
+  # the minimum required version of the CLI - not to be confused with engine version
+  version: "0.40.0"
 ```
 
 ## Environment variables

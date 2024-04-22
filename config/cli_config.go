@@ -18,6 +18,7 @@ package config
 
 import (
 	"fmt"
+	"golang.org/x/mod/semver"
 	"os"
 	"path"
 	"path/filepath"
@@ -43,6 +44,8 @@ const GlobalConfigFileName = "config"
 // The LocalDirConfigFileName is the file name without the file extension.
 const LocalDirConfigFileName = ".imposter"
 
+const DevCliVersion = "dev"
+
 var logger = logging.GetLogger()
 
 var (
@@ -52,7 +55,7 @@ var (
 
 func init() {
 	Config = CliConfig{
-		Version:  "dev",
+		Version:  DevCliVersion,
 		LogLevel: "DEBUG",
 	}
 }
@@ -80,6 +83,26 @@ func MergeCliConfigIfExists(configDir string) {
 	// If a local CLI config file is found, read it in.
 	if err := viper.MergeInConfig(); err == nil {
 		logger.Tracef("using local CLI config file: %v", viper.ConfigFileUsed())
+	}
+
+	// if a CLI version is specified - check it
+	if requiredCliVersion := viper.GetString("cli.version"); requiredCliVersion != "" {
+		if err := checkCliVersion(requiredCliVersion); err != nil {
+			logger.Fatal(err)
+		}
+	}
+}
+
+func checkCliVersion(required string) error {
+	if Config.Version == DevCliVersion {
+		logger.Warnf("using dev CLI version - cannot check version constraint against %v", required)
+		return nil
+	}
+	if semver.Compare("v"+Config.Version, "v"+required) >= 0 {
+		logger.Tracef("CLI version requirement met [required: %v, current: %v]", required, Config.Version)
+		return nil
+	} else {
+		return fmt.Errorf("CLI version requirement not met [required: %v, current: %v]", required, Config.Version)
 	}
 }
 

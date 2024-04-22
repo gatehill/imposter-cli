@@ -38,7 +38,7 @@ func main() {
 	logging.SetLogLevel(lvl)
 
 	if version == "" {
-		version = "dev"
+		version = config.DevCliVersion
 	}
 	config.Config = config.CliConfig{
 		LogLevel: lvl,
