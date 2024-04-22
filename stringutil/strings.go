@@ -33,14 +33,20 @@ func GetFirstNonEmpty(candidates ...string) string {
 
 // CombineUnique returns the unique union of originals and candidates
 func CombineUnique(originals []string, candidates []string) []string {
-	var merged = originals
-	for _, plugin := range candidates {
-		found := Contains(originals, plugin)
-		if !found {
-			merged = append(merged, plugin)
+	return Unique(append(originals, candidates...))
+}
+
+// Unique returns the unique elements from the slice
+func Unique(candidates []string) []string {
+	var unique []string
+	seen := make(map[string]bool, len(candidates))
+	for _, candidate := range candidates {
+		if !seen[candidate] {
+			unique = append(unique, candidate)
+			seen[candidate] = true
 		}
 	}
-	return merged
+	return unique
 }
 
 func Contains(entries []string, searchTerm string) bool {

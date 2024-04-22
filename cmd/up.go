@@ -89,7 +89,10 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 
 			// only ensure (and potentially fetch) default plugins if not a sealed distro
 			if upFlags.ensurePlugins && lib.ShouldEnsurePlugins() {
-				ensurePlugins(version)
+				_, err := plugin.EnsureConfiguredPlugins(version)
+				if err != nil {
+					logger.Fatal(err)
+				}
 			}
 		}
 
@@ -158,22 +161,6 @@ func buildStartEnvironment(cliEnvArgs []string) []string {
 	}
 
 	return env
-}
-
-func ensurePlugins(version string) {
-	_, err := plugin.EnsureDefaultPlugins(version)
-	if err != nil {
-		logger.Fatal(err)
-	}
-
-	localCliConfigPlugins := viper.GetStringSlice("plugins")
-	if len(localCliConfigPlugins) > 0 {
-		logger.Tracef("picked up plugins from CLI config: %v", localCliConfigPlugins)
-		_, err := plugin.EnsurePlugins(localCliConfigPlugins, version, false)
-		if err != nil {
-			logger.Fatal(err)
-		}
-	}
 }
 
 func start(lib *engine.EngineLibrary, startOptions engine.StartOptions, configDir string, restartOnChange bool) {

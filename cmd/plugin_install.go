@@ -60,7 +60,7 @@ func installPlugins(plugins []string, version string, saveDefault bool) {
 	var ensured int
 	var err error
 	if len(plugins) == 0 {
-		ensured, err = plugin.EnsureDefaultPlugins(version)
+		ensured, err = plugin.EnsureConfiguredPlugins(version)
 	} else {
 		ensured, err = plugin.EnsurePlugins(plugins, version, saveDefault)
 		println(fmt.Sprintf(`ℹ️ Note that these plugins have not been saved as default plugins.

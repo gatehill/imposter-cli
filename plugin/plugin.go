@@ -18,6 +18,7 @@ type PluginMetadata struct {
 }
 
 const pluginBaseDir = ".imposter/plugins/"
+const defaultPluginsConfigKey = "default.plugins"
 
 var supportedPluginExtensions = []string{".jar", ".zip"}
 
@@ -44,26 +45,28 @@ func EnsurePlugins(plugins []string, version string, saveDefault bool) (int, err
 	return len(plugins), nil
 }
 
-func EnsureDefaultPlugins(version string) (int, error) {
-	var plugins []string
+// EnsureConfiguredPlugins collects the plugins from both the global CLI
+// config, as well those within the current configuration context, such
+// as config files within the working directory
+func EnsureConfiguredPlugins(version string) (int, error) {
+	// this includes the config from the current configuration context,
+	// not just the global CLI config file, so it includes any
+	// configuration in the working directory
+	plugins := viper.GetStringSlice(defaultPluginsConfigKey)
 
-	configPlugins, err := ListDefaultPlugins()
-	if err != nil {
-		return 0, err
-	}
-
-	for _, configPlugin := range configPlugins {
+	for _, plugin := range plugins {
 		// work-around for https://github.com/spf13/viper/issues/380
-		if strings.Contains(configPlugin, ",") {
-			for _, p := range strings.Split(configPlugin, ",") {
+		if strings.Contains(plugin, ",") {
+			for _, p := range strings.Split(plugin, ",") {
 				plugins = append(plugins, p)
 			}
 		} else {
-			plugins = append(plugins, configPlugin)
+			plugins = append(plugins, plugin)
 		}
 	}
+	plugins = stringutil.Unique(plugins)
 
-	logger.Tracef("found %d default plugin(s): %v", len(plugins), plugins)
+	logger.Tracef("found %d configured plugin(s): %v", len(plugins), plugins)
 	return EnsurePlugins(plugins, version, false)
 }
 
@@ -173,7 +176,7 @@ func ListDefaultPlugins() ([]string, error) {
 	if err != nil {
 		return []string{}, err
 	} else {
-		return v.GetStringSlice("default.plugins"), nil
+		return v.GetStringSlice(defaultPluginsConfigKey), nil
 	}
 }
 
@@ -182,7 +185,7 @@ func writeDefaultPlugins(plugins []string) error {
 	if err != nil {
 		return err
 	}
-	v.Set("default.plugins", plugins)
+	v.Set(defaultPluginsConfigKey, plugins)
 
 	configDir, err := config.GetGlobalConfigDir()
 	if err != nil {
