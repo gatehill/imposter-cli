@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.41.1] - 2024-04-22
+### Changed
+- refactor: adds init as alias for scaffold command.
+- refactor: improves REST and OpenAPI scaffolding.
+
 ## [0.41.0] - 2024-04-22
 ### Added
 - feat: allows minimum CLI version to be specified.
