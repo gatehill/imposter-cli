@@ -31,8 +31,9 @@ var scaffoldFlags = struct {
 
 // scaffoldCmd represents the up command
 var scaffoldCmd = &cobra.Command{
-	Use:   "scaffold [DIR]",
-	Short: "Create Imposter configuration",
+	Use:     "scaffold [DIR]",
+	Aliases: []string{"init"},
+	Short:   "Create Imposter configuration",
 	Long: `Creates Imposter configuration files. If one or more OpenAPI/Swagger
 specification files are present, they are used as the basis for the generated
 resources. If no specification files are present, a simple REST mock is created.
