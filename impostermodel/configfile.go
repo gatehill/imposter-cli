@@ -21,6 +21,7 @@ import (
 	"gatehill.io/imposter/logging"
 	"gatehill.io/imposter/openapi"
 	"os"
+	"path"
 	"path/filepath"
 	"sigs.k8s.io/yaml"
 )
@@ -46,9 +47,10 @@ func Create(configDir string, generateResources bool, forceOverwrite bool, scrip
 		}
 	} else if !requireOpenApi {
 		logger.Infof("falling back to rest plugin")
-		readmeFilePath, responseFilePath := generateRestMockFiles(configDir)
-		scriptFileName := getScriptFileName(readmeFilePath, scriptEngine, forceOverwrite)
-		writeRestMockConfig(readmeFilePath, responseFilePath, generateResources, forceOverwrite, scriptEngine, scriptFileName)
+		syntheticMockPath := path.Join(configDir, "mock.txt")
+		_, responseFilePath := generateRestMockFiles(configDir)
+		scriptFileName := getScriptFileName(syntheticMockPath, scriptEngine, forceOverwrite)
+		writeRestMockConfig(syntheticMockPath, responseFilePath, generateResources, forceOverwrite, scriptEngine, scriptFileName)
 	} else {
 		logger.Fatalf("no OpenAPI specs found in: %s", configDir)
 	}
@@ -78,14 +80,19 @@ func GenerateConfig(options ConfigGenerationOptions, resources []Resource) []byt
 	return config
 }
 
-func writeMockConfig(anchorFilePath string, resources []Resource, forceOverwrite bool, options ConfigGenerationOptions) {
-	config := GenerateConfig(options, resources)
+func writeMockConfigAdjacent(anchorFilePath string, resources []Resource, forceOverwrite bool, options ConfigGenerationOptions) {
 	configFilePath := fileutil.GenerateFilePathAdjacentToFile(anchorFilePath, "-config.yaml", forceOverwrite)
+	writeMockConfig(configFilePath, resources, forceOverwrite, options)
+}
+
+func writeMockConfig(configFilePath string, resources []Resource, forceOverwrite bool, options ConfigGenerationOptions) {
 	configFile, err := os.Create(configFilePath)
 	if err != nil {
 		logger.Fatal(err)
 	}
 	defer configFile.Close()
+
+	config := GenerateConfig(options, resources)
 	_, err = configFile.Write(config)
 	if err != nil {
 		logger.Fatal(err)

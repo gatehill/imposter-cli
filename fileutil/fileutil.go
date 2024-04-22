@@ -19,8 +19,8 @@ package fileutil
 import (
 	"fmt"
 	"gatehill.io/imposter/logging"
+	"gatehill.io/imposter/stringutil"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -28,14 +28,15 @@ import (
 
 var logger = logging.GetLogger()
 
-func FindFilesWithExtension(dir, ext string) []string {
+func FindFilesWithExtension(dir string, ext ...string) []string {
 	var filesWithExtension []string
-	infos, err := ioutil.ReadDir(dir)
+	infos, err := os.ReadDir(dir)
 	if err != nil {
 		logger.Fatal(err)
 	}
 	for _, info := range infos {
-		if !info.IsDir() && filepath.Ext(info.Name()) == ext {
+		extension := filepath.Ext(info.Name())
+		if !info.IsDir() && stringutil.Contains(ext, extension) {
 			filesWithExtension = append(filesWithExtension, info.Name())
 		}
 	}
@@ -46,6 +47,11 @@ func FindFilesWithExtension(dir, ext string) []string {
 // removing the extension and then adding the given suffix. The full path is returned.
 func GenerateFilePathAdjacentToFile(sourceFilePath string, suffix string, forceOverwrite bool) string {
 	destFilePath := strings.TrimSuffix(sourceFilePath, filepath.Ext(sourceFilePath)) + suffix
+	MustNotExist(destFilePath, forceOverwrite)
+	return destFilePath
+}
+
+func MustNotExist(destFilePath string, forceOverwrite bool) {
 	if _, err := os.Stat(destFilePath); err != nil {
 		if !os.IsNotExist(err) {
 			logger.Fatal(err)
@@ -53,7 +59,6 @@ func GenerateFilePathAdjacentToFile(sourceFilePath string, suffix string, forceO
 	} else if !forceOverwrite {
 		logger.Fatalf("file already exists: %v - aborting", destFilePath)
 	}
-	return destFilePath
 }
 
 func CopyDirShallow(src string, dest string) error {

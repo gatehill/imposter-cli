@@ -41,7 +41,7 @@ func writeOpenapiMockConfig(specFilePath string, generateResources bool, forceOv
 		ScriptFileName: scriptFileName,
 		SpecFilePath:   specFilePath,
 	}
-	writeMockConfig(specFilePath, resources, forceOverwrite, options)
+	writeMockConfigAdjacent(specFilePath, resources, forceOverwrite, options)
 }
 
 func buildOpenapiResources(specFilePath string, scriptEngine ScriptEngine, scriptFileName string) []Resource {

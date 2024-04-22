@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"gatehill.io/imposter/fileutil"
 	"gatehill.io/imposter/logging"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"sigs.k8s.io/yaml"
 )
@@ -34,20 +34,17 @@ var logger = logging.GetLogger()
 func DiscoverOpenApiSpecs(configDir string) []string {
 	var openApiSpecs []string
 
-	for _, yamlFile := range append(fileutil.FindFilesWithExtension(configDir, ".yaml"), fileutil.FindFilesWithExtension(configDir, ".yml")...) {
-		fullyQualifiedPath := filepath.Join(configDir, yamlFile)
-		jsonContent, err := loadYamlAsJson(fullyQualifiedPath)
-		if err != nil {
-			logger.Fatal(err)
-		}
-		if isOpenApiSpec(jsonContent) {
-			openApiSpecs = append(openApiSpecs, fullyQualifiedPath)
-		}
-	}
+	candidates := fileutil.FindFilesWithExtension(configDir, ".yaml", ".yml", ".json")
+	for _, candidate := range candidates {
+		fullyQualifiedPath := filepath.Join(configDir, candidate)
 
-	for _, jsonFile := range fileutil.FindFilesWithExtension(configDir, ".json") {
-		fullyQualifiedPath := filepath.Join(configDir, jsonFile)
-		jsonContent, err := ioutil.ReadFile(fullyQualifiedPath)
+		var jsonContent []byte
+		var err error
+		if filepath.Ext(fullyQualifiedPath) == ".json" {
+			jsonContent, err = os.ReadFile(fullyQualifiedPath)
+		} else {
+			jsonContent, err = loadYamlAsJson(fullyQualifiedPath)
+		}
 		if err != nil {
 			logger.Fatal(err)
 		}
@@ -60,7 +57,7 @@ func DiscoverOpenApiSpecs(configDir string) []string {
 }
 
 func loadYamlAsJson(yamlFile string) ([]byte, error) {
-	y, err := ioutil.ReadFile(yamlFile)
+	y, err := os.ReadFile(yamlFile)
 	if err != nil {
 		return nil, err
 	}

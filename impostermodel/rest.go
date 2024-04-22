@@ -28,7 +28,7 @@ func generateRestMockFiles(configDir string) (readmeFilePath string, responseFil
 }
 
 func generateReadmeFile(configDir string) string {
-	readmeFile := filepath.Join(configDir, "mock.txt")
+	readmeFile := filepath.Join(configDir, "README.md")
 	configFile, err := os.Create(readmeFile)
 	if err != nil {
 		logger.Fatal(err)
@@ -69,7 +69,7 @@ func generateResponseFile(configDir string) string {
 	return responseFile
 }
 
-func writeRestMockConfig(readmeFilePath string, responseFilePath string, generateResources bool, forceOverwrite bool, scriptEngine ScriptEngine, scriptFileName string) {
+func writeRestMockConfig(mockConfigPath string, responseFilePath string, generateResources bool, forceOverwrite bool, scriptEngine ScriptEngine, scriptFileName string) {
 	var resources []Resource
 	if generateResources {
 		resources = buildRestResources(responseFilePath, scriptEngine, scriptFileName)
@@ -81,7 +81,7 @@ func writeRestMockConfig(readmeFilePath string, responseFilePath string, generat
 		ScriptEngine:   scriptEngine,
 		ScriptFileName: scriptFileName,
 	}
-	writeMockConfig(readmeFilePath, resources, forceOverwrite, options)
+	writeMockConfigAdjacent(mockConfigPath, resources, forceOverwrite, options)
 }
 
 func buildRestResources(responseFilePath string, scriptEngine ScriptEngine, scriptFileName string) []Resource {
