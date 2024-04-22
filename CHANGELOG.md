@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.40.0] - 2024-04-22
+### Added
+- feat: allows required plugins to be set in local CLI config file.
+- feat: supports specification of environment variables in config files.
+
+### Changed
+- build(deps): bump golang.org/x/net from 0.18.0 to 0.23.0
+
 ## [0.39.0] - 2024-04-15
 ### Added
 - feat: allow plugins to be specified in CLI config.
