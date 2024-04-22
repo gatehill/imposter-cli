@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.41.2] - 2024-04-22
+### Changed
+- chore(deps): bumps actions/checkout to v4 and actions/setup-go to v4.
+- chore(deps): bumps actions/setup-go to v5.
+- chore(deps): bumps actions/setup-java to v4.
+- chore(deps): bumps go to 1.21.
+- chore(deps): bumps goreleaser/goreleaser-action to v5.
+- ci: replaces deprecated Goreleaser config.
+- test: bumps engine to 3.38.2.
+
 ## [0.41.1] - 2024-04-22
 ### Changed
 - refactor: adds init as alias for scaffold command.
