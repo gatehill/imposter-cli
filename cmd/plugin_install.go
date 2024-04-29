@@ -63,9 +63,12 @@ func installPlugins(plugins []string, version string, saveDefault bool) {
 		ensured, err = plugin.EnsureConfiguredPlugins(version)
 	} else {
 		ensured, err = plugin.EnsurePlugins(plugins, version, saveDefault)
-		println(fmt.Sprintf(`ℹ️ Note that these plugins have not been saved as default plugins.
+
+		if !saveDefault {
+			println(fmt.Sprintf(`ℹ️ Note that these plugins have not been saved as default plugins.
 This means they are installed only for engine version %s and not any future engine versions.
 To change this behaviour, pass the --save-default (-d) flag.`, version))
+		}
 	}
 	if err != nil {
 		logger.Fatal(err)
