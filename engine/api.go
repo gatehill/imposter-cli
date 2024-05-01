@@ -29,6 +29,7 @@ type StartOptions struct {
 	EnableFileCache bool
 	Environment     []string
 	DirMounts       []string
+	DebugMode       bool
 }
 
 type PullPolicy int
@@ -95,3 +96,5 @@ type ManagedMock struct {
 	Port   int
 	Health MockHealth
 }
+
+const DefaultDebugPort = 8000

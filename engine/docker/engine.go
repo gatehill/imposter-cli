@@ -70,35 +70,24 @@ func (d *DockerMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.S
 		stopDuplicateContainers(d, cli, ctx, mockHash)
 	}
 
-	containerPort := nat.Port(fmt.Sprintf("%d/tcp", options.Port))
-	hostPort := fmt.Sprintf("%d", options.Port)
-
 	// if not specified, falls back to default in container image
 	containerUser := viper.GetString("docker.containerUser")
 	logger.Tracef("container user: %s", containerUser)
 
+	exposedPorts, portBindings := buildPorts(options)
 	resp, err := cli.ContainerCreate(ctx, &container.Config{
 		Image: d.provider.imageAndTag,
 		Cmd: []string{
 			"--configDir=" + containerConfigDir,
 			fmt.Sprintf("--listenPort=%d", options.Port),
 		},
-		Env: buildEnv(options),
-		ExposedPorts: nat.PortSet{
-			containerPort: {},
-		},
-		Labels: containerLabels,
-		User:   containerUser,
+		Env:          buildEnv(options),
+		ExposedPorts: exposedPorts,
+		Labels:       containerLabels,
+		User:         containerUser,
 	}, &container.HostConfig{
-		Binds: buildBinds(d, options),
-		PortBindings: nat.PortMap{
-			containerPort: []nat.PortBinding{
-				{
-					HostIP:   "0.0.0.0",
-					HostPort: hostPort,
-				},
-			},
-		},
+		Binds:        buildBinds(d, options),
+		PortBindings: portBindings,
 	}, nil, nil, "")
 	if err != nil {
 		logger.Fatal(err)
@@ -123,6 +112,31 @@ func (d *DockerMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.S
 	}()
 
 	return up
+}
+
+func buildPorts(options engine.StartOptions) (nat.PortSet, nat.PortMap) {
+	ports := map[int]int{
+		options.Port: options.Port,
+	}
+	if options.DebugMode {
+		ports[engine.DefaultDebugPort] = engine.DefaultDebugPort
+	}
+
+	exposedPorts := nat.PortSet{}
+	portBindings := nat.PortMap{}
+	for hp, cp := range ports {
+		containerPort := nat.Port(fmt.Sprintf("%d/tcp", cp))
+		hostPort := fmt.Sprintf("%d", hp)
+
+		exposedPorts[containerPort] = struct{}{}
+		portBindings[containerPort] = []nat.PortBinding{
+			{
+				HostIP:   "0.0.0.0",
+				HostPort: hostPort,
+			},
+		}
+	}
+	return exposedPorts, portBindings
 }
 
 func buildEnv(options engine.StartOptions) []string {

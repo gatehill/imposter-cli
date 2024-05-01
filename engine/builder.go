@@ -150,7 +150,11 @@ func SanitiseVersionOutput(s string) string {
 }
 
 func BuildEnv(options StartOptions, includeHome bool) []string {
-	return buildEnvFromParent(os.Environ(), options, includeHome)
+	env := buildEnvFromParent(os.Environ(), options, includeHome)
+	if options.DebugMode {
+		env = append(env, fmt.Sprintf("JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=0.0.0.0:%v", DefaultDebugPort))
+	}
+	return env
 }
 
 func buildEnvFromParent(parentEnv []string, options StartOptions, includeHome bool) []string {

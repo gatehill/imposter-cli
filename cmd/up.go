@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"gatehill.io/imposter/config"
 	"gatehill.io/imposter/engine"
 	"gatehill.io/imposter/fileutil"
@@ -46,6 +47,7 @@ var upFlags = struct {
 	environment         []string
 	dirMounts           []string
 	recursiveConfigScan bool
+	debugMode           bool
 }{}
 
 // upCmd represents the up command
@@ -107,6 +109,7 @@ If CONFIG_DIR is not specified, the current working directory is used.`,
 			EnableFileCache: upFlags.enableFileCache,
 			Environment:     buildStartEnvironment(upFlags.environment),
 			DirMounts:       upFlags.dirMounts,
+			DebugMode:       upFlags.debugMode,
 		}
 		start(&lib, startOptions, configDir, upFlags.restartOnChange)
 	},
@@ -126,6 +129,7 @@ func init() {
 	upCmd.Flags().StringArrayVarP(&upFlags.environment, "env", "e", []string{}, "Explicit environment variables to set")
 	upCmd.Flags().StringArrayVar(&upFlags.dirMounts, "mount-dir", []string{}, "(Docker engine type only) Extra directory bind-mounts in the form HOST_PATH:CONTAINER_PATH (e.g. $HOME/somedir:/opt/imposter/somedir) or simply HOST_PATH, which will mount the directory at /opt/imposter/<dir>")
 	upCmd.Flags().BoolVarP(&upFlags.recursiveConfigScan, "recursive-config-scan", "r", false, "Scan for config files in subdirectories")
+	upCmd.Flags().BoolVar(&upFlags.debugMode, "debug-mode", false, fmt.Sprintf("Enable JVM debug mode and listen on port %v", engine.DefaultDebugPort))
 	registerEngineTypeCompletions(upCmd)
 	rootCmd.AddCommand(upCmd)
 }
