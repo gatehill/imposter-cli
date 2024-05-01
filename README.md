@@ -137,6 +137,7 @@ Usage:
 
 Flags:
       --auto-restart              Automatically restart when config dir contents change (default true)
+      --debug-mode                Enable JVM debug mode and listen on port 8000
       --deduplicate string        Override deduplication ID for replacement of containers
       --enable-file-cache         Enable file cache (default true)
       --enable-plugins            Enable plugins (default true)
