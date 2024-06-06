@@ -159,6 +159,8 @@ func buildBinds(d *DockerMockEngine, options engine.StartOptions) []string {
 			logger.Fatal(err)
 		}
 		binds = append(binds, pluginDir+":"+containerPluginDir)
+	} else {
+		logger.Tracef("plugins are disabled")
 	}
 	if options.EnableFileCache {
 		logger.Tracef("file cache enabled")
@@ -167,6 +169,8 @@ func buildBinds(d *DockerMockEngine, options engine.StartOptions) []string {
 			logger.Fatal(err)
 		}
 		binds = append(binds, fileCacheDir+":"+containerFileCacheDir)
+	} else {
+		logger.Tracef("file cache disabled")
 	}
 	binds = append(binds, parseDirMounts(options.DirMounts)...)
 	logger.Tracef("using binds: %v", binds)

@@ -75,6 +75,8 @@ func buildEnv(options engine.StartOptions) []string {
 			logger.Fatal(err)
 		}
 		env = append(env, "IMPOSTER_PLUGIN_DIR="+pluginDir)
+	} else {
+		logger.Tracef("plugins are disabled")
 	}
 	if options.EnableFileCache {
 		logger.Tracef("file cache enabled")
@@ -83,6 +85,8 @@ func buildEnv(options engine.StartOptions) []string {
 			logger.Fatal(err)
 		}
 		env = append(env, "IMPOSTER_CACHE_DIR="+fileCacheDir, "IMPOSTER_OPENAPI_REMOTE_FILE_CACHE=true")
+	} else {
+		logger.Tracef("file cache disabled")
 	}
 	logger.Tracef("engine environment: %v", env)
 	return env
