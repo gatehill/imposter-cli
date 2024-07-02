@@ -51,6 +51,11 @@ func Test_pull(t *testing.T) {
 			engineType: engine.EngineTypeDockerAll,
 			pullPolicy: engine.PullIfNotPresent,
 		}},
+		{name: "pull docker all distro if not present", args: args{
+			version:    "3.44.1",
+			engineType: engine.EngineTypeDockerDistroless,
+			pullPolicy: engine.PullIfNotPresent,
+		}},
 		{name: "pull latest jvm always", args: args{
 			version:    "latest",
 			engineType: engine.EngineTypeJvmSingleJar,

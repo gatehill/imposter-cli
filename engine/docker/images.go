@@ -127,6 +127,9 @@ func getImageRepo(engineType engine.EngineType) string {
 	case engine.EngineTypeDockerAll:
 		imageRepo = "outofcoffee/imposter-all"
 		break
+	case engine.EngineTypeDockerDistroless:
+		imageRepo = "outofcoffee/imposter-distroless"
+		break
 	default:
 		panic("Unsupported engine type: " + engineType)
 	}

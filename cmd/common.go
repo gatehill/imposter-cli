@@ -8,6 +8,7 @@ import (
 var localTypes = []engine.EngineType{
 	engine.EngineTypeDockerCore,
 	engine.EngineTypeDockerAll,
+	engine.EngineTypeDockerDistroless,
 	engine.EngineTypeJvmSingleJar,
 }
 

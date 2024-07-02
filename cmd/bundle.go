@@ -86,9 +86,13 @@ func getBundleDest(engineType engine.EngineType) string {
 	if bundleFlags.output != "" {
 		dest = bundleFlags.output
 	} else {
-		if engineType == engine.EngineTypeDockerCore || engineType == engine.EngineTypeDockerAll {
+		if engineType == engine.EngineTypeDockerCore ||
+			engineType == engine.EngineTypeDockerAll ||
+			engineType == engine.EngineTypeDockerDistroless {
+
 			imageTag := time.Now().Format("20060102150405")
 			dest = "imposter-bundle:" + imageTag
+
 		} else {
 			temp, err := os.CreateTemp(os.TempDir(), "imposter-bundle-*.zip")
 			if err != nil {

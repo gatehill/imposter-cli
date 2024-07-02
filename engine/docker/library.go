@@ -78,6 +78,8 @@ func (l DockerEngineLibrary) ShouldEnsurePlugins() bool {
 		return true
 	case engine.EngineTypeDockerAll:
 		return false
+	case engine.EngineTypeDockerDistroless:
+		return true
 	default:
 		panic(fmt.Errorf("unsupported engine type: %s for Docker library", l.engineType))
 	}

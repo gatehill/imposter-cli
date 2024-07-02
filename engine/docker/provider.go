@@ -38,6 +38,7 @@ func EnableEngine() {
 		initialised = true
 		register(engine.EngineTypeDockerCore)
 		register(engine.EngineTypeDockerAll)
+		register(engine.EngineTypeDockerDistroless)
 	}
 }
 

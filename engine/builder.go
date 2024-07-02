@@ -28,12 +28,13 @@ import (
 type EngineType string
 
 const (
-	EngineTypeNone         EngineType = ""
-	EngineTypeAwsLambda    EngineType = "awslambda"
-	EngineTypeDockerCore   EngineType = "docker"
-	EngineTypeDockerAll    EngineType = "docker-all"
-	EngineTypeJvmSingleJar EngineType = "jvm"
-	EngineTypeJvmUnpacked  EngineType = "unpacked"
+	EngineTypeNone             EngineType = ""
+	EngineTypeAwsLambda        EngineType = "awslambda"
+	EngineTypeDockerCore       EngineType = "docker"
+	EngineTypeDockerAll        EngineType = "docker-all"
+	EngineTypeDockerDistroless EngineType = "docker-distroless"
+	EngineTypeJvmSingleJar     EngineType = "jvm"
+	EngineTypeJvmUnpacked      EngineType = "unpacked"
 )
 const defaultEngineType = EngineTypeDockerCore
 
@@ -100,7 +101,7 @@ func build(engineType EngineType, configDir string, startOptions StartOptions) M
 
 func validateEngineType(engineType EngineType) error {
 	switch engineType {
-	case EngineTypeAwsLambda, EngineTypeDockerCore, EngineTypeDockerAll, EngineTypeJvmSingleJar, EngineTypeJvmUnpacked:
+	case EngineTypeAwsLambda, EngineTypeDockerCore, EngineTypeDockerAll, EngineTypeDockerDistroless, EngineTypeJvmSingleJar, EngineTypeJvmUnpacked:
 		return nil
 	}
 	return fmt.Errorf("unsupported engine type: %v", engineType)
