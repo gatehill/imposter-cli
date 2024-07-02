@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.43.0] - 2024-07-02
+### Added
+- feat: adds support for docker-distroless image.
+
+### Changed
+- chore: bumps engine test version to 3.44.1.
+
 ## [0.42.3] - 2024-06-09
 ### Changed
 - build(deps): bump github.com/docker/docker
