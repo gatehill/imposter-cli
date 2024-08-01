@@ -18,6 +18,7 @@ import (
 )
 
 const liveAliasName = "live"
+const readyTimeoutSeconds = 360
 
 func (m LambdaRemote) Deploy() error {
 	region, sess, svc, err := m.initAws()
@@ -119,7 +120,8 @@ func ensureSnapStart(svc *lambda.Lambda, funcArn string, snapStart bool) error {
 }
 
 func publishFunctionVersion(svc *lambda.Lambda, funcArn string) (versionId string, err error) {
-	if err = awaitLastUpdateSuccess(svc, funcArn); err != nil {
+	// wait for the root function to be ready
+	if err = awaitReady(svc, funcArn, ""); err != nil {
 		return "", err
 	}
 
@@ -131,27 +133,46 @@ func publishFunctionVersion(svc *lambda.Lambda, funcArn string) (versionId strin
 		return "", err
 	}
 	versionId = *version.Version
+
+	// wait for the new version to be ready
+	if err = awaitReady(svc, funcArn, versionId); err != nil {
+		return "", err
+	}
+
 	logger.Debugf("published version %v for %v", versionId, funcArn)
 	return versionId, nil
 }
 
-func awaitLastUpdateSuccess(svc *lambda.Lambda, funcArn string) error {
-	const attempts = 120
-	for i := 0; i < attempts; i++ {
-		configuration, err := svc.GetFunctionConfiguration(&lambda.GetFunctionConfigurationInput{
+func awaitReady(svc *lambda.Lambda, funcArn string, checkVersion string) error {
+	logger.Debugf("waiting for function %v [version: %v] to be ready", funcArn, checkVersion)
+	for i := 0; i < readyTimeoutSeconds; i++ {
+		input := &lambda.GetFunctionConfigurationInput{
 			FunctionName: aws.String(funcArn),
-		})
+		}
+		if checkVersion != "" {
+			input.Qualifier = aws.String(checkVersion)
+		}
+		configuration, err := svc.GetFunctionConfiguration(input)
 		if err != nil {
 			return err
 		}
-		lastUpdateStatus := *configuration.LastUpdateStatus
-		logger.Tracef("function %v last update status is %v", funcArn, lastUpdateStatus)
-		if lastUpdateStatus == lambda.LastUpdateStatusSuccessful {
+		logger.Tracef("function %v [version: %v] config %v", funcArn, checkVersion, *configuration)
+
+		var lastUpdateInProgress bool
+		if configuration.LastUpdateStatus != nil {
+			lastUpdateInProgress = *configuration.LastUpdateStatus != lambda.LastUpdateStatusSuccessful
+		}
+		var stateIsPending bool
+		if configuration.State != nil {
+			stateIsPending = *configuration.State == lambda.StatePending
+		}
+		if !lastUpdateInProgress && !stateIsPending {
+			logger.Debugf("function %v [version: %v] is ready", funcArn, checkVersion)
 			return nil
 		}
 		time.Sleep(1 * time.Second)
 	}
-	return fmt.Errorf("timed out after %v attempts waiting for function %v update to succeed", attempts, funcArn)
+	return fmt.Errorf("timed out after %v seconds waiting for function %v [version: %v] to be ready", readyTimeoutSeconds, checkVersion, funcArn)
 }
 
 func createOrUpdateAlias(svc *lambda.Lambda, funcArn string, versionId string, aliasName string) (aliasArn string, err error) {
@@ -162,17 +183,10 @@ func createOrUpdateAlias(svc *lambda.Lambda, funcArn string, versionId string, a
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
 			if awsErr.Code() == lambda.ErrCodeResourceNotFoundException {
-				logger.Tracef("creating alias for function %v version %v", funcArn, versionId)
-				alias, err = svc.CreateAlias(&lambda.CreateAliasInput{
-					FunctionName:    aws.String(funcArn),
-					FunctionVersion: aws.String(versionId),
-					Name:            aws.String(aliasName),
-				})
+				aliasArn, err := createAlias(svc, funcArn, versionId, aliasName)
 				if err != nil {
-					return "", err
+					return "", fmt.Errorf("failed to create alias: %v", err)
 				}
-				aliasArn = *alias.AliasArn
-				logger.Debugf("created alias %v to version %v", aliasArn, versionId)
 				return aliasArn, nil
 			} else {
 				return "", fmt.Errorf("failed to get alias %v for function %v: %v", aliasName, funcArn, err)
@@ -193,6 +207,21 @@ func createOrUpdateAlias(svc *lambda.Lambda, funcArn string, versionId string, a
 	}
 	aliasArn = *alias.AliasArn
 	logger.Debugf("updated alias %v to version %v", aliasArn, versionId)
+	return aliasArn, nil
+}
+
+func createAlias(svc *lambda.Lambda, funcArn string, versionId string, aliasName string) (aliasArn string, err error) {
+	logger.Tracef("creating alias for function %v to version %v", funcArn, versionId)
+	alias, err := svc.CreateAlias(&lambda.CreateAliasInput{
+		FunctionName:    aws.String(funcArn),
+		FunctionVersion: aws.String(versionId),
+		Name:            aws.String(aliasName),
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to create alias for function %v to version %v: %v", funcArn, versionId, err)
+	}
+	aliasArn = *alias.AliasArn
+	logger.Debugf("created alias %v to version %v", aliasArn, versionId)
 	return aliasArn, nil
 }
 
@@ -270,58 +299,6 @@ func (m LambdaRemote) initAws() (region string, sess *awssession.Session, svc *l
 	region, sess = m.startAwsSession()
 	svc = lambda.New(sess)
 	return region, sess, svc, nil
-}
-
-func configureUrlAccess(svc *lambda.Lambda, funcArn string, anonAccess bool) error {
-	const statementId = "PermitAnonymousAccessToFunctionUrl"
-	if anonAccess {
-		if err := createAnonUrlAccessPolicy(svc, funcArn, statementId); err != nil {
-			return err
-		}
-	} else {
-		_, err := svc.RemovePermission(&lambda.RemovePermissionInput{
-			FunctionName: aws.String(funcArn),
-			StatementId:  aws.String(statementId),
-		})
-		if err != nil {
-			if awsErr, ok := err.(awserr.Error); ok {
-				if awsErr.Code() == lambda.ErrCodeResourceNotFoundException {
-					logger.Debugf("anonymous URL access permission did not exist")
-					return nil
-				} else {
-					return fmt.Errorf("failed to delete anonymous URL access permission: %v", err)
-				}
-			} else {
-				return fmt.Errorf("failed to delete anonymous URL access permission: %v", err)
-			}
-		}
-		logger.Debugf("deleted anonymous URL access permission")
-	}
-	return nil
-}
-
-func createAnonUrlAccessPolicy(svc *lambda.Lambda, funcArn string, statementId string) error {
-	_, err := svc.AddPermission(&lambda.AddPermissionInput{
-		StatementId:         aws.String(statementId),
-		Action:              aws.String("lambda:InvokeFunctionUrl"),
-		FunctionName:        aws.String(funcArn),
-		FunctionUrlAuthType: aws.String(lambda.FunctionUrlAuthTypeNone),
-		Principal:           aws.String("*"),
-	})
-	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok {
-			if awsErr.Code() == lambda.ErrCodeResourceConflictException {
-				logger.Debugf("anonymous URL access permission already exists")
-				return nil
-			} else {
-				return fmt.Errorf("failed to add anonymous URL access permission: %v", err)
-			}
-		} else {
-			return fmt.Errorf("failed to add anonymous URL access permission: %v", err)
-		}
-	}
-	logger.Debugf("added anonymous URL access permission")
-	return nil
 }
 
 func (m LambdaRemote) getFunctionName() string {
@@ -468,37 +445,6 @@ func updateFunctionCode(svc *lambda.Lambda, funcArn string, zipContents *[]byte)
 	}
 	logger.Infof("updated function code for: %s", funcArn)
 	return nil
-}
-
-func (m LambdaRemote) ensureUrlConfigured(svc *lambda.Lambda, funcArn string) (string, error) {
-	logger.Debugf("configuring URL for function: %s", funcArn)
-
-	var functionUrl string
-	getUrlResult, err := m.checkFunctionUrlConfig(svc, funcArn)
-	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok {
-			if awsErr.Code() == lambda.ErrCodeResourceNotFoundException {
-				urlConfigOutput, err := svc.CreateFunctionUrlConfig(&lambda.CreateFunctionUrlConfigInput{
-					AuthType:     aws.String(lambda.FunctionUrlAuthTypeNone),
-					FunctionName: aws.String(funcArn),
-				})
-				if err != nil {
-					return "", fmt.Errorf("failed to create URL for function: %s: %v", funcArn, err)
-				}
-				functionUrl = *urlConfigOutput.FunctionUrl
-				logger.Debugf("configured function URL: %s", functionUrl)
-
-			} else {
-				return "", fmt.Errorf("failed to check if URL config exists for function: %s: %v", funcArn, err)
-			}
-		} else {
-			return "", fmt.Errorf("failed to check if URL config exists for function: %s: %v", funcArn, err)
-		}
-	} else {
-		functionUrl = *getUrlResult.FunctionUrl
-		logger.Debugf("function URL already configured: %s", functionUrl)
-	}
-	return functionUrl, nil
 }
 
 func (m LambdaRemote) checkFunctionUrlConfig(
