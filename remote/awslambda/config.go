@@ -26,20 +26,26 @@ const defaultMemory = 768
 
 const configKeyAnonAccess = "anonAccess"
 const configKeyArchitecture = "architecture"
+const configKeyCreateAlias = "createAlias"
 const configKeyEngineVersion = "engineVersion"
 const configKeyFuncName = "functionName"
 const configKeyIamRoleName = "iamRoleName"
 const configKeyMemory = "memory"
+const configKeyPublishVersion = "publishVersion"
 const configKeyRegion = "region"
+const configKeySnapStart = "snapStart"
 
 var configKeys = []string{
 	configKeyAnonAccess,
 	configKeyArchitecture,
+	configKeyCreateAlias,
 	configKeyEngineVersion,
 	configKeyFuncName,
 	configKeyIamRoleName,
 	configKeyMemory,
+	configKeyPublishVersion,
 	configKeyRegion,
+	configKeySnapStart,
 }
 
 var logger = logging.GetLogger()

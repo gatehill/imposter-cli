@@ -19,6 +19,7 @@ package stringutil
 import (
 	"crypto/sha1"
 	"encoding/hex"
+	"strconv"
 	"strings"
 )
 
@@ -91,4 +92,12 @@ func Sha1hash(input []byte) string {
 	h.Write(input)
 	bs := h.Sum(nil)
 	return hex.EncodeToString(bs)
+}
+
+func ToBool(input string) bool {
+	parsed, err := strconv.ParseBool(input)
+	if err != nil {
+		return false
+	}
+	return parsed
 }

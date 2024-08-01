@@ -10,14 +10,14 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	awssession "github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"os"
 	"path"
 	"strings"
+	"time"
 )
 
-const defaultIamRoleName = "ImposterLambdaExecutionRole"
+const liveAliasName = "live"
 
 func (m LambdaRemote) Deploy() error {
 	region, sess, svc, err := m.initAws()
@@ -38,6 +38,7 @@ func (m LambdaRemote) Deploy() error {
 		logger.Fatal(err)
 	}
 
+	snapStart := stringutil.ToBool(m.Config[configKeySnapStart])
 	funcArn, err := ensureFunctionExists(
 		svc,
 		region,
@@ -46,21 +47,153 @@ func (m LambdaRemote) Deploy() error {
 		m.getMemorySize(),
 		m.getArchitecture(),
 		zipContents,
+		snapStart,
 	)
 	if err != nil {
 		return err
 	}
-	_, err = ensureUrlConfigured(svc, funcArn)
-	if err != nil {
+
+	var versionId string
+	if stringutil.ToBool(m.Config[configKeyPublishVersion]) {
+		versionId, err = publishFunctionVersion(svc, funcArn)
+		if err != nil {
+			return err
+		}
+	} else {
+		versionId = "$LATEST"
+	}
+
+	var arnForUrl string
+
+	createAlias := stringutil.ToBool(m.Config[configKeyCreateAlias])
+	if createAlias {
+		aliasArn, err := createOrUpdateAlias(svc, funcArn, versionId, liveAliasName)
+		if err != nil {
+			return err
+		}
+		arnForUrl = aliasArn
+	} else {
+		arnForUrl = funcArn
+	}
+
+	if _, err = m.ensureUrlConfigured(svc, arnForUrl); err != nil {
 		return err
 	}
 
-	permitAnonAccess := m.Config[configKeyAnonAccess] == "true"
-	err = configureUrlAccess(svc, funcArn, permitAnonAccess)
-	if err != nil {
+	permitAnonAccess := stringutil.ToBool(m.Config[configKeyAnonAccess])
+	if err = configureUrlAccess(svc, arnForUrl, permitAnonAccess); err != nil {
 		return err
 	}
 	return nil
+}
+
+func ensureSnapStart(svc *lambda.Lambda, funcArn string, snapStart bool) error {
+	var desiredConfig string
+	if snapStart {
+		desiredConfig = lambda.SnapStartApplyOnPublishedVersions
+	} else {
+		desiredConfig = lambda.SnapStartApplyOnNone
+	}
+
+	configuration, err := svc.GetFunctionConfiguration(&lambda.GetFunctionConfigurationInput{FunctionName: aws.String(funcArn)})
+	if err != nil {
+		return fmt.Errorf("failed to check snapstart configuration for %v: %v", funcArn, err)
+	}
+	if *configuration.SnapStart.ApplyOn == desiredConfig {
+		logger.Tracef("snapstart set to %v for %v", desiredConfig, funcArn)
+		return nil
+	}
+
+	logger.Tracef("configuring snapstart for %v", funcArn)
+	_, err = svc.UpdateFunctionConfiguration(&lambda.UpdateFunctionConfigurationInput{
+		FunctionName: aws.String(funcArn),
+		SnapStart: &lambda.SnapStart{
+			ApplyOn: aws.String(desiredConfig),
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to configure snapstart for %v: %v", funcArn, err)
+	}
+	logger.Tracef("snapstart set to %v for %v", desiredConfig, funcArn)
+	return nil
+}
+
+func publishFunctionVersion(svc *lambda.Lambda, funcArn string) (versionId string, err error) {
+	if err = awaitLastUpdateSuccess(svc, funcArn); err != nil {
+		return "", err
+	}
+
+	logger.Tracef("publishing version for %v", funcArn)
+	version, err := svc.PublishVersion(&lambda.PublishVersionInput{
+		FunctionName: aws.String(funcArn),
+	})
+	if err != nil {
+		return "", err
+	}
+	versionId = *version.Version
+	logger.Debugf("published version %v for %v", versionId, funcArn)
+	return versionId, nil
+}
+
+func awaitLastUpdateSuccess(svc *lambda.Lambda, funcArn string) error {
+	const attempts = 120
+	for i := 0; i < attempts; i++ {
+		configuration, err := svc.GetFunctionConfiguration(&lambda.GetFunctionConfigurationInput{
+			FunctionName: aws.String(funcArn),
+		})
+		if err != nil {
+			return err
+		}
+		lastUpdateStatus := *configuration.LastUpdateStatus
+		logger.Tracef("function %v last update status is %v", funcArn, lastUpdateStatus)
+		if lastUpdateStatus == lambda.LastUpdateStatusSuccessful {
+			return nil
+		}
+		time.Sleep(1 * time.Second)
+	}
+	return fmt.Errorf("timed out after %v attempts waiting for function %v update to succeed", attempts, funcArn)
+}
+
+func createOrUpdateAlias(svc *lambda.Lambda, funcArn string, versionId string, aliasName string) (aliasArn string, err error) {
+	alias, err := svc.GetAlias(&lambda.GetAliasInput{
+		FunctionName: aws.String(funcArn),
+		Name:         aws.String(aliasName),
+	})
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() == lambda.ErrCodeResourceNotFoundException {
+				logger.Tracef("creating alias for function %v version %v", funcArn, versionId)
+				alias, err = svc.CreateAlias(&lambda.CreateAliasInput{
+					FunctionName:    aws.String(funcArn),
+					FunctionVersion: aws.String(versionId),
+					Name:            aws.String(aliasName),
+				})
+				if err != nil {
+					return "", err
+				}
+				aliasArn = *alias.AliasArn
+				logger.Debugf("created alias %v to version %v", aliasArn, versionId)
+				return aliasArn, nil
+			} else {
+				return "", fmt.Errorf("failed to get alias %v for function %v: %v", aliasName, funcArn, err)
+			}
+		} else {
+			return "", fmt.Errorf("failed to get alias %v for function %v: %v", aliasName, funcArn, err)
+		}
+	}
+
+	logger.Debugf("updating alias %v for function %v", aliasName, funcArn)
+	alias, err = svc.UpdateAlias(&lambda.UpdateAliasInput{
+		FunctionName:    aws.String(funcArn),
+		FunctionVersion: aws.String(versionId),
+		Name:            aws.String(aliasName),
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to update alias %v for function %v: %v", aliasName, funcArn, err)
+	}
+	aliasArn = *alias.AliasArn
+	logger.Debugf("updated alias %v to version %v", aliasArn, versionId)
+	return aliasArn, nil
 }
 
 func (m LambdaRemote) Undeploy() error {
@@ -112,7 +245,7 @@ func (m LambdaRemote) GetEndpoint() (*remote.EndpointDetails, error) {
 	}
 
 	var functionUrl string
-	getUrlResult, err := checkFunctionUrlConfig(svc, funcArn)
+	getUrlResult, err := m.checkFunctionUrlConfig(svc, funcArn)
 	if err != nil {
 		return nil, err
 	} else {
@@ -226,6 +359,7 @@ func ensureFunctionExists(
 	memoryMb int64,
 	arch LambdaArchitecture,
 	zipContents *[]byte,
+	snapStart bool,
 ) (string, error) {
 	var funcArn string
 	result, err := checkFunctionExists(svc, funcName)
@@ -240,6 +374,7 @@ func ensureFunctionExists(
 					memoryMb,
 					arch,
 					zipContents,
+					snapStart,
 				)
 				if err != nil {
 					return "", err
@@ -254,6 +389,10 @@ func ensureFunctionExists(
 
 	} else {
 		funcArn = *result.Configuration.FunctionArn
+
+		if err = ensureSnapStart(svc, funcArn, snapStart); err != nil {
+			return "", err
+		}
 		if err = updateFunctionCode(svc, funcArn, zipContents); err != nil {
 			return "", err
 		}
@@ -276,8 +415,16 @@ func createFunction(
 	memoryMb int64,
 	arch LambdaArchitecture,
 	zipContents *[]byte,
+	snapStart bool,
 ) (arn string, err error) {
 	logger.Debugf("creating function: %s in region: %s", funcName, region)
+
+	var desiredConfig string
+	if snapStart {
+		desiredConfig = lambda.SnapStartApplyOnPublishedVersions
+	} else {
+		desiredConfig = lambda.SnapStartApplyOnNone
+	}
 
 	input := &lambda.CreateFunctionInput{
 		Code: &lambda.FunctionCode{
@@ -291,6 +438,10 @@ func createFunction(
 		Architectures: []*string{aws.String(string(arch))},
 		Environment:   buildEnv(),
 	}
+
+	input.SetSnapStart(&lambda.SnapStart{
+		ApplyOn: aws.String(desiredConfig),
+	})
 
 	result, err := svc.CreateFunction(input)
 	if err != nil {
@@ -319,11 +470,11 @@ func updateFunctionCode(svc *lambda.Lambda, funcArn string, zipContents *[]byte)
 	return nil
 }
 
-func ensureUrlConfigured(svc *lambda.Lambda, funcArn string) (string, error) {
+func (m LambdaRemote) ensureUrlConfigured(svc *lambda.Lambda, funcArn string) (string, error) {
 	logger.Debugf("configuring URL for function: %s", funcArn)
 
 	var functionUrl string
-	getUrlResult, err := checkFunctionUrlConfig(svc, funcArn)
+	getUrlResult, err := m.checkFunctionUrlConfig(svc, funcArn)
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
 			if awsErr.Code() == lambda.ErrCodeResourceNotFoundException {
@@ -350,11 +501,28 @@ func ensureUrlConfigured(svc *lambda.Lambda, funcArn string) (string, error) {
 	return functionUrl, nil
 }
 
-func checkFunctionUrlConfig(svc *lambda.Lambda, funcArn string) (*lambda.GetFunctionUrlConfigOutput, error) {
-	getUrlResult, err := svc.GetFunctionUrlConfig(&lambda.GetFunctionUrlConfigInput{
+func (m LambdaRemote) checkFunctionUrlConfig(
+	svc *lambda.Lambda,
+	funcArn string,
+) (*lambda.GetFunctionUrlConfigOutput, error) {
+
+	input := &lambda.GetFunctionUrlConfigInput{
 		FunctionName: aws.String(funcArn),
-	})
+	}
+	if m.shouldCreateAlias() {
+		input.Qualifier = aws.String(m.getFunctionAlias())
+	}
+	logger.Tracef("checking function URL config for %v", input)
+	getUrlResult, err := svc.GetFunctionUrlConfig(input)
 	return getUrlResult, err
+}
+
+func (m LambdaRemote) shouldCreateAlias() bool {
+	return stringutil.ToBool(m.Config[configKeyCreateAlias])
+}
+
+func (m LambdaRemote) getFunctionAlias() string {
+	return liveAliasName
 }
 
 func (m LambdaRemote) getAwsRegion() string {
@@ -371,73 +539,6 @@ func buildEnv() *lambda.Environment {
 	env["IMPOSTER_CONFIG_DIR"] = aws.String("/var/task/config")
 	env["JAVA_TOOL_OPTIONS"] = aws.String("-XX:+TieredCompilation -XX:TieredStopAtLevel=1")
 	return &lambda.Environment{Variables: env}
-}
-
-func ensureIamRole(session *awssession.Session, roleName string) (string, error) {
-	svc := iam.New(session)
-	getRoleResult, err := svc.GetRole(&iam.GetRoleInput{
-		RoleName: &roleName,
-	})
-	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok {
-			if awsErr.Code() == iam.ErrCodeNoSuchEntityException {
-				roleArn, err := createRole(svc, roleName)
-				if err != nil {
-					return "", err
-				}
-				return roleArn, nil
-
-			} else {
-				logger.Fatalf("failed to get IAM role: %s: %v", roleName, err)
-			}
-		} else {
-			logger.Fatal(err)
-		}
-	}
-	logger.Debugf("using role: %s", *getRoleResult.Role.Arn)
-	return *getRoleResult.Role.Arn, nil
-}
-
-func createRole(svc *iam.IAM, roleName string) (string, error) {
-	description := "Default IAM role for Imposter Lambda"
-	assumeRolePolicy := `{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Service": "lambda.amazonaws.com"
-      },
-      "Action": "sts:AssumeRole"
-    }
-  ]
-}`
-	createRoleOutput, err := svc.CreateRole(&iam.CreateRoleInput{
-		Description:              &description,
-		RoleName:                 &roleName,
-		AssumeRolePolicyDocument: &assumeRolePolicy,
-	})
-	if err != nil {
-		logger.Fatalf("failed to create role: %s: %v", roleName, err)
-	}
-	roleArn := *createRoleOutput.Role.Arn
-
-	arn := "arn:aws:iam::aws:policy/AWSLambdaExecute"
-	getPolicyResult, err := svc.GetPolicy(&iam.GetPolicyInput{
-		PolicyArn: &arn,
-	})
-	if err != nil {
-		return "", err
-	}
-	_, err = svc.AttachRolePolicy(&iam.AttachRolePolicyInput{
-		PolicyArn: getPolicyResult.Policy.Arn,
-		RoleName:  &roleName,
-	})
-	if err != nil {
-		return "", err
-	}
-	logger.Debugf("created role: %s with arn: %s", roleName, roleArn)
-	return roleArn, nil
 }
 
 func (m LambdaRemote) deleteFunction(funcArn string, svc *lambda.Lambda) error {
