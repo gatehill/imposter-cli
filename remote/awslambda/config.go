@@ -26,6 +26,7 @@ const defaultMemory = 768
 
 const configKeyAnonAccess = "anonAccess"
 const configKeyArchitecture = "architecture"
+const configKeyBucketName = "bucketName"
 const configKeyCreateAlias = "createAlias"
 const configKeyEngineVersion = "engineVersion"
 const configKeyFuncName = "functionName"
@@ -34,10 +35,12 @@ const configKeyMemory = "memory"
 const configKeyPublishVersion = "publishVersion"
 const configKeyRegion = "region"
 const configKeySnapStart = "snapStart"
+const configKeyUploadToBucket = "uploadToBucket"
 
 var configKeys = []string{
 	configKeyAnonAccess,
 	configKeyArchitecture,
+	configKeyBucketName,
 	configKeyCreateAlias,
 	configKeyEngineVersion,
 	configKeyFuncName,
@@ -46,6 +49,7 @@ var configKeys = []string{
 	configKeyPublishVersion,
 	configKeyRegion,
 	configKeySnapStart,
+	configKeyUploadToBucket,
 }
 
 var logger = logging.GetLogger()

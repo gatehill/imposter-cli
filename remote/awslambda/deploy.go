@@ -21,9 +21,9 @@ const liveAliasName = "live"
 const readyTimeoutSeconds = 360
 
 func (m LambdaRemote) Deploy() error {
-	region, sess, svc, err := m.initAws()
+	region, sess, svc, err := m.initLambdaClient()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to initialise lambda client: %v", err)
 	}
 
 	roleName := stringutil.GetFirstNonEmpty(m.Config[configKeyIamRoleName], defaultIamRoleName)
@@ -39,6 +39,22 @@ func (m LambdaRemote) Deploy() error {
 		logger.Fatal(err)
 	}
 
+	var location codeLocation
+	if stringutil.ToBoolWithDefault(m.Config[configKeyUploadToBucket], true) {
+		bucketName, localBundlePath, err := m.uploadBundleToBucket(zipContents)
+		if err != nil {
+			return err
+		}
+		location = codeLocation{
+			bucket:    bucketName,
+			objectKey: path.Base(localBundlePath),
+		}
+	} else {
+		location = codeLocation{
+			zipContents: zipContents,
+		}
+	}
+
 	snapStart := stringutil.ToBool(m.Config[configKeySnapStart])
 	funcArn, err := ensureFunctionExists(
 		svc,
@@ -47,7 +63,7 @@ func (m LambdaRemote) Deploy() error {
 		roleArn,
 		m.getMemorySize(),
 		m.getArchitecture(),
-		zipContents,
+		location,
 		snapStart,
 	)
 	if err != nil {
@@ -65,9 +81,7 @@ func (m LambdaRemote) Deploy() error {
 	}
 
 	var arnForUrl string
-
-	createAlias := stringutil.ToBool(m.Config[configKeyCreateAlias])
-	if createAlias {
+	if stringutil.ToBool(m.Config[configKeyCreateAlias]) {
 		aliasArn, err := createOrUpdateAlias(svc, funcArn, versionId, liveAliasName)
 		if err != nil {
 			return err
@@ -156,15 +170,18 @@ func awaitReady(svc *lambda.Lambda, funcArn string, checkVersion string) error {
 		if err != nil {
 			return err
 		}
-		logger.Tracef("function %v [version: %v] config %v", funcArn, checkVersion, *configuration)
 
 		var lastUpdateInProgress bool
 		if configuration.LastUpdateStatus != nil {
-			lastUpdateInProgress = *configuration.LastUpdateStatus != lambda.LastUpdateStatusSuccessful
+			lastUpdateStatus := *configuration.LastUpdateStatus
+			logger.Tracef("function %v [version: %v] lastUpdateStatus=%v", funcArn, checkVersion, lastUpdateStatus)
+			lastUpdateInProgress = lastUpdateStatus != lambda.LastUpdateStatusSuccessful
 		}
 		var stateIsPending bool
 		if configuration.State != nil {
-			stateIsPending = *configuration.State == lambda.StatePending
+			currentState := *configuration.State
+			logger.Tracef("function %v [version: %v] state=%v", funcArn, checkVersion, currentState)
+			stateIsPending = currentState == lambda.StatePending
 		}
 		if !lastUpdateInProgress && !stateIsPending {
 			logger.Debugf("function %v [version: %v] is ready", funcArn, checkVersion)
@@ -226,9 +243,9 @@ func createAlias(svc *lambda.Lambda, funcArn string, versionId string, aliasName
 }
 
 func (m LambdaRemote) Undeploy() error {
-	region, _, svc, err := m.initAws()
+	region, _, svc, err := m.initLambdaClient()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to initialise lambda client: %v", err)
 	}
 
 	funcName := m.getFunctionName()
@@ -259,9 +276,9 @@ func (m LambdaRemote) Undeploy() error {
 }
 
 func (m LambdaRemote) GetEndpoint() (*remote.EndpointDetails, error) {
-	_, _, svc, err := m.initAws()
+	_, _, svc, err := m.initLambdaClient()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to initialise lambda client: %v", err)
 	}
 
 	var funcArn string
@@ -292,7 +309,7 @@ func (m LambdaRemote) GetEndpoint() (*remote.EndpointDetails, error) {
 	return details, nil
 }
 
-func (m LambdaRemote) initAws() (region string, sess *awssession.Session, svc *lambda.Lambda, err error) {
+func (m LambdaRemote) initLambdaClient() (region string, sess *awssession.Session, svc *lambda.Lambda, err error) {
 	if m.Config[configKeyRegion] == "" {
 		return "", nil, nil, fmt.Errorf("region cannot be null")
 	}
@@ -335,10 +352,11 @@ func ensureFunctionExists(
 	roleArn string,
 	memoryMb int64,
 	arch LambdaArchitecture,
-	zipContents *[]byte,
+	location codeLocation,
 	snapStart bool,
 ) (string, error) {
 	var funcArn string
+
 	result, err := checkFunctionExists(svc, funcName)
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
@@ -350,7 +368,7 @@ func ensureFunctionExists(
 					roleArn,
 					memoryMb,
 					arch,
-					zipContents,
+					location,
 					snapStart,
 				)
 				if err != nil {
@@ -366,11 +384,10 @@ func ensureFunctionExists(
 
 	} else {
 		funcArn = *result.Configuration.FunctionArn
-
 		if err = ensureSnapStart(svc, funcArn, snapStart); err != nil {
 			return "", err
 		}
-		if err = updateFunctionCode(svc, funcArn, zipContents); err != nil {
+		if err = updateFunctionCode(svc, funcArn, location); err != nil {
 			return "", err
 		}
 	}
@@ -384,6 +401,12 @@ func checkFunctionExists(svc *lambda.Lambda, functionName string) (*lambda.GetFu
 	return result, err
 }
 
+type codeLocation struct {
+	bucket      string
+	objectKey   string
+	zipContents *[]byte
+}
+
 func createFunction(
 	svc *lambda.Lambda,
 	region string,
@@ -391,7 +414,7 @@ func createFunction(
 	roleArn string,
 	memoryMb int64,
 	arch LambdaArchitecture,
-	zipContents *[]byte,
+	location codeLocation,
 	snapStart bool,
 ) (arn string, err error) {
 	logger.Debugf("creating function: %s in region: %s", funcName, region)
@@ -404,9 +427,6 @@ func createFunction(
 	}
 
 	input := &lambda.CreateFunctionInput{
-		Code: &lambda.FunctionCode{
-			ZipFile: *zipContents,
-		},
 		FunctionName:  aws.String(funcName),
 		Handler:       aws.String("io.gatehill.imposter.awslambda.HandlerV2"),
 		MemorySize:    aws.Int64(memoryMb),
@@ -414,6 +434,17 @@ func createFunction(
 		Runtime:       aws.String("java11"),
 		Architectures: []*string{aws.String(string(arch))},
 		Environment:   buildEnv(),
+	}
+
+	if location.bucket != "" {
+		input.SetCode(&lambda.FunctionCode{
+			S3Bucket: aws.String(location.bucket),
+			S3Key:    aws.String(location.objectKey),
+		})
+	} else {
+		input.SetCode(&lambda.FunctionCode{
+			ZipFile: *location.zipContents,
+		})
 	}
 
 	input.SetSnapStart(&lambda.SnapStart{
@@ -434,12 +465,18 @@ func createFunction(
 	return *result.FunctionArn, nil
 }
 
-func updateFunctionCode(svc *lambda.Lambda, funcArn string, zipContents *[]byte) error {
+func updateFunctionCode(svc *lambda.Lambda, funcArn string, location codeLocation) error {
 	logger.Debugf("updating function code for: %s", funcArn)
-	_, err := svc.UpdateFunctionCode(&lambda.UpdateFunctionCodeInput{
+	input := &lambda.UpdateFunctionCodeInput{
 		FunctionName: aws.String(funcArn),
-		ZipFile:      *zipContents,
-	})
+	}
+	if location.bucket != "" {
+		input.S3Bucket = aws.String(location.bucket)
+		input.S3Key = aws.String(location.objectKey)
+	} else {
+		input.ZipFile = *location.zipContents
+	}
+	_, err := svc.UpdateFunctionCode(input)
 	if err != nil {
 		return err
 	}

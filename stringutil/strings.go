@@ -95,9 +95,13 @@ func Sha1hash(input []byte) string {
 }
 
 func ToBool(input string) bool {
+	return ToBoolWithDefault(input, false)
+}
+
+func ToBoolWithDefault(input string, defaultValue bool) bool {
 	parsed, err := strconv.ParseBool(input)
 	if err != nil {
-		return false
+		return defaultValue
 	}
 	return parsed
 }
