@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.44.0] - 2024-08-02
+### Added
+- feat(awslambda): allows S3 object key to be set.
+- feat(awslambda): awaits version publish completion.
+- feat(awslambda): supports bucket upload.
+- feat(awslambda): supports publishing version, creating alias and enabling snapstart.
+
 ## [0.43.0] - 2024-07-02
 ### Added
 - feat: adds support for docker-distroless image.
