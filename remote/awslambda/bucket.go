@@ -2,17 +2,19 @@ package awslambda
 
 import (
 	"fmt"
+	"gatehill.io/imposter/stringutil"
 	"github.com/aws/aws-sdk-go/aws"
 	awssession "github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/google/uuid"
 	"os"
-	"path"
 	"strings"
 )
 
-func (m LambdaRemote) uploadBundleToBucket(zipContents *[]byte) (bucketName string, localBundlePath string, err error) {
-	localBundlePath, err = m.writeBundleToTempFile(zipContents)
+const defaultS3ObjectKey = "imposter-bundle.zip"
+
+func (m LambdaRemote) uploadBundleToBucket(zipContents *[]byte) (bucketName string, objectKey string, err error) {
+	localBundlePath, err := m.writeBundleToTempFile(zipContents)
 	if err != nil {
 		return "", "", err
 	}
@@ -20,10 +22,11 @@ func (m LambdaRemote) uploadBundleToBucket(zipContents *[]byte) (bucketName stri
 	if err != nil {
 		return "", "", err
 	}
-	if err = m.uploadToBucket(localBundlePath, bucketName); err != nil {
+	objectKey = stringutil.GetFirstNonEmpty(m.Config[configKeyS3ObjectKey], defaultS3ObjectKey)
+	if err = m.uploadToBucket(localBundlePath, bucketName, objectKey); err != nil {
 		return "", "", fmt.Errorf("failed to upload file %v to bucket %v: %v", localBundlePath, bucketName, err)
 	}
-	return bucketName, localBundlePath, nil
+	return bucketName, objectKey, nil
 }
 
 func (m LambdaRemote) writeBundleToTempFile(zipContents *[]byte) (localBundlePath string, err error) {
@@ -42,10 +45,10 @@ func (m LambdaRemote) writeBundleToTempFile(zipContents *[]byte) (localBundlePat
 }
 
 func (m LambdaRemote) getBucketName() (bucketName string, err error) {
-	bucketName = m.Config[configKeyBucketName]
+	bucketName = m.Config[configKeyS3BucketName]
 	if bucketName == "" {
 		bucketName = "imposter-mock-" + strings.ReplaceAll(uuid.New().String(), "-", "")
-		m.Config[configKeyBucketName] = bucketName
+		m.Config[configKeyS3BucketName] = bucketName
 		if err = m.SaveConfig(); err != nil {
 			return "", fmt.Errorf("failed to save bucket name %v in config: %v", bucketName, err)
 		}
@@ -53,7 +56,7 @@ func (m LambdaRemote) getBucketName() (bucketName string, err error) {
 	return bucketName, nil
 }
 
-func (m LambdaRemote) uploadToBucket(localPath string, bucketName string) error {
+func (m LambdaRemote) uploadToBucket(localPath string, bucketName string, objectKey string) error {
 	region, _, svc, err := m.initS3Client()
 	if err != nil {
 		return fmt.Errorf("failed to initialise S3 client: %v", err)
@@ -61,7 +64,7 @@ func (m LambdaRemote) uploadToBucket(localPath string, bucketName string) error 
 	if err = ensureBucket(svc, bucketName, region); err != nil {
 		return fmt.Errorf("failed to ensure bucket %v exists: %v", bucketName, err)
 	}
-	if err = upload(svc, bucketName, localPath); err != nil {
+	if err = upload(svc, bucketName, localPath, objectKey); err != nil {
 		return fmt.Errorf("failed to upload file %v to bucket %v: %v", localPath, bucketName, err)
 	}
 	return nil
@@ -95,7 +98,7 @@ func createBucket(svc *s3.S3, bucketName string, region string) error {
 	return nil
 }
 
-func upload(svc *s3.S3, bucketName string, localPath string) error {
+func upload(svc *s3.S3, bucketName string, localPath string, objectKey string) error {
 	logger.Tracef("uploading file %v to bucket %v", localPath, bucketName)
 
 	file, err := os.Open(localPath)
@@ -107,7 +110,7 @@ func upload(svc *s3.S3, bucketName string, localPath string) error {
 	_, err = svc.PutObject(&s3.PutObjectInput{
 		Body:   aws.ReadSeekCloser(file),
 		Bucket: aws.String(bucketName),
-		Key:    aws.String(path.Base(localPath)),
+		Key:    aws.String(objectKey),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to upload file %v to bucket %v: %v", localPath, bucketName, err)

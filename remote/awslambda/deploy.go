@@ -40,14 +40,14 @@ func (m LambdaRemote) Deploy() error {
 	}
 
 	var location codeLocation
-	if stringutil.ToBoolWithDefault(m.Config[configKeyUploadToBucket], true) {
-		bucketName, localBundlePath, err := m.uploadBundleToBucket(zipContents)
+	if stringutil.ToBoolWithDefault(m.Config[configKeyUploadToS3], true) {
+		bucketName, objectKey, err := m.uploadBundleToBucket(zipContents)
 		if err != nil {
 			return err
 		}
 		location = codeLocation{
 			bucket:    bucketName,
-			objectKey: path.Base(localBundlePath),
+			objectKey: objectKey,
 		}
 	} else {
 		location = codeLocation{

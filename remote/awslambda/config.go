@@ -26,7 +26,6 @@ const defaultMemory = 768
 
 const configKeyAnonAccess = "anonAccess"
 const configKeyArchitecture = "architecture"
-const configKeyBucketName = "bucketName"
 const configKeyCreateAlias = "createAlias"
 const configKeyEngineVersion = "engineVersion"
 const configKeyFuncName = "functionName"
@@ -34,13 +33,14 @@ const configKeyIamRoleName = "iamRoleName"
 const configKeyMemory = "memory"
 const configKeyPublishVersion = "publishVersion"
 const configKeyRegion = "region"
+const configKeyS3BucketName = "s3BucketName"
+const configKeyS3ObjectKey = "s3ObjectKey"
 const configKeySnapStart = "snapStart"
-const configKeyUploadToBucket = "uploadToBucket"
+const configKeyUploadToS3 = "uploadToS3"
 
 var configKeys = []string{
 	configKeyAnonAccess,
 	configKeyArchitecture,
-	configKeyBucketName,
 	configKeyCreateAlias,
 	configKeyEngineVersion,
 	configKeyFuncName,
@@ -48,8 +48,10 @@ var configKeys = []string{
 	configKeyMemory,
 	configKeyPublishVersion,
 	configKeyRegion,
+	configKeyS3BucketName,
+	configKeyS3ObjectKey,
 	configKeySnapStart,
-	configKeyUploadToBucket,
+	configKeyUploadToS3,
 }
 
 var logger = logging.GetLogger()
