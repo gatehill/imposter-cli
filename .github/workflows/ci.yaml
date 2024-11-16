@@ -29,14 +29,14 @@ jobs:
         run: go build
 
       - name: Dry run
-        uses: goreleaser/goreleaser-action@v5
+        uses: goreleaser/goreleaser-action@v6
         if: ${{ !startsWith(github.ref, 'refs/tags/') }}
         with:
           version: latest
           args: release --snapshot
 
       - name: Release
-        uses: goreleaser/goreleaser-action@v5
+        uses: goreleaser/goreleaser-action@v6
         if: startsWith(github.ref, 'refs/tags/')
         with:
           version: latest
