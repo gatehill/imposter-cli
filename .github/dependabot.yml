@@ -14,7 +14,7 @@ updates:
       prefix: "chore"
       include: "scope"
 
-  - package-ecosystem: go
+  - package-ecosystem: gomod
     directory: "/"
     schedule:
       interval: "daily"
