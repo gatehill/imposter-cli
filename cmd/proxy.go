@@ -28,6 +28,8 @@ var proxyFlags = struct {
 	port                      int
 	outputDir                 string
 	rewrite                   bool
+	captureRequestBody        bool
+	captureRequestHeaders     bool
 	ignoreDuplicateRequests   bool
 	recordOnlyResponseHeaders []string
 	flatResponseFileStructure bool
@@ -52,6 +54,8 @@ var proxyCmd = &cobra.Command{
 			outputDir = workingDir
 		}
 		options := proxy.RecorderOptions{
+			CaptureRequestBody:        proxyFlags.captureRequestBody,
+			CaptureRequestHeaders:     proxyFlags.captureRequestHeaders,
 			IgnoreDuplicateRequests:   proxyFlags.ignoreDuplicateRequests,
 			RecordOnlyResponseHeaders: proxyFlags.recordOnlyResponseHeaders,
 			FlatResponseFileStructure: proxyFlags.flatResponseFileStructure,
@@ -63,6 +67,8 @@ var proxyCmd = &cobra.Command{
 func init() {
 	proxyCmd.Flags().IntVarP(&proxyFlags.port, "port", "p", 8080, "Port on which to listen")
 	proxyCmd.Flags().StringVarP(&proxyFlags.outputDir, "output-dir", "o", "", "Directory in which HTTP exchanges are recorded (default: current working directory)")
+	proxyCmd.Flags().BoolVar(&proxyFlags.captureRequestBody, "capture-request-body", false, "Capture the request body")
+	proxyCmd.Flags().BoolVar(&proxyFlags.captureRequestHeaders, "capture-request-headers", false, "Capture the request headers")
 	proxyCmd.Flags().BoolVarP(&proxyFlags.rewrite, "rewrite-urls", "r", false, "Rewrite upstream URL in response body to proxy URL")
 	proxyCmd.Flags().BoolVarP(&proxyFlags.ignoreDuplicateRequests, "ignore-duplicate-requests", "i", true, "Ignore duplicate requests with same method and URI")
 	proxyCmd.Flags().StringSliceVarP(&proxyFlags.recordOnlyResponseHeaders, "response-headers", "H", nil, "Record only these response headers")
@@ -82,12 +88,13 @@ func proxyUpstream(upstream string, port int, dir string, rewrite bool, options 
 		_, _ = fmt.Fprintf(writer, "ok\n")
 	})
 	mux.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
-		proxy.Handle(upstream, writer, request, func(statusCode int, respBody *[]byte, respHeaders *http.Header) (*[]byte, *http.Header) {
+		proxy.Handle(upstream, writer, request, func(reqBody *[]byte, statusCode int, respBody *[]byte, respHeaders *http.Header) (*[]byte, *http.Header) {
 			if rewrite {
 				respBody = proxy.Rewrite(respHeaders, respBody, upstream, port)
 			}
 			recorderC <- proxy.HttpExchange{
 				Request:         request,
+				RequestBody:     reqBody,
 				StatusCode:      statusCode,
 				ResponseBody:    respBody,
 				ResponseHeaders: respHeaders,
