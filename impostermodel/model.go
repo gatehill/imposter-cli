@@ -25,11 +25,18 @@ type ResponseConfig struct {
 	Headers     *map[string]string `json:"headers,omitempty"`
 }
 
+type RequestBody struct {
+	Operator string `json:"operator"`
+	Value    string `json:"value"`
+}
+
 type Resource struct {
-	Path        string             `json:"path"`
-	Method      string             `json:"method"`
-	QueryParams *map[string]string `json:"queryParams,omitempty"`
-	Response    *ResponseConfig    `json:"response,omitempty"`
+	Path           string             `json:"path"`
+	Method         string             `json:"method"`
+	QueryParams    *map[string]string `json:"queryParams,omitempty"`
+	RequestBody    *RequestBody       `json:"requestBody,omitempty"`
+	RequestHeaders *map[string]string `json:"requestHeaders,omitempty"`
+	Response       *ResponseConfig    `json:"response,omitempty"`
 }
 
 type PluginConfig struct {

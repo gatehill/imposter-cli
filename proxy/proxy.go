@@ -30,6 +30,7 @@ import (
 
 type HttpExchange struct {
 	Request         *http.Request
+	RequestBody     *[]byte
 	StatusCode      int
 	ResponseBody    *[]byte
 	ResponseHeaders *http.Header
@@ -80,7 +81,7 @@ func Handle(
 	upstream string,
 	w http.ResponseWriter,
 	req *http.Request,
-	listener func(statusCode int, respBody *[]byte, respHeaders *http.Header) (*[]byte, *http.Header),
+	listener func(reqBody *[]byte, statusCode int, respBody *[]byte, respHeaders *http.Header) (*[]byte, *http.Header),
 ) {
 	startTime := time.Now()
 
@@ -101,7 +102,7 @@ func Handle(
 		return
 	}
 
-	responseBody, respHeaders = listener(statusCode, responseBody, respHeaders)
+	responseBody, respHeaders = listener(requestBody, statusCode, responseBody, respHeaders)
 
 	err = sendResponse(w, respHeaders, statusCode, responseBody, client)
 	if err != nil {

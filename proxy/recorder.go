@@ -31,6 +31,8 @@ import (
 )
 
 type RecorderOptions struct {
+	CaptureRequestBody        bool
+	CaptureRequestHeaders     bool
 	IgnoreDuplicateRequests   bool
 	RecordOnlyResponseHeaders []string
 	FlatResponseFileStructure bool
@@ -162,7 +164,12 @@ func getResponseFile(
 	}
 }
 
-func buildResource(dir string, options RecorderOptions, exchange HttpExchange, respFile string) (impostermodel.Resource, error) {
+func buildResource(
+	dir string,
+	options RecorderOptions,
+	exchange HttpExchange,
+	respFile string,
+) (impostermodel.Resource, error) {
 	req := *exchange.Request
 	response := &impostermodel.ResponseConfig{
 		StatusCode: exchange.StatusCode,
@@ -187,6 +194,30 @@ func buildResource(dir string, options RecorderOptions, exchange HttpExchange, r
 			}
 		}
 		resource.QueryParams = &queryParams
+	}
+	if options.CaptureRequestHeaders && len(req.Header) > 0 {
+		headers := make(map[string]string)
+		for headerName, headerValues := range req.Header {
+			shouldSkip := stringutil.Contains(skipProxyHeaders, headerName) || stringutil.Contains(skipRecordHeaders, headerName)
+			if !shouldSkip && len(headerValues) > 0 {
+				headers[headerName] = headerValues[0]
+			}
+		}
+		resource.RequestHeaders = &headers
+	}
+	if options.CaptureRequestBody && exchange.RequestBody != nil {
+		contentType := req.Header.Get("Content-Type")
+		if !isTextContentType(contentType) {
+			logger.Debugf("unsupported content type '%s' for capture - skipping request body capture", contentType)
+		} else {
+			reqBody := *exchange.RequestBody
+			if len(reqBody) > 0 {
+				resource.RequestBody = &impostermodel.RequestBody{
+					Value:    string(reqBody),
+					Operator: "EqualTo",
+				}
+			}
+		}
 	}
 	if len(*exchange.ResponseHeaders) > 0 {
 		headers := make(map[string]string)
