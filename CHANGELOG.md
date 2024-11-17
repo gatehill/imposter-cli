@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.44.1] - 2024-11-17
+### Changed
+- build: adds dependabot config.
+- build: sets package ecosystem to gomod.
+- chore(deps): bump github.com/docker/go-connections from 0.4.0 to 0.5.0
+- chore(deps): bump github.com/stretchr/testify from 1.7.0 to 1.9.0
+- chore(deps): bumps golang to 1.23.3.
+
 ## [0.44.0] - 2024-08-02
 ### Added
 - feat(awslambda): allows S3 object key to be set.
