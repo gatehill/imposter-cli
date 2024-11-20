@@ -59,7 +59,7 @@ func TestEnsurePlugin(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		{name: "fetch plugin", args: args{pluginName: "store-redis", version: "3.44.1"}, wantErr: false},
+		{name: "fetch plugin", args: args{pluginName: "store-redis", version: "4.2.2"}, wantErr: false},
 		{name: "fetch nonexistent plugin version", args: args{pluginName: "store-redis", version: "0.0.0"}, wantErr: true},
 	}
 	for _, tt := range tests {
@@ -81,8 +81,8 @@ func TestEnsurePlugins(t *testing.T) {
 		plugins []string
 		wantErr bool
 	}{
-		{name: "no op if no plugins configured", args: args{version: "3.44.1"}, plugins: nil, wantErr: false},
-		{name: "fetch configured plugins", args: args{version: "3.44.1"}, plugins: []string{"store-redis"}, wantErr: false},
+		{name: "no op if no plugins configured", args: args{version: "4.2.2"}, plugins: nil, wantErr: false},
+		{name: "fetch configured plugins", args: args{version: "4.2.2"}, plugins: []string{"store-redis"}, wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -116,16 +116,16 @@ func Test_getPluginFilePath(t *testing.T) {
 	}{
 		{
 			name:                   "get plugin file path",
-			args:                   args{pluginName: "store-redis", version: "3.44.1"},
+			args:                   args{pluginName: "store-redis", version: "4.2.2"},
 			wantFullPluginFileName: "imposter-plugin-store-redis.jar",
-			wantPluginFilePath:     filepath.Join(homeDir, pluginBaseDir, "3.44.1", "imposter-plugin-store-redis.jar"),
+			wantPluginFilePath:     filepath.Join(homeDir, pluginBaseDir, "4.2.2", "imposter-plugin-store-redis.jar"),
 			wantErr:                false,
 		},
 		{
 			name:                   "get plugin file path with zip suffix",
-			args:                   args{pluginName: "js-graal:zip", version: "3.44.1"},
+			args:                   args{pluginName: "js-graal:zip", version: "4.2.2"},
 			wantFullPluginFileName: "imposter-plugin-js-graal.zip",
-			wantPluginFilePath:     filepath.Join(homeDir, pluginBaseDir, "3.44.1", "imposter-plugin-js-graal.zip"),
+			wantPluginFilePath:     filepath.Join(homeDir, pluginBaseDir, "4.2.2", "imposter-plugin-js-graal.zip"),
 			wantErr:                false,
 		},
 	}
