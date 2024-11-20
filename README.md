@@ -192,6 +192,8 @@ Usage:
   imposter proxy [URL] [flags]
 
 Flags:
+      --capture-request-body        Capture the request body
+      --capture-request-headers     Capture the request headers
       --flat                        Flatten the response file structure
   -h, --help                        help for proxy
   -i, --ignore-duplicate-requests   Ignore duplicate requests with same method and URI (default true)
