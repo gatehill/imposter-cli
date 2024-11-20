@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.45.0] - 2024-11-20
+### Added
+- feat: proxy can capture request body and headers.
+
+### Changed
+- chore(deps): bump github.com/shirou/gopsutil/v3 from 3.22.2 to 3.24.5
+- chore(deps): bump golang.org/x/mod from 0.8.0 to 0.22.0
+- chore: bumps engine test version to 4.2.2.
+- docs: describes request body and header capture flags.
+- refactor: removes dependency on golang.org/x/mod package for semver comparison.
+- test: improves coverage of media type detector.
+- test: improves coverage of proxy recorder.
+
 ## [0.44.1] - 2024-11-17
 ### Changed
 - build: adds dependabot config.
