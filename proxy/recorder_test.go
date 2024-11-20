@@ -2,10 +2,12 @@ package proxy
 
 import (
 	"fmt"
+	"gatehill.io/imposter/impostermodel"
 	"net/http"
 	"net/url"
 	"os"
 	"path"
+	"reflect"
 	"testing"
 )
 
@@ -90,6 +92,201 @@ func Test_getResponseFile(t *testing.T) {
 			}
 			if got != tt.want {
 				t.Errorf("getResponseFile() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_buildResource(t *testing.T) {
+	outputDir, err := os.MkdirTemp(os.TempDir(), "imposter-cli")
+	if err != nil {
+		panic(err)
+	}
+	rootUrl, _ := url.Parse("https://example.com/")
+
+	type args struct {
+		dir      string
+		options  RecorderOptions
+		exchange HttpExchange
+		respFile string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    impostermodel.Resource
+		wantErr bool
+	}{
+		{
+			name: "request with query params",
+			args: args{
+				dir: outputDir,
+				options: RecorderOptions{
+					CaptureRequestBody:    false,
+					CaptureRequestHeaders: false,
+				},
+				exchange: HttpExchange{
+					Request: &http.Request{
+						Method: "GET",
+						URL:    &url.URL{Path: "/test", RawQuery: "param1=value1&param2=value2"},
+					},
+					ResponseHeaders: &http.Header{},
+				},
+				respFile: "",
+			},
+			want: impostermodel.Resource{
+				Path:   "/test",
+				Method: "GET",
+				QueryParams: &map[string]string{
+					"param1": "value1",
+					"param2": "value2",
+				},
+				Response: &impostermodel.ResponseConfig{
+					StatusCode: 0,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "request with headers",
+			args: args{
+				dir: outputDir,
+				options: RecorderOptions{
+					CaptureRequestBody:    false,
+					CaptureRequestHeaders: true,
+				},
+				exchange: HttpExchange{
+					Request: &http.Request{
+						Method: "GET",
+						URL:    rootUrl,
+						Header: http.Header{
+							"Header1": []string{"value1"},
+							"Header2": []string{"value2"},
+						},
+					},
+					ResponseHeaders: &http.Header{},
+				},
+				respFile: "",
+			},
+			want: impostermodel.Resource{
+				Path:   "/",
+				Method: "GET",
+				RequestHeaders: &map[string]string{
+					"Header1": "value1",
+					"Header2": "value2",
+				},
+				Response: &impostermodel.ResponseConfig{
+					StatusCode: 0,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "request with body",
+			args: args{
+				dir: outputDir,
+				options: RecorderOptions{
+					CaptureRequestBody:    true,
+					CaptureRequestHeaders: false,
+				},
+				exchange: HttpExchange{
+					Request: &http.Request{
+						Method: "POST",
+						URL:    rootUrl,
+						Header: http.Header{
+							"Content-Type": []string{"application/json"},
+						},
+					},
+					RequestBody: func() *[]byte {
+						body := []byte(`{"key":"value"}`)
+						return &body
+					}(),
+					ResponseHeaders: &http.Header{},
+				},
+				respFile: "",
+			},
+			want: impostermodel.Resource{
+				Path:   "/",
+				Method: "POST",
+				RequestBody: &impostermodel.RequestBody{
+					Value:    `{"key":"value"}`,
+					Operator: "EqualTo",
+				},
+				Response: &impostermodel.ResponseConfig{
+					StatusCode: 0,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "request with unsupported content type",
+			args: args{
+				dir: outputDir,
+				options: RecorderOptions{
+					CaptureRequestBody:    true,
+					CaptureRequestHeaders: false,
+				},
+				exchange: HttpExchange{
+					Request: &http.Request{
+						Method: "POST",
+						URL:    rootUrl,
+						Header: http.Header{
+							"Content-Type": []string{"application/octet-stream"},
+						},
+					},
+					RequestBody: func() *[]byte {
+						body := []byte(`{"key":"value"}`)
+						return &body
+					}(),
+					ResponseHeaders: &http.Header{},
+				},
+				respFile: "",
+			},
+			want: impostermodel.Resource{
+				Path:   "/",
+				Method: "POST",
+				Response: &impostermodel.ResponseConfig{
+					StatusCode: 0,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "request with response file",
+			args: args{
+				dir: outputDir,
+				options: RecorderOptions{
+					CaptureRequestBody:    false,
+					CaptureRequestHeaders: false,
+				},
+				exchange: HttpExchange{
+					Request: &http.Request{
+						Method: "GET",
+						URL:    rootUrl,
+					},
+					ResponseHeaders: &http.Header{},
+				},
+				respFile: path.Join(outputDir, "response.txt"),
+			},
+			want: impostermodel.Resource{
+				Path:   "/",
+				Method: "GET",
+				Response: &impostermodel.ResponseConfig{
+					StatusCode: 0,
+					StaticFile: "response.txt",
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := buildResource(tt.args.dir, tt.args.options, tt.args.exchange, tt.args.respFile)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("buildResource() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("buildResource() got = %v, want %v", got, tt.want)
 			}
 		})
 	}
