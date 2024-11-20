@@ -18,7 +18,7 @@ package config
 
 import (
 	"fmt"
-	"golang.org/x/mod/semver"
+	"github.com/coreos/go-semver/semver"
 	"os"
 	"path"
 	"path/filepath"
@@ -98,7 +98,15 @@ func checkCliVersion(required string) error {
 		logger.Warnf("using dev CLI version - cannot check version constraint against %v", required)
 		return nil
 	}
-	if semver.Compare("v"+Config.Version, "v"+required) >= 0 {
+	cliVer, err := semver.NewVersion(Config.Version)
+	if err != nil {
+		return fmt.Errorf("failed to parse CLI version: %v: %v", Config.Version, err)
+	}
+	reqVer, err := semver.NewVersion(required)
+	if err != nil {
+		return fmt.Errorf("failed to parse required CLI version: %v: %v", required, err)
+	}
+	if cliVer.Compare(*reqVer) >= 0 {
 		logger.Tracef("CLI version requirement met [required: %v, current: %v]", required, Config.Version)
 		return nil
 	} else {
