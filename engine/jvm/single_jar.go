@@ -2,12 +2,13 @@ package jvm
 
 import (
 	"fmt"
-	"gatehill.io/imposter/engine"
-	"gatehill.io/imposter/library"
-	"github.com/spf13/viper"
 	"os"
 	"os/exec"
 	"path/filepath"
+
+	"gatehill.io/imposter/engine"
+	"gatehill.io/imposter/library"
+	"github.com/spf13/viper"
 )
 
 type SingleJarProvider struct {
@@ -15,7 +16,7 @@ type SingleJarProvider struct {
 	jarPath string
 }
 
-const binCacheDir = ".imposter/engines/"
+const binCacheDir = ".imposter/engines/jvm"
 
 var singleJarInitialised = false
 
@@ -105,7 +106,12 @@ func checkOrDownloadBinary(version string, policy engine.PullPolicy) (string, er
 		logger.Fatal(err)
 	}
 
-	binFilePath := filepath.Join(binCachePath, fmt.Sprintf("imposter-%v.jar", version))
+	versionedBinDir := filepath.Join(binCachePath, version)
+	if err := os.MkdirAll(versionedBinDir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create versioned bin directory: %v", err)
+	}
+
+	binFilePath := filepath.Join(versionedBinDir, "imposter.jar")
 	if policy == engine.PullSkip {
 		return binFilePath, nil
 	}

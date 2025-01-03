@@ -2,10 +2,11 @@ package jvm
 
 import (
 	"fmt"
-	"gatehill.io/imposter/engine"
 	"os"
 	"os/exec"
-	"strings"
+	"path/filepath"
+
+	"gatehill.io/imposter/engine"
 )
 
 type JvmEngineLibrary struct {
@@ -43,14 +44,18 @@ func (JvmEngineLibrary) List() ([]engine.EngineMetadata, error) {
 	}
 	var available []engine.EngineMetadata
 	for _, file := range files {
-		if !strings.HasSuffix(file.Name(), ".jar") || file.IsDir() {
+		if !file.IsDir() {
 			continue
 		}
-		fileVersion := strings.Split(strings.TrimSuffix(file.Name(), ".jar"), "-")[1]
-		available = append(available, engine.EngineMetadata{
-			EngineType: engine.EngineTypeJvmSingleJar,
-			Version:    fileVersion,
-		})
+		// Check if the versioned directory contains a JAR file
+		versionDir := filepath.Join(binCachePath, file.Name())
+		jarPath := filepath.Join(versionDir, "imposter.jar")
+		if _, err := os.Stat(jarPath); err == nil {
+			available = append(available, engine.EngineMetadata{
+				EngineType: engine.EngineTypeJvmSingleJar,
+				Version:    file.Name(),
+			})
+		}
 	}
 	return available, nil
 }
