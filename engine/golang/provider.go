@@ -49,15 +49,51 @@ func fileExists(path string) bool {
 }
 
 func (p *Provider) Provide(policy engine.PullPolicy) error {
-	if policy == engine.PullSkip {
-		p.binaryPath = p.getBinaryPath()
-		return nil
+	binaryPath, err := ensureBinary(p.version, policy, p.binDir)
+	if err != nil {
+		return err
 	}
-	if policy == engine.PullIfNotPresent && p.Satisfied() {
-		return nil
+	p.binaryPath = binaryPath
+	return nil
+}
+
+func ensureBinary(version string, policy engine.PullPolicy, binDir string) (string, error) {
+	return checkOrDownloadBinary(version, policy, binDir)
+}
+
+func checkOrDownloadBinary(version string, policy engine.PullPolicy, binDir string) (string, error) {
+	// Get the binary path for this version
+	binaryPath := filepath.Join(binDir, "imposter")
+	if policy == engine.PullSkip {
+		return binaryPath, nil
 	}
 
-	// Download the binary for the current platform
+	if policy == engine.PullIfNotPresent {
+		if _, err := os.Stat(binaryPath); err != nil {
+			if !os.IsNotExist(err) {
+				return "", fmt.Errorf("failed to stat: %v: %v", binaryPath, err)
+			}
+		} else {
+			providerLogger.Debugf("engine binary '%v' already present", version)
+			providerLogger.Tracef("binary for version %v found at: %v", version, binaryPath)
+			return binaryPath, nil
+		}
+	}
+
+	if err := downloadAndExtractBinary(version, binDir); err != nil {
+		return "", fmt.Errorf("failed to fetch binary: %v", err)
+	}
+	providerLogger.Tracef("using imposter at: %v", binaryPath)
+	return binaryPath, nil
+}
+
+func downloadAndExtractBinary(version string, binDir string) error {
+	// Create bin directory if it doesn't exist
+	if err := os.MkdirAll(binDir, 0755); err != nil {
+		return fmt.Errorf("failed to create bin directory: %v", err)
+	}
+
+	// Get platform-specific filename
 	arch := runtime.GOARCH
 	if arch == "amd64" {
 		arch = "x86_64"
@@ -67,20 +103,15 @@ func (p *Provider) Provide(policy engine.PullPolicy) error {
 		goos = "Darwin"
 	}
 	fileName := fmt.Sprintf("imposter_%s_%s.tar.gz", goos, arch)
-	downloadPath := filepath.Join(p.binDir, fileName)
-
-	// Create bin directory if it doesn't exist
-	if err := os.MkdirAll(p.binDir, 0755); err != nil {
-		return fmt.Errorf("failed to create bin directory: %v", err)
-	}
+	downloadPath := filepath.Join(binDir, fileName)
 
 	// Download the binary
-	if err := library.DownloadBinaryWithConfig(downloadConfig, downloadPath, fileName, p.version, ""); err != nil {
+	if err := library.DownloadBinaryWithConfig(downloadConfig, downloadPath, fileName, version, ""); err != nil {
 		return fmt.Errorf("failed to download binary: %v", err)
 	}
 
 	// Extract the binary
-	cmd := exec.Command("tar", "xzf", downloadPath, "-C", p.binDir)
+	cmd := exec.Command("tar", "xzf", downloadPath, "-C", binDir)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to extract binary: %v", err)
 	}
@@ -88,12 +119,6 @@ func (p *Provider) Provide(policy engine.PullPolicy) error {
 	// Clean up the downloaded archive
 	if err := os.Remove(downloadPath); err != nil {
 		providerLogger.Warnf("failed to clean up downloaded archive: %v", err)
-	}
-
-	// Store the binary path
-	p.binaryPath = p.getBinaryPath()
-	if !fileExists(p.binaryPath) {
-		return fmt.Errorf("binary not found at expected path: %s", p.binaryPath)
 	}
 
 	return nil
