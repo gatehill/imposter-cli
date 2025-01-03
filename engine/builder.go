@@ -18,11 +18,12 @@ package engine
 
 import (
 	"fmt"
+	"os"
+	"strings"
+
 	"gatehill.io/imposter/logging"
 	"gatehill.io/imposter/stringutil"
 	"github.com/spf13/viper"
-	"os"
-	"strings"
 )
 
 type EngineType string
@@ -35,6 +36,7 @@ const (
 	EngineTypeDockerDistroless EngineType = "docker-distroless"
 	EngineTypeJvmSingleJar     EngineType = "jvm"
 	EngineTypeJvmUnpacked      EngineType = "unpacked"
+	EngineTypeGolang           EngineType = "golang"
 )
 const defaultEngineType = EngineTypeDockerCore
 
@@ -101,7 +103,7 @@ func build(engineType EngineType, configDir string, startOptions StartOptions) M
 
 func validateEngineType(engineType EngineType) error {
 	switch engineType {
-	case EngineTypeAwsLambda, EngineTypeDockerCore, EngineTypeDockerAll, EngineTypeDockerDistroless, EngineTypeJvmSingleJar, EngineTypeJvmUnpacked:
+	case EngineTypeAwsLambda, EngineTypeDockerCore, EngineTypeDockerAll, EngineTypeDockerDistroless, EngineTypeJvmSingleJar, EngineTypeJvmUnpacked, EngineTypeGolang:
 		return nil
 	}
 	return fmt.Errorf("unsupported engine type: %v", engineType)

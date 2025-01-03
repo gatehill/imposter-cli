@@ -10,6 +10,7 @@ var localTypes = []engine.EngineType{
 	engine.EngineTypeDockerAll,
 	engine.EngineTypeDockerDistroless,
 	engine.EngineTypeJvmSingleJar,
+	engine.EngineTypeGolang,
 }
 
 func registerEngineTypeCompletions(cmd *cobra.Command, additionalTypes ...engine.EngineType) {
