@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.45.1] - 2025-01-03
+### Changed
+- build: ignore tool versions config.
+- chore(deps): bump github.com/spf13/cobra from 1.4.0 to 1.8.1
+- chore(deps): bump github.com/spf13/viper from 1.10.0 to 1.19.0
+- chore(deps): bump goreleaser/goreleaser-action from 5 to 6
+- refactor: place jvm binaries under their own subdirectory.
+
 ## [0.45.0] - 2024-11-20
 ### Added
 - feat: proxy can capture request body and headers.
