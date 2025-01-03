@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"gatehill.io/imposter/engine"
+	"gatehill.io/imposter/engine/procutil"
 	"gatehill.io/imposter/logging"
 )
 
@@ -100,13 +101,15 @@ func (g *GolangMockEngine) notifyOnStopBlocking(wg *sync.WaitGroup) {
 }
 
 func (g *GolangMockEngine) ListAllManaged() ([]engine.ManagedMock, error) {
-	// TODO: Implement process listing if required
-	return []engine.ManagedMock{}, nil
+	return procutil.FindImposterProcesses(matcher)
 }
 
 func (g *GolangMockEngine) StopAllManaged() int {
-	// TODO: Implement if required
-	return 0
+	count, err := procutil.StopManagedProcesses(matcher)
+	if err != nil {
+		logger.Fatal(err)
+	}
+	return count
 }
 
 func (g *GolangMockEngine) GetVersionString() (string, error) {
