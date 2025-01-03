@@ -17,16 +17,18 @@ limitations under the License.
 package main
 
 import (
+	"os"
+
 	"gatehill.io/imposter/cmd"
 	"gatehill.io/imposter/config"
 	awslambdaengine "gatehill.io/imposter/engine/awslambda"
 	"gatehill.io/imposter/engine/docker"
+	"gatehill.io/imposter/engine/golang"
 	"gatehill.io/imposter/engine/jvm"
 	"gatehill.io/imposter/logging"
 	"gatehill.io/imposter/remote/awslambda"
 	"gatehill.io/imposter/remote/cloudmocks"
 	"gatehill.io/imposter/stringutil"
-	"os"
 )
 
 const defaultLogLevel = "debug"
@@ -50,6 +52,7 @@ func main() {
 	docker.EnableEngine()
 	jvm.EnableSingleJarEngine()
 	jvm.EnableUnpackedDistroEngine()
+	golang.EnableEngine()
 
 	// remotes
 	awslambda.Register()
