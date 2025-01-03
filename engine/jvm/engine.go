@@ -18,15 +18,17 @@ package jvm
 
 import (
 	"fmt"
-	"gatehill.io/imposter/debounce"
-	"gatehill.io/imposter/engine"
-	"gatehill.io/imposter/logging"
-	"gatehill.io/imposter/plugin"
-	"github.com/sirupsen/logrus"
 	"os"
 	"strconv"
 	"strings"
 	"sync"
+
+	"gatehill.io/imposter/debounce"
+	"gatehill.io/imposter/engine"
+	"gatehill.io/imposter/engine/procutil"
+	"gatehill.io/imposter/logging"
+	"gatehill.io/imposter/plugin"
+	"github.com/sirupsen/logrus"
 )
 
 var logger = logging.GetLogger()
@@ -150,38 +152,15 @@ func (j *JvmMockEngine) notifyOnStopBlocking(wg *sync.WaitGroup) {
 }
 
 func (j *JvmMockEngine) ListAllManaged() ([]engine.ManagedMock, error) {
-	processes, err := findImposterJvmProcesses()
-	if err != nil {
-		logger.Fatal(err)
-	}
-	return processes, nil
+	return procutil.FindImposterProcesses(matcher)
 }
 
 func (j *JvmMockEngine) StopAllManaged() int {
-	processes, err := findImposterJvmProcesses()
+	count, err := procutil.StopManagedProcesses(matcher)
 	if err != nil {
 		logger.Fatal(err)
 	}
-	if len(processes) == 0 {
-		return 0
-	}
-	for _, proc := range processes {
-		pid, err := strconv.Atoi(proc.ID)
-		if err != nil {
-			logger.Fatal(err)
-		}
-		logger.Tracef("finding JVM process to kill with PID: %d", pid)
-		p, err := os.FindProcess(pid)
-		if err != nil {
-			logger.Fatal(err)
-		}
-		logger.Debugf("killing JVM process with PID: %d", pid)
-		err = p.Kill()
-		if err != nil {
-			logger.Warnf("error killing JVM process with PID: %d: %v", pid, err)
-		}
-	}
-	return len(processes)
+	return count
 }
 
 func (j *JvmMockEngine) GetVersionString() (string, error) {

@@ -17,6 +17,7 @@ var providerLogger = logging.GetLogger()
 const (
 	githubOwner = "imposter-project"
 	githubRepo  = "imposter-go"
+	binaryName  = "imposter-go"
 )
 
 var downloadConfig = library.DownloadConfig{
@@ -63,7 +64,7 @@ func ensureBinary(version string, policy engine.PullPolicy, binDir string) (stri
 
 func checkOrDownloadBinary(version string, policy engine.PullPolicy, binDir string) (string, error) {
 	// Get the binary path for this version
-	binaryPath := filepath.Join(binDir, "imposter")
+	binaryPath := filepath.Join(binDir, binaryName)
 	if policy == engine.PullSkip {
 		return binaryPath, nil
 	}
@@ -83,7 +84,7 @@ func checkOrDownloadBinary(version string, policy engine.PullPolicy, binDir stri
 	if err := downloadAndExtractBinary(version, binDir); err != nil {
 		return "", fmt.Errorf("failed to fetch binary: %v", err)
 	}
-	providerLogger.Tracef("using imposter at: %v", binaryPath)
+	providerLogger.Tracef("using imposter-go at: %v", binaryPath)
 	return binaryPath, nil
 }
 
@@ -114,6 +115,13 @@ func downloadAndExtractBinary(version string, binDir string) error {
 	cmd := exec.Command("tar", "xzf", downloadPath, "-C", binDir)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to extract binary: %v", err)
+	}
+
+	// Rename the extracted binary
+	oldPath := filepath.Join(binDir, "imposter")
+	newPath := filepath.Join(binDir, binaryName)
+	if err := os.Rename(oldPath, newPath); err != nil {
+		return fmt.Errorf("failed to rename binary: %v", err)
 	}
 
 	// Clean up the downloaded archive
@@ -149,5 +157,5 @@ func (p *Provider) GetStartCommand(args []string, env []string) *exec.Cmd {
 }
 
 func (p *Provider) getBinaryPath() string {
-	return filepath.Join(p.binDir, "imposter")
+	return filepath.Join(p.binDir, binaryName)
 }

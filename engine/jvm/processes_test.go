@@ -1,6 +1,10 @@
 package jvm
 
-import "testing"
+import (
+	"testing"
+
+	"gatehill.io/imposter/engine/procutil"
+)
 
 func Test_readArg(t *testing.T) {
 	type args struct {
@@ -43,7 +47,7 @@ func Test_readArg(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := readArg(tt.args.cmdline, tt.args.longArg, tt.args.shortArg); got != tt.want {
+			if got := procutil.ReadArg(tt.args.cmdline, tt.args.longArg, tt.args.shortArg); got != tt.want {
 				t.Errorf("readArg() = %v, want %v", got, tt.want)
 			}
 		})
