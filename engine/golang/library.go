@@ -1,11 +1,15 @@
 package golang
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
+
 	"gatehill.io/imposter/engine"
 	"gatehill.io/imposter/library"
 )
 
-const binCacheDir = "bin/golang"
+const binCacheDir = ".imposter/engines/golang"
 
 // Library implements the engine.EngineLibrary interface for the golang engine
 type Library struct {
@@ -22,12 +26,24 @@ func (l *Library) CheckPrereqs() (bool, []string) {
 }
 
 func (l *Library) List() ([]engine.EngineMetadata, error) {
-	return []engine.EngineMetadata{
-		{
-			EngineType: engine.EngineTypeGolang,
-			Version:    "latest",
-		},
-	}, nil
+	binCachePath, err := l.ensureBinCache()
+	if err != nil {
+		return nil, err
+	}
+	files, err := os.ReadDir(binCachePath)
+	if err != nil {
+		return nil, fmt.Errorf("error reading binary cache directory: %v: %v", binCachePath, err)
+	}
+	var available []engine.EngineMetadata
+	for _, file := range files {
+		if file.IsDir() {
+			available = append(available, engine.EngineMetadata{
+				EngineType: engine.EngineTypeGolang,
+				Version:    file.Name(),
+			})
+		}
+	}
+	return available, nil
 }
 
 func (l *Library) GetProvider(version string) engine.Provider {
@@ -35,7 +51,8 @@ func (l *Library) GetProvider(version string) engine.Provider {
 	if err != nil {
 		providerLogger.Fatal(err)
 	}
-	return NewProvider(version, binCachePath)
+	versionedBinDir := filepath.Join(binCachePath, version)
+	return NewProvider(version, versionedBinDir)
 }
 
 func (l *Library) IsSealedDistro() bool {

@@ -1,6 +1,8 @@
 package golang
 
 import (
+	"path/filepath"
+
 	"gatehill.io/imposter/engine"
 )
 
@@ -15,7 +17,13 @@ func EnableEngine() {
 			return NewLibrary()
 		})
 		engine.RegisterEngine(engine.EngineTypeGolang, func(configDir string, startOptions engine.StartOptions) engine.MockEngine {
-			provider := NewProvider(startOptions.Version, binCacheDir)
+			lib := NewLibrary()
+			binCachePath, err := lib.ensureBinCache()
+			if err != nil {
+				providerLogger.Fatal(err)
+			}
+			versionedBinDir := filepath.Join(binCachePath, startOptions.Version)
+			provider := NewProvider(startOptions.Version, versionedBinDir)
 			return NewGolangMockEngine(configDir, startOptions, provider)
 		})
 	}

@@ -102,8 +102,12 @@ func downloadAndExtractBinary(version string, binDir string) error {
 	goos := runtime.GOOS
 	if goos == "darwin" {
 		goos = "Darwin"
+	} else if goos == "linux" {
+		goos = "Linux"
+	} else if goos == "windows" {
+		goos = "Windows"
 	}
-	fileName := fmt.Sprintf("imposter_%s_%s.tar.gz", goos, arch)
+	fileName := fmt.Sprintf("imposter-go_%s_%s.tar.gz", goos, arch)
 	downloadPath := filepath.Join(binDir, fileName)
 
 	// Download the binary
@@ -115,13 +119,6 @@ func downloadAndExtractBinary(version string, binDir string) error {
 	cmd := exec.Command("tar", "xzf", downloadPath, "-C", binDir)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to extract binary: %v", err)
-	}
-
-	// Rename the extracted binary
-	oldPath := filepath.Join(binDir, "imposter")
-	newPath := filepath.Join(binDir, binaryName)
-	if err := os.Rename(oldPath, newPath); err != nil {
-		return fmt.Errorf("failed to rename binary: %v", err)
 	}
 
 	// Clean up the downloaded archive
