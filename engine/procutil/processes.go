@@ -21,7 +21,7 @@ type ProcessMatcher struct {
 	// CommandPattern is a regex pattern to match against command line arguments
 	CommandPattern string
 	// GetPort is a function that determines the port from command line arguments
-	GetPort func([]string) int
+	GetPort func(cmdline []string, env []string) int
 }
 
 // FindImposterProcesses finds all imposter processes matching the given matcher
@@ -44,12 +44,15 @@ func FindImposterProcesses(matcher ProcessMatcher) ([]engine.ManagedMock, error)
 		if !isImposterProc(cmdline, procName, matcher) {
 			continue
 		}
-		logger.Tracef("found %s Imposter process %d: %v", matcher.ProcessName, p.Pid, cmdline)
 
-		port := matcher.GetPort(cmdline)
-		if port == 0 {
-			port = 8080 // default port
+		env, err := p.Environ()
+		if err != nil {
+			logger.Warnf("error reading environment variables for process %d: %v", p.Pid, err)
+			env = []string{}
 		}
+		logger.Tracef("found %s Imposter process %d: %v, env: %v", matcher.ProcessName, p.Pid, cmdline, env)
+
+		port := matcher.GetPort(cmdline, env)
 
 		mock := engine.ManagedMock{
 			ID:   fmt.Sprintf("%d", p.Pid),

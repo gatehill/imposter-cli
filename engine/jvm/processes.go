@@ -3,14 +3,13 @@ package jvm
 import (
 	"strconv"
 
-	"gatehill.io/imposter/engine"
 	"gatehill.io/imposter/engine/procutil"
 )
 
 var matcher = procutil.ProcessMatcher{
 	ProcessName:    "java",
 	CommandPattern: "([/\\\\]imposter.*\\.jar$|^io.gatehill.imposter.cmd.ImposterLauncher$)",
-	GetPort: func(cmdline []string) int {
+	GetPort: func(cmdline []string, env []string) int {
 		portRaw := procutil.ReadArg(cmdline, "listenPort", "l")
 		if portRaw != "" {
 			if port, err := strconv.Atoi(portRaw); err == nil {
@@ -20,7 +19,7 @@ var matcher = procutil.ProcessMatcher{
 		if isTlsEnabled(cmdline) {
 			return 8443
 		}
-		return 0
+		return 8080
 	},
 }
 
@@ -32,8 +31,4 @@ func isTlsEnabled(cmdline []string) bool {
 		}
 	}
 	return false
-}
-
-func findImposterJvmProcesses() ([]engine.ManagedMock, error) {
-	return procutil.FindImposterProcesses(matcher)
 }

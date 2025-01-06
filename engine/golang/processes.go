@@ -2,6 +2,7 @@ package golang
 
 import (
 	"strconv"
+	"strings"
 
 	"gatehill.io/imposter/engine/procutil"
 )
@@ -9,15 +10,17 @@ import (
 var matcher = procutil.ProcessMatcher{
 	ProcessName:    "imposter-go",
 	CommandPattern: "imposter-go$",
-	GetPort: func(cmdline []string) int {
+	GetPort: func(cmdline []string, env []string) int {
 		// Check environment variables
-		for _, arg := range cmdline {
-			if portStr := procutil.ReadArg([]string{arg}, "IMPOSTER_PORT", ""); portStr != "" {
-				if port, err := strconv.Atoi(portStr); err == nil {
-					return port
-				}
+		for _, e := range env {
+			if !strings.HasPrefix(e, "IMPOSTER_PORT=") {
+				continue
+			}
+			portRaw := strings.TrimPrefix(e, "IMPOSTER_PORT=")
+			if port, err := strconv.Atoi(portRaw); err == nil {
+				return port
 			}
 		}
-		return 0
+		return 8080
 	},
 }
