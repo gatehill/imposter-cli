@@ -85,7 +85,7 @@ If you have Homebrew installed:
 Or, use this one liner (macOS and Linux only):
 
 ```shell
-curl -L https://raw.githubusercontent.com/gatehill/imposter-cli/main/install/install_imposter.sh | bash -
+curl -L https://raw.githubusercontent.com/imposter-project/imposter-cli/main/install/install_imposter.sh | bash -
 ```
 
 ## Usage

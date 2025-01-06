@@ -15,12 +15,12 @@
 # limitations under the License.
 
 # Imposter CLI installation
-# See: https://github.com/gatehill/imposter-cli
+# See: https://github.com/imposter-project/imposter-cli
 
 set -e
 
-BASE_URL="https://github.com/gatehill/imposter-cli/releases/download"
-LATEST_RELEASE_API="https://api.github.com/repos/gatehill/imposter-cli/releases/latest"
+BASE_URL="https://github.com/imposter-project/imposter-cli/releases/download"
+LATEST_RELEASE_API="https://api.github.com/repos/imposter-project/imposter-cli/releases/latest"
 
 function unsupported_arch() {
   echo "This OS/architecture is unsupported."
@@ -83,7 +83,7 @@ function find_version() {
         exit 1
       fi
 
-      IMPOSTER_CLI_VERSION="$( curl --fail --silent "${LATEST_RELEASE_API}" | jq -c '.tag_name' --raw-output )"
+      IMPOSTER_CLI_VERSION="$( curl --fail -L --silent "${LATEST_RELEASE_API}" | jq -c '.tag_name' --raw-output )"
     fi
 
     if [[ "${IMPOSTER_CLI_VERSION:0:1}" == "v" ]]; then
