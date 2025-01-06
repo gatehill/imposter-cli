@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.46.0] - 2025-01-06
+### Added
+- feat: adds golang engine.
+- feat: golang engine should use binary cache.
+- feat: golang engine supports list and stop.
+
+### Changed
+- chore: bumps gopsutil to v4.
+- refactor: aligns golang binary naming.
+
+### Fixed
+- fix: searches golang engine environment for port.
+
 ## [0.45.1] - 2025-01-03
 ### Changed
 - build: ignore tool versions config.
