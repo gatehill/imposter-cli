@@ -8,7 +8,7 @@ require (
 	github.com/coreos/go-semver v0.3.1
 	github.com/docker/docker v24.0.9+incompatible
 	github.com/docker/go-connections v0.5.0
-	github.com/google/uuid v1.4.0
+	github.com/google/uuid v1.6.0
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/radovskyb/watcher v1.0.7
 	github.com/shirou/gopsutil/v4 v4.24.12
