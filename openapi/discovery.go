@@ -72,7 +72,8 @@ func loadYamlAsJson(yamlFile string) ([]byte, error) {
 func isOpenApiSpec(jsonContent []byte) bool {
 	var spec map[string]interface{}
 	if err := json.Unmarshal(jsonContent, &spec); err != nil {
-		panic(err)
+		logger.Tracef("failed to unmarshal JSON: %v", err)
+		return false
 	}
 	return spec["openapi"] != nil || spec["swagger"] != nil
 }
