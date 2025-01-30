@@ -28,8 +28,9 @@ import (
 )
 
 type EngineTestFields struct {
-	ConfigDir string
-	Options   engine.StartOptions
+	ConfigDir     string
+	Options       engine.StartOptions
+	SkipCheckPort bool
 }
 
 type EngineTestScenario struct {
@@ -118,7 +119,10 @@ func List(t *testing.T, tests []EngineTestScenario, builder func(scenario Engine
 			require.Equal(t, 1, len(mocks), "expected 1 running mock")
 			require.NotNilf(t, mocks[0].ID, "mock id should be set")
 			require.NotNilf(t, mocks[0].Name, "mock name should be set")
-			require.Equal(t, mocks[0].Port, tt.Fields.Options.Port, "mock port should be correct")
+
+			if !tt.Fields.SkipCheckPort {
+				require.Equal(t, tt.Fields.Options.Port, mocks[0].Port, "mock port should be correct")
+			}
 		})
 	}
 }

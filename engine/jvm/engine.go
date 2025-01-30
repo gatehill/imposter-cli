@@ -60,10 +60,8 @@ func (j *JvmMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.Star
 
 	up := engine.WaitUntilUp(options.Port, j.shutDownC)
 
-	// watch in case container stops
-	go func() {
-		j.notifyOnStopBlocking(wg)
-	}()
+	// watch in case process stops
+	go j.notifyOnStopBlocking(wg)
 
 	return up
 }

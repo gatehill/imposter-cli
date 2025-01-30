@@ -5,4 +5,4 @@ resources:
     method: get
     response:
       statusCode: 200
-      staticData: "Hello world"
+      content: "Hello world"

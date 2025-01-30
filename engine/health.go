@@ -90,12 +90,12 @@ func WaitForUrl(desc string, url string, abortC chan bool) (success bool) {
 	})
 }
 
-func WaitForOp(desc string, timeout time.Duration, abortC chan bool, operation func() bool) (success bool) {
+func WaitForOp(desc string, timeoutDuration time.Duration, abortC chan bool, operation func() bool) (success bool) {
 	logger.Tracef("waiting for %s", desc)
 
 	successC := make(chan bool)
-	max := time.NewTimer(timeout)
-	defer max.Stop()
+	timeout := time.NewTimer(timeoutDuration)
+	defer timeout.Stop()
 
 	go func() {
 		for {
@@ -109,7 +109,7 @@ func WaitForOp(desc string, timeout time.Duration, abortC chan bool, operation f
 
 	finished := false
 	select {
-	case <-max.C:
+	case <-timeout.C:
 		finished = true
 		logger.Fatalf("timed out waiting for %s", desc)
 		return false

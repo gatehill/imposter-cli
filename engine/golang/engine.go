@@ -2,13 +2,15 @@ package golang
 
 import (
 	"fmt"
-	"os"
-	"os/exec"
-	"sync"
-
+	"gatehill.io/imposter/debounce"
 	"gatehill.io/imposter/engine"
 	"gatehill.io/imposter/engine/procutil"
 	"gatehill.io/imposter/logging"
+	"github.com/sirupsen/logrus"
+	"os"
+	"os/exec"
+	"strconv"
+	"sync"
 )
 
 var logger = logging.GetLogger()
@@ -19,6 +21,8 @@ type GolangMockEngine struct {
 	options   engine.StartOptions
 	provider  *Provider
 	cmd       *exec.Cmd
+	debouncer debounce.Debouncer
+	shutDownC chan bool
 }
 
 // NewGolangMockEngine creates a new instance of the golang mock engine
@@ -27,6 +31,8 @@ func NewGolangMockEngine(configDir string, options engine.StartOptions, provider
 		configDir: configDir,
 		options:   options,
 		provider:  provider,
+		debouncer: debounce.Build(),
+		shutDownC: make(chan bool),
 	}
 }
 
@@ -57,46 +63,71 @@ func (g *GolangMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.S
 		logger.Errorf("failed to start golang mock engine: %v", err)
 		return false
 	}
+	g.debouncer.Register(wg, strconv.Itoa(command.Process.Pid))
+	logger.Trace("starting golang mock engine")
 	g.cmd = command
 
-	wg.Add(1)
+	// watch in case process stops
+	up := engine.WaitUntilUp(options.Port, g.shutDownC)
+
 	go g.notifyOnStopBlocking(wg)
-	return true
+	return up
 }
 
 func (g *GolangMockEngine) Stop(wg *sync.WaitGroup) {
-	if g.cmd != nil && g.cmd.Process != nil {
-		logger.Debugf("stopping golang mock engine process: %d", g.cmd.Process.Pid)
-		if err := g.cmd.Process.Signal(os.Interrupt); err != nil {
-			logger.Warnf("error sending interrupt signal to golang mock engine: %v", err)
-			g.StopImmediately(wg)
-		}
+	if g.cmd == nil {
+		logger.Tracef("no process to remove")
+		wg.Done()
+		return
 	}
+	if logger.IsLevelEnabled(logrus.TraceLevel) {
+		logger.Tracef("stopping mock engine with PID: %v", g.cmd.Process.Pid)
+	} else {
+		logger.Info("stopping mock engine")
+	}
+
+	err := g.cmd.Process.Kill()
+	if err != nil {
+		logger.Fatalf("error stopping engine with PID: %d: %v", g.cmd.Process.Pid, err)
+	}
+	g.notifyOnStopBlocking(wg)
 }
 
 func (g *GolangMockEngine) StopImmediately(wg *sync.WaitGroup) {
-	if g.cmd != nil && g.cmd.Process != nil {
-		logger.Debugf("force stopping golang mock engine process: %d", g.cmd.Process.Pid)
-		if err := g.cmd.Process.Kill(); err != nil {
-			logger.Warnf("error killing golang mock engine process: %v", err)
-		}
-	}
+	go func() { g.shutDownC <- true }()
+	g.Stop(wg)
 }
 
 func (g *GolangMockEngine) Restart(wg *sync.WaitGroup) {
+	wg.Add(1)
 	g.Stop(wg)
-	g.Start(wg)
+
+	// don't pull again
+	restartOptions := g.options
+	restartOptions.PullPolicy = engine.PullSkip
+
+	g.startWithOptions(wg, restartOptions)
+	wg.Done()
 }
 
 func (g *GolangMockEngine) notifyOnStopBlocking(wg *sync.WaitGroup) {
-	defer wg.Done()
-	if g.cmd == nil {
-		return
+	if g.cmd == nil || g.cmd.Process == nil {
+		logger.Trace("no subprocess - notifying immediately")
+		g.debouncer.Notify(wg, debounce.AtMostOnceEvent{})
 	}
-	if err := g.cmd.Wait(); err != nil {
-		if _, ok := err.(*exec.ExitError); !ok {
-			logger.Errorf("error waiting for golang mock engine process: %v", err)
-		}
+	pid := strconv.Itoa(g.cmd.Process.Pid)
+	if g.cmd.ProcessState != nil && g.cmd.ProcessState.Exited() {
+		logger.Tracef("process with PID: %v already exited - notifying immediately", pid)
+		g.debouncer.Notify(wg, debounce.AtMostOnceEvent{Id: pid})
+	}
+	_, err := g.cmd.Process.Wait()
+	if err != nil {
+		g.debouncer.Notify(wg, debounce.AtMostOnceEvent{
+			Id:  pid,
+			Err: fmt.Errorf("failed to wait for process with PID: %v: %v", pid, err),
+		})
+	} else {
+		g.debouncer.Notify(wg, debounce.AtMostOnceEvent{Id: pid})
 	}
 }
 
@@ -113,5 +144,6 @@ func (g *GolangMockEngine) StopAllManaged() int {
 }
 
 func (g *GolangMockEngine) GetVersionString() (string, error) {
+	// TODO get from binary
 	return g.options.Version, nil
 }

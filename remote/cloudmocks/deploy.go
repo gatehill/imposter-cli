@@ -135,8 +135,8 @@ func (m CloudMocksRemote) waitForStatus(s string, shutDownC chan bool) bool {
 	logger.Infof("waiting for mock status to be: %s...", s)
 
 	finishedC := make(chan bool)
-	max := time.NewTimer(120 * time.Second)
-	defer max.Stop()
+	timeout := time.NewTimer(120 * time.Second)
+	defer timeout.Stop()
 
 	go func() {
 		for {
@@ -157,7 +157,7 @@ func (m CloudMocksRemote) waitForStatus(s string, shutDownC chan bool) bool {
 
 	finished := false
 	select {
-	case <-max.C:
+	case <-timeout.C:
 		finished = true
 		logger.Fatalf("timed out waiting for mock status to be: %s", s)
 		return false

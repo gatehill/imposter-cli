@@ -107,9 +107,7 @@ func (d *DockerMockEngine) startWithOptions(wg *sync.WaitGroup, options engine.S
 	up := engine.WaitUntilUp(options.Port, d.shutDownC)
 
 	// watch in case container stops
-	go func() {
-		notifyOnStopBlocking(d, wg, containerId, cli, ctx)
-	}()
+	go notifyOnStopBlocking(d, wg, containerId, cli, ctx)
 
 	return up
 }
