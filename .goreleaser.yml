@@ -1,4 +1,4 @@
-project_name: imposter
+project_name: imposter-cli
 before:
   hooks:
     # You may remove this if you don't use go modules.
@@ -6,7 +6,8 @@ before:
     # you may remove this if you don't need go generate
     - go generate ./...
 builds:
-  - env:
+  - binary: imposter
+    env:
       - CGO_ENABLED=0
     goos:
       - linux
@@ -17,7 +18,12 @@ builds:
       - arm
       - arm64
 archives:
-  - format_overrides:
+  - format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- tolower .Os }}_
+      {{- .Arch }}
+    format_overrides:
       - goos: windows
         format: zip
 checksum:
@@ -28,8 +34,8 @@ changelog:
   sort: asc
   filters:
     exclude:
-      - '^docs:'
-      - '^test:'
+      - Merge pull request
+      - Merge branch
 brews:
   -
     # Name template of the recipe
@@ -38,7 +44,7 @@ brews:
 
     # GOARM to specify which 32-bit arm version to use if there are multiple versions
     # from the build section. Brew formulas support atm only one 32-bit version.
-    # Default is 6 for all artifacts or each id if there a multiple versions.
+    # Default is 6 for all artifacts or each id if there are multiple versions.
     goarm: 6
 
     # NOTE: make sure the url_template, the token and given repo (github or gitlab) owner and name are from the
@@ -66,4 +72,4 @@ brews:
 
     # Template of your app's description.
     # Default is empty.
-    description: "Reliable, scriptable and extensible mock server for REST APIs, OpenAPI (and Swagger) specifications, Salesforce and HBase APIs."
+    description: "Reliable, scriptable and extensible mock server for REST APIs, OpenAPI (and Swagger) specifications, SOAP/WSDL web services, Salesforce and HBase APIs."

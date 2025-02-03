@@ -19,8 +19,7 @@
 
 set -e
 
-BASE_URL="https://github.com/imposter-project/imposter-cli/releases/download"
-LATEST_RELEASE_API="https://api.github.com/repos/imposter-project/imposter-cli/releases/latest"
+BASE_URL="https://github.com/imposter-project/imposter-cli/releases"
 
 function unsupported_arch() {
   echo "This OS/architecture is unsupported."
@@ -74,35 +73,27 @@ function find_os() {
     fi
 }
 
-function find_version() {
+function set_download_url() {
+    local BINARY_NAME="imposter-cli_${IMPOSTER_OS}_${IMPOSTER_ARCH}.tar.gz"
     if [[ -z "${IMPOSTER_CLI_VERSION}" ]]; then
-      echo "Attempting to determine latest version..."
-      if [[ ! $( command -v jq ) ]]; then
-        echo "Error: jq must be installed on your system in order to determine latest version."
-        echo "Either install jq or set the IMPOSTER_CLI_VERSION environment variable."
-        exit 1
-      fi
-
-      IMPOSTER_CLI_VERSION="$( curl --fail -L --silent "${LATEST_RELEASE_API}" | jq -c '.tag_name' --raw-output )"
+      echo "Using latest version..."
+      DOWNLOAD_URL="${BASE_URL}/latest/download/${BINARY_NAME}"
+    else
+      echo "Using version: ${IMPOSTER_CLI_VERSION}"
+      DOWNLOAD_URL="${BASE_URL}/download/v${IMPOSTER_CLI_VERSION}/${BINARY_NAME}"
     fi
-
-    if [[ "${IMPOSTER_CLI_VERSION:0:1}" == "v" ]]; then
-      IMPOSTER_CLI_VERSION="$( echo ${IMPOSTER_CLI_VERSION} | cut -c 2- )"
-    fi
-    echo "Using version: ${IMPOSTER_CLI_VERSION}"
 }
 
 find_os
 find_arch
-find_version
-DOWNLOAD_URL="${BASE_URL}/v${IMPOSTER_CLI_VERSION}/imposter_${IMPOSTER_CLI_VERSION}_${IMPOSTER_OS}_${IMPOSTER_ARCH}.tar.gz"
+set_download_url
 
-IMPOSTER_TEMP_DIR="$( mktemp -d /tmp/imposter.XXXXXXX )"
+IMPOSTER_TEMP_DIR="$( mktemp -d /tmp/imposter-cli.XXXXXXX )"
 cd "${IMPOSTER_TEMP_DIR}"
 
 echo -e "\nDownloading from ${DOWNLOAD_URL}"
-curl --fail -L -o imposter.tar.gz "${DOWNLOAD_URL}"
-tar xf imposter.tar.gz
+curl --fail -L -o imposter-cli.tar.gz "${DOWNLOAD_URL}"
+tar xf imposter-cli.tar.gz
 
 echo -e "\nInstalling to /usr/local/bin"
 cp ./imposter /usr/local/bin/imposter
